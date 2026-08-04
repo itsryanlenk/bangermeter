@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Bangermeter — Pre-Phoenix Algorithm Scorer",
+  "version": "0.5.0",
+  "description": "Scores tweets with the open-sourced X ranking fundamentals (pre-Phoenix heavy-ranker weights + earlybird content heuristics).",
+  "permissions": ["storage"],
+  "host_permissions": [],
+  "content_scripts": [
+    {
+      "matches": ["https://x.com/*", "https://twitter.com/*"],
+      "js": ["weights.js", "scoring.js", "content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Bangermeter"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

@@ -1,0 +1,11 @@
+# Local working files (research materials, notes) — not part of the shipped tool
+repo/
+*.zip
+.remember/
+.claude/
+ALGORITHM.md
+HANDOFF.md
+
+# OS noise
+Thumbs.db
+desktop.ini

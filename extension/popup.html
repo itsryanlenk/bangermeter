@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    :root {
+      --ts-black: #000000;
+      --ts-white: #FFFFFF;
+      --ts-cream: #F5F0E6;
+      --ts-yellow: #FFEB3B;
+      --ts-blue: #2196F3;
+      --ts-green: #2E7D32;
+      --ts-red: #C62828;
+      --ts-ink: #555555;
+      --ts-font-display: 'Archivo Black', 'Arial Black', Impact, sans-serif;
+      --ts-font-body: 'Space Grotesk', Arial, sans-serif;
+    }
+    body {
+      width: 340px;
+      margin: 0;
+      font-family: var(--ts-font-body);
+      font-size: 13px;
+      color: var(--ts-black);
+      background: var(--ts-cream);
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      background: var(--ts-black);
+      border-bottom: 3px solid var(--ts-black);
+    }
+    .bolt-box {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      background: var(--ts-yellow);
+      border: 2px solid var(--ts-black);
+      box-shadow: 2px 2px 0 var(--ts-white);
+      flex: none;
+    }
+    .bolt-box svg { width: 16px; height: 16px; }
+    h1 {
+      font-family: var(--ts-font-display);
+      font-weight: 400;
+      font-size: 16px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--ts-white);
+      margin: 0;
+    }
+    .sub {
+      font-size: 11px;
+      color: var(--ts-ink);
+      line-height: 1.45;
+      padding: 10px 14px 0;
+    }
+    section {
+      margin: 10px 14px;
+      padding: 12px;
+      background: var(--ts-white);
+      border: 2px solid var(--ts-black);
+      box-shadow: 4px 4px 0 var(--ts-black);
+    }
+    h2 {
+      font-family: var(--ts-font-display);
+      font-weight: 400;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin: 0 0 8px;
+    }
+    .setting {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 5px 0;
+    }
+    .setting label { flex: 1; cursor: pointer; }
+    input[type="checkbox"] {
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border: 3px solid var(--ts-black);
+      background: var(--ts-white);
+      cursor: pointer;
+      flex: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+    }
+    input[type="checkbox"]:checked { background: var(--ts-black); }
+    input[type="checkbox"]:checked::after {
+      content: '✓';
+      color: var(--ts-yellow);
+      font-size: 14px;
+      font-weight: 700;
+    }
+    input[type="checkbox"]:focus-visible {
+      outline: 3px solid var(--ts-blue);
+      outline-offset: 2px;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    td { padding: 3px 0; border-bottom: 2px solid var(--ts-cream); }
+    tr:last-child td { border-bottom: none; }
+    td.w {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+    }
+    td.prov { text-align: right; font-size: 10px; color: var(--ts-ink); width: 90px; }
+    .neg { color: var(--ts-red); }
+    .pos { color: var(--ts-green); }
+    .zero { color: #999; }
+    footer {
+      padding: 4px 14px 12px;
+      font-size: 10.5px;
+      color: var(--ts-ink);
+      line-height: 1.45;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="bolt-box">
+      <svg viewBox="0 0 24 24" fill="#000000" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>
+    </span>
+    <h1>Bangermeter</h1>
+  </header>
+  <div class="sub">Scores tweets with the pre-Phoenix X algorithm fundamentals
+    (open-source repo formulas + last published weights, validated against 2026 research).</div>
+
+  <section>
+    <h2>Settings</h2>
+    <div class="setting">
+      <label for="showBadges">Score badges on timeline tweets</label>
+      <input type="checkbox" id="showBadges">
+    </div>
+    <div class="setting">
+      <label for="scoreDrafts">Live meter in compose box</label>
+      <input type="checkbox" id="scoreDrafts">
+    </div>
+    <div class="setting">
+      <label for="assumeOutOfNetwork" title="Apply the ×0.75 out-of-network multiplier as if the viewer does not follow the author">Assume out-of-network view (×0.75)</label>
+      <input type="checkbox" id="assumeOutOfNetwork">
+    </div>
+  </section>
+
+  <section>
+    <h2>Active weight set</h2>
+    <table id="weightTable"></table>
+  </section>
+
+  <footer>
+    Weighted-sum formula per NaviModelScorer.scala; the same score skeleton is confirmed in
+    X's 2026 production code (xai-org/x-algorithm). Weights are the Mar 2023 published values —
+    the only sourced set; never-published heads are excluded. Relative score, not predicted reach.
+  </footer>
+
+  <script src="weights.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

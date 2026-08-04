@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Bangermeter — engine self-test</title>
+  <style>
+    body { font-family: Consolas, monospace; font-size: 13px; padding: 16px; background: #0f1419; color: #e7e9ea; }
+    .pass { color: #00ba7c; }
+    .fail { color: #f4212e; font-weight: bold; }
+    h1 { font-size: 16px; }
+    pre { background: #1c2732; padding: 8px; border-radius: 8px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>Bangermeter engine self-test (v0.5.0)</h1>
+  <div id="out"></div>
+  <script src="weights.js"></script>
+  <script src="scoring.js"></script>
+  <script>
+    var out = document.getElementById("out");
+    var passed = 0, failed = 0;
+    function check(name, cond, detail) {
+      var div = document.createElement("div");
+      div.className = cond ? "pass" : "fail";
+      div.textContent = (cond ? "PASS  " : "FAIL  ") + name + (detail ? "  [" + detail + "]" : "");
+      out.appendChild(div);
+      if (cond) passed++; else failed++;
+    }
+    function approx(a, b, eps) { return Math.abs(a - b) < (eps || 1e-9); }
+    var E = BangermeterEngine;
+
+    // parseCount
+    check("parseCount 1,234", E.parseCount("1,234") === 1234);
+    check("parseCount 12.3K", E.parseCount("12.3K") === 12300);
+    check("parseCount 4.5M", E.parseCount("4.5M") === 4500000);
+    check("parseCount empty", E.parseCount("") === null);
+
+    // naviScore exact math: fav only, w=0.5 p=0.01 -> 0.005 + eps
+    var r1 = E.naviScore({ fav: { weight: 0.5, p: 0.01 } });
+    check("navi positive adds epsilon", approx(r1.raw, 0.005 + 0.001), r1.raw);
+
+    // negative combined squashed into (0, eps): report w=-369 p=0.5 -> combined=-184.5
+    // negSum=369, total=369 -> (combined+negSum)/total*eps = (184.5/369)*0.001 = 0.0005
+    var r2 = E.naviScore({ reported: { weight: -369, p: 0.5 } });
+    check("navi negative squashed", approx(r2.raw, 0.0005), r2.raw);
+
+    // good_click max-combine: v1 p=0.1 w=11, v2 p=0.3 w=10
+    // v1 contribution uses max(0.1,0.3)=0.3 -> 3.3 ; v2 separately 3.0 ; total 6.3 + eps
+    var r3 = E.naviScore({
+      good_click_v1: { weight: 11, p: 0.1 },
+      good_click_v2: { weight: 10, p: 0.3 }
+    });
+    check("good_click max-combine", approx(r3.raw, 6.3 + 0.001), r3.raw);
+
+    // ageDecay: at age = halflife the sigmoid midpoint -> base + (1-base)/2 = 0.8
+    check("ageDecay midpoint at halflife", approx(E.ageDecayFactor(360), 0.8), E.ageDecayFactor(360));
+    check("ageDecay fresh > old", E.ageDecayFactor(0) > E.ageDecayFactor(2000));
+
+    // engagement score: baseline-rate tweet should land at exactly the midpoint (50)
+    var base = BANGERMETER_CONFIG.baselineP;
+    var views = 100000;
+    var eng = E.engagementScore({
+      counts: {
+        likes: Math.round(base.fav * views),
+        retweets: Math.round(base.retweet * views),
+        replies: Math.round(base.reply * views),
+        views: views
+      },
+      isReply: false
+    }, {});
+    check("engagement baseline = 50", eng.score === 50, eng.score);
+
+    // engagement: reply-heavy tweet outscores like-heavy tweet at same total count
+    var replyHeavy = E.engagementScore({ counts: { likes: 100, retweets: 0, replies: 400, views: 100000 } }, {});
+    var likeHeavy = E.engagementScore({ counts: { likes: 400, retweets: 0, replies: 100, views: 100000 } }, {});
+    check("reply-heavy > like-heavy (reply w=13.5)", replyHeavy.score > likeHeavy.score,
+      replyHeavy.score + " vs " + likeHeavy.score);
+
+    // engagement: reply rescorer x0.75 applied
+    var notReply = E.engagementScore({ counts: { likes: 200, retweets: 10, replies: 20, views: 50000 }, isReply: false }, {});
+    var asReply = E.engagementScore({ counts: { likes: 200, retweets: 10, replies: 20, views: 50000 }, isReply: true }, {});
+    check("reply rescorer x0.75", approx(asReply.raw, notReply.raw * 0.75, 1e-12),
+      asReply.raw + " vs " + notReply.raw);
+
+    // engagement unavailable without views
+    var noViews = E.engagementScore({ counts: { likes: 5, retweets: 1, replies: 0, views: null } }, {});
+    check("no views -> unavailable", noViews.available === false);
+
+    // SHRINKAGE REGRESSIONS (the "buh" bug): tiny samples must not scream.
+    // 1 reply + 1 like in 19 views used to cap at 100; now shrunk toward median.
+    var buh = E.engagementScore({ counts: { likes: 1, retweets: 0, replies: 1, views: 19 } }, {});
+    check("tiny sample can't hit 100 (buh case)", buh.score < 90 && buh.score > 50, buh.score);
+    check("tiny sample flagged lowSample", buh.lowSample === true && buh.smoothingNote !== null);
+
+    // Zero-engagement reply at 6 views: no evidence -> near median, x0.75 reply factor
+    var freshReply = E.engagementScore({ counts: { likes: 0, retweets: 0, replies: 0, views: 6 }, isReply: true }, {});
+    check("no-data reply sits near median x0.75", freshReply.score >= 38 && freshReply.score <= 48, freshReply.score);
+
+    // Genuinely viral rates at scale still max out
+    var viral = E.engagementScore({ counts: { likes: 2000, retweets: 300, replies: 500, views: 100000 } }, {});
+    check("large-sample viral still reaches 100", viral.score === 100 && viral.lowSample === false, viral.score);
+
+    // content score: plain median tweet ~= 50
+    var plain = E.contentScore({ text: "Just had a nice coffee this morning with an old friend in the city.", hasVideo: false, hasImage: false, hasExternalLink: false, hashtagCount: 0, isReply: false }, {});
+    check("plain tweet content ~50", plain.score >= 45 && plain.score <= 60, plain.score);
+
+    // question boosts reply head -> should beat plain
+    var question = E.contentScore({ text: "What single habit most improved your life this year?", hasVideo: false, hasImage: false, hasExternalLink: false, hashtagCount: 0, isReply: false }, {});
+    check("question > plain", question.score > plain.score, question.score + " vs " + plain.score);
+
+    // bare link penalized below plain
+    var bareLink = E.contentScore({ text: "example.com/post", hasVideo: false, hasImage: false, hasExternalLink: true, hashtagCount: 0, isReply: false }, {});
+    check("bare link < plain", bareLink.score < plain.score, bareLink.score + " vs " + plain.score);
+
+    // engagement bait penalized (raises negative_feedback P)
+    var bait = E.contentScore({ text: "Like if you agree! Follow me for more!", hasVideo: false, hasImage: false, hasExternalLink: false, hashtagCount: 0, isReply: false }, {});
+    check("bait < plain", bait.score < plain.score, bait.score + " vs " + plain.score);
+
+    // hashtag spam penalized
+    var tags = E.contentScore({ text: "Great day! #sun #fun #beach #vibes", hasVideo: false, hasImage: false, hasExternalLink: false, hashtagCount: 4, isReply: false }, {});
+    check("3+ hashtags < plain", tags.score < plain.score, tags.score + " vs " + plain.score);
+
+    // excluded heads contribute nothing: bookmark weight is 0
+    check("bookmark head excluded", BANGERMETER_CONFIG.heads.bookmark.weight === 0);
+
+    // scoreTweet composite shape
+    var full = E.scoreTweet({ text: "Hello", counts: { likes: 10, retweets: 1, replies: 2, views: 5000 }, hasVideo: false, hasImage: false, hasExternalLink: false, hashtagCount: 0, isReply: false, ageMinutes: 100 }, {});
+    check("scoreTweet returns content+engagement+age", full.content.available && full.engagement.available && full.ageDecay !== null);
+
+    var sum = document.createElement("h1");
+    sum.textContent = passed + " passed, " + failed + " failed";
+    sum.className = failed ? "fail" : "pass";
+    out.appendChild(sum);
+    document.title = (failed ? "FAIL " : "PASS ") + document.title;
+  </script>
+</body>
+</html>

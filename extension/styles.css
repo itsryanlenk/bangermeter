@@ -1,0 +1,333 @@
+/* Bangermeter — injected styles (neo-brutalist brand system)
+   Rules: hard shadows (no blur), 2-3px black borders, flat opaque colors,
+   sharp corners, physical hover feedback, high contrast. No gradients,
+   no transparency, no soft shadows. */
+
+:root {
+  --ts-black: #000000;
+  --ts-white: #FFFFFF;
+  --ts-cream: #F5F0E6;
+  --ts-red: #FF5252;
+  --ts-yellow: #FFEB3B;
+  --ts-blue: #2196F3;
+  --ts-green: #4CAF50;
+  --ts-orange: #FF9800;
+  --ts-ink: #555555;
+  /* Font stacks intentionally rely on locally-installed fonts with strong
+     fallbacks (Arial Black / Impact / Arial) — a content script should not
+     phone home to a font CDN. */
+  --ts-font-display: 'Archivo Black', 'Arial Black', Impact, sans-serif;
+  --ts-font-body: 'Space Grotesk', Arial, sans-serif;
+}
+
+/* ── Badge ─────────────────────────────────────────────────────────────── */
+
+.bangermeter-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 10px;
+  padding: 2px 7px;
+  border-radius: 0;
+  background: var(--ts-white);
+  border: 2px solid var(--ts-black);
+  box-shadow: 2px 2px 0 var(--ts-black);
+  font-family: var(--ts-font-body);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  color: var(--ts-black);
+  cursor: pointer;
+  user-select: none;
+  align-self: center;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.bangermeter-badge:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--ts-black);
+}
+.bangermeter-badge:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--ts-black);
+}
+.bangermeter-badge:focus-visible {
+  outline: 3px solid var(--ts-blue);
+  outline-offset: 2px;
+}
+
+.bangermeter-icon { display: inline-flex; align-items: center; }
+.bangermeter-icon svg { width: 12px; height: 12px; display: block; }
+
+.bangermeter-bolt-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: var(--ts-yellow);
+  border: 2px solid var(--ts-black);
+}
+.bangermeter-bolt-box svg { width: 10px; height: 10px; }
+
+/* Score chips: flat neo color + black text + black border */
+.bangermeter-seg {
+  padding: 0 4px;
+  border: 2px solid var(--ts-black);
+  color: var(--ts-black);
+  font-weight: 700;
+}
+.bangermeter-high { background: var(--ts-green); }
+.bangermeter-mid { background: var(--ts-yellow); }
+.bangermeter-low { background: var(--ts-red); }
+
+/* ── Breakdown panel ───────────────────────────────────────────────────── */
+
+.bangermeter-panel {
+  position: fixed;
+  z-index: 2147483647;
+  width: 380px;
+  max-height: 70vh;
+  overflow-y: auto;
+  background: var(--ts-white);
+  color: var(--ts-black);
+  border: 3px solid var(--ts-black);
+  border-radius: 0;
+  box-shadow: 8px 8px 0 var(--ts-black);
+  font-family: var(--ts-font-body);
+  font-size: 13px;
+  padding: 0 0 8px 0;
+}
+
+.bangermeter-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 3px solid var(--ts-black);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--ts-black);
+}
+.bangermeter-panel-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--ts-font-display);
+  font-weight: 400;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ts-white);
+}
+.bangermeter-panel-title .bangermeter-bolt-box { background: var(--ts-yellow); }
+
+.bangermeter-panel-close {
+  border: 2px solid var(--ts-black);
+  background: var(--ts-yellow);
+  color: var(--ts-black);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: 2px 2px 0 var(--ts-white);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.bangermeter-panel-close:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--ts-white);
+}
+.bangermeter-panel-close:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--ts-white);
+}
+.bangermeter-panel-close:focus-visible {
+  outline: 3px solid var(--ts-blue);
+  outline-offset: 2px;
+}
+
+.bangermeter-panel-section {
+  padding: 12px 14px;
+  border-bottom: 2px solid var(--ts-black);
+}
+.bangermeter-panel-section:last-child { border-bottom: none; }
+
+.bangermeter-panel-scorerow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.bangermeter-panel-scorelabel {
+  font-family: var(--ts-font-display);
+  font-weight: 400;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.bangermeter-panel-scoreval {
+  font-family: var(--ts-font-display);
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 1.2;
+  padding: 1px 10px;
+  border: 2px solid var(--ts-black);
+  box-shadow: 2px 2px 0 var(--ts-black);
+  margin-left: auto;
+}
+
+.bangermeter-sub {
+  font-size: 11.5px;
+  color: var(--ts-ink);
+  margin: 0 0 8px;
+  line-height: 1.4;
+}
+
+/* Contribution rows (inside "Show the math") */
+.bangermeter-contrib {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  min-height: 18px;
+}
+.bangermeter-contrib-bar {
+  position: absolute;
+  left: 0;
+  top: 2px;
+  bottom: 2px;
+  background: #C8E6C9;
+  border-radius: 0;
+  z-index: 0;
+}
+.bangermeter-contrib-bar.bangermeter-neg { background: #FFCDD2; }
+.bangermeter-contrib-label { position: relative; z-index: 1; flex: 1; font-size: 12px; }
+.bangermeter-contrib-val {
+  position: relative;
+  z-index: 1;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--ts-ink);
+}
+
+.bangermeter-subhead {
+  font-family: var(--ts-font-display);
+  font-weight: 400;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 8px 0 4px;
+}
+
+.bangermeter-mod { display: flex; gap: 6px; padding: 2px 0; font-size: 12.5px; align-items: baseline; }
+.bangermeter-mod-dir { width: 14px; text-align: center; font-weight: 700; }
+.bangermeter-up { color: #2E7D32; }
+.bangermeter-down { color: #C62828; }
+
+/* Rescorer callout: yellow highlight bar */
+.bangermeter-rescorer {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ts-black);
+  background: var(--ts-yellow);
+  border: 2px solid var(--ts-black);
+  padding: 2px 8px;
+}
+
+.bangermeter-unweighted { margin-top: 6px; font-size: 12px; color: var(--ts-ink); }
+.bangermeter-context {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.bangermeter-context .bangermeter-icon svg { width: 14px; height: 14px; }
+.bangermeter-fineprint { font-size: 11px; color: var(--ts-ink); margin-top: 6px; line-height: 1.4; }
+
+.bangermeter-plainrow {
+  display: flex;
+  gap: 7px;
+  padding: 3px 0;
+  font-size: 12.5px;
+  align-items: center;
+}
+.bangermeter-plainrow .bangermeter-icon svg { width: 14px; height: 14px; }
+.bangermeter-worth { color: var(--ts-ink); font-size: 11.5px; }
+
+/* Expandable math sections */
+.bangermeter-math { margin-top: 10px; }
+.bangermeter-math summary {
+  cursor: pointer;
+  font-family: var(--ts-font-display);
+  font-weight: 400;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--ts-blue);
+  user-select: none;
+  list-style: none;
+}
+.bangermeter-math summary:hover { text-decoration: underline; }
+.bangermeter-math summary::-webkit-details-marker { display: none; }
+.bangermeter-math summary::before { content: "+ "; }
+.bangermeter-math[open] summary::before { content: "− "; }
+
+/* ── Compose meter ─────────────────────────────────────────────────────── */
+
+.bangermeter-meter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 4px;
+  font-family: var(--ts-font-body);
+  font-size: 12px;
+  color: var(--ts-black);
+}
+.bangermeter-meter.bangermeter-hidden { display: none; }
+.bangermeter-meter-track {
+  flex: 0 0 90px;
+  height: 12px;
+  border-radius: 0;
+  background: var(--ts-white);
+  border: 2px solid var(--ts-black);
+  box-shadow: 2px 2px 0 var(--ts-black);
+  overflow: hidden;
+}
+.bangermeter-meter-fill { height: 100%; border-radius: 0; transition: width 0.2s ease; }
+.bangermeter-fill-high { background: var(--ts-green); }
+.bangermeter-fill-mid { background: var(--ts-yellow); }
+.bangermeter-fill-low { background: var(--ts-red); }
+.bangermeter-meter-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+}
+.bangermeter-meter-hints {
+  display: flex;
+  gap: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Motion preferences ────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .bangermeter-badge, .bangermeter-panel-close, .bangermeter-meter-fill {
+    transition: none;
+  }
+  .bangermeter-badge:hover, .bangermeter-panel-close:hover {
+    transform: none;
+  }
+}
