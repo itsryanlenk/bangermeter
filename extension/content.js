@@ -345,6 +345,12 @@
       rrow.title = r.label;
       sec1.appendChild(rrow);
     });
+    if (result.features.isReply) {
+      var bangNote = el("div", "bangermeter-sub",
+        "Replies are also ineligible for X's Grok “banger screen” — only original posts get " +
+        "the viral quality gate (shipped 2026 code).");
+      sec1.appendChild(bangNote);
+    }
 
     var d1 = mathDetails();
     d1.appendChild(el("div", "bangermeter-fineprint",
@@ -374,7 +380,7 @@
           worth: "the baseline unit",
           tip: "Weight 0.5" },
         { icon: "bookmark", n: counts.bookmarks, one: "bookmark", many: "bookmarks",
-          worth: "not counted — X never published a value",
+          worth: "≈ a “quiet like” (Musk) — never weighted publicly",
           tip: (BANGERMETER_CONFIG.heads.bookmark.note || "") }
       ].forEach(function (r) {
         if (r.n == null) return;
@@ -426,6 +432,36 @@
       fresh.title = "Earlybird age-decay sigmoid: base 0.6, halflife 360 min, slope 0.003";
       sec3.appendChild(fresh);
     }
+    // Grade-A facts for the never-published heads (Aug 2026 deep research) —
+    // facts only, none of these enters the score.
+    var F = BANGERMETER_CONFIG.sourcedFacts;
+    var d4 = mathDetails("Sourced signals without published weights");
+    [
+      "▲ Shares — officially positive; DM-forwarding is “one of the strongest signals” (Musk, Sep 2024). No number ever published.",
+      "▲ Bookmarks — ≈ a “quiet like” per Musk (Jan 2023); dropped from the 2026 head roster. 10×/20× claims are folklore.",
+      "▲ Dwell — positive by structure. What counts (shipped constants): click ≥" +
+        F.thresholds.goodClickSeconds + "s, profile visit ≥" + F.thresholds.goodProfileClickSeconds +
+        "s, detail page ≥" + F.thresholds.detailDwellSeconds + "s, profile dwell ≥" +
+        F.thresholds.profileDwellSeconds + "s, conversation ≥" + F.thresholds.convoDwellSeconds + "s.",
+      "▼ Scroll-past — “not_dwelled” is an explicit negative head in 2026 production (direction sourced, value redacted).",
+      "▼ Strong/weak negative feedback — provably negative-only (shipped bounds −1000…0); report's allowed floor is 20× deeper.",
+      "· Grok banger screen (2026): quality_score ≥ " + F.grox.qualityGate +
+        " gates viral distribution; original posts only — replies ineligible.",
+      "· 2026 scorer structure: " + F.phoenix2026.headCount +
+        " heads; any net-negative post ranks below every net-positive post."
+    ].forEach(function (line) {
+      var mark = line.charAt(0);
+      var row = el("div", "bangermeter-mod");
+      row.appendChild(el("span", "bangermeter-mod-dir" +
+        (mark === "▼" ? " bangermeter-down" : mark === "▲" ? " bangermeter-up" : ""), mark));
+      row.appendChild(el("span", "bangermeter-mod-label", line.slice(2)));
+      d4.appendChild(row);
+    });
+    d4.appendChild(el("div", "bangermeter-fineprint",
+      "Shipped-code and official-statement facts (Aug 2026 deep research). None carries a " +
+      "published weight, so none is included in the score."));
+    sec3.appendChild(d4);
+
     var d3 = mathDetails("About these scores");
     d3.appendChild(el("div", "bangermeter-fineprint", BANGERMETER_CONFIG.contextNotes.phoenix));
     d3.appendChild(el("div", "bangermeter-fineprint",

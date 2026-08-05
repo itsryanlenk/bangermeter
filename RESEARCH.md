@@ -76,6 +76,69 @@ August 2026), plus live backtesting notes.
 | Earlybird multiple-hashtags penalty | **changed by Phoenix** | Exists in code, magnitude never published; "−40%" is folklore. Direction (3+) plausible |
 | Earlybird offensive/text-quality | **changed by Phoenix** | Retired in production ("eliminated every single hand-engineered feature"); safety now via Grox |
 
+## Deep-dive: the seven never-published heads (Aug 2026)
+
+A second research pass focused exclusively on the heads that have never had a published
+weight (bookmark, share, share_menu_click, tweet_detail_dwell, profile_dwell, strong/weak
+negative feedback), including direct raw-file verification of the xai-org tree and a hunt
+through the runnable mini-Phoenix release. Evidence grades: **A** = shipped code/official
+number · **B** = official qualitative statement · **C** = rigorous third-party estimation ·
+**D** = folklore.
+
+**Bottom line: zero of the seven has a production numeric weight above grade D, and no
+rigorous third-party estimate exists anywhere.** The algorithmic-audit literature (FAccT
+2025 sock-puppet audit, ICWSM 2026, Milli et al.) measures exposure outcomes, never
+per-head weights. So none of these ships a number — but the pass surfaced real findings:
+
+| Head | Best evidence | What's actually sourced |
+|---|---|---|
+| bookmark | B | Musk (Jan 2023): a bookmark is a "de facto silent like" — ≈ like-equivalence, directly contradicting "10×/20×" folklore. Confirmed absent from the 2026 roster. |
+| share | A (sign) | Officially positive (xai-org README). Musk (Sep 2024): DM-forwarding is "one of the strongest signals". 2026 splits it into three separately-weighted heads (share / via-DM / copy-link). |
+| share_menu_click | none | No number, no statement, no 2026 successor head. Stays excluded. |
+| tweet_detail_dwell | A (structure) | ≥15s threshold is a shipped constant; dwell buckets bounded non-negative; the "+10 dwell" figure is folklore. |
+| profile_dwell | A (structure) | ≥20s threshold shipped; no named 2026 head — folded into the dwell/profile-click family. |
+| strong_negative_feedback | A (sign) | Shipped bounds **[−1000, 0]** prove it can only be negative; report's floor is **[−20000, 0]** — 20× deeper, the only sourced relative-magnitude hint. |
+| weak_negative_feedback | A (sign) | Same bounds posture; action mapping never published. |
+
+**Folklore traced to its source:** the circulating "block −120 / mute −100" numbers
+originate from an unaffiliated fan site (x-algorithm-six.vercel.app) presenting invented
+values alongside recycled 2023 ratios; competing pages circulate mutually-contradictory
+inventions ("block −75", "−1000×"). None cites a code path.
+
+**Genuinely new grade-A facts this pass surfaced:**
+
+- **The exact 2026 head roster (19 heads, verified verbatim in `weighted_scorer.rs`):**
+  favorite, reply, retweet, photo_expand, click, profile_click, vqv, share, share_via_dm,
+  share_via_copy_link, dwell, quote, quoted_click, cont_dwell_time, follow_author,
+  not_interested, block_author, mute_author, report. Bookmark and reply_engaged_by_author
+  confirmed dropped; `quoted_click` was previously uncatalogued.
+- **Scroll-past is an explicit penalty:** `not_dwelled` is a negative-weighted head in
+  `ranking_scorer.rs` (direction sourced, value redacted).
+- **Sourced interaction thresholds** (constants, not weights — displayable as facts):
+  a click "counts" at ≥2s post-click dwell, good profile click at ≥10s, detail-page dwell
+  at ≥15s, profile dwell at ≥20s, conversation dwell at ≥60s, good-click-v2 at ≥2min.
+- **The Grox banger gate:** `quality_score ≥ 0.4` (0–1 scale) marks a post
+  banger-positive; **only original posts are eligible — replies are excluded** from the
+  banger screen (`banger_initial_screen.py`, `task_filters.py`). The slop_score rubric
+  remains unpublished (prompt templates scrubbed from the repo).
+- **Net-negative posts rank below all net-positive posts:** `offset_score()` compresses
+  any net-negative combined score into a band strictly below every net-positive post.
+- **Blocks/mutes are filters, not weights, for users who already acted:** existing
+  blocks/mutes remove candidates before scoring; the negative *weights* apply only to
+  *predicted* P(block)/P(mute) of users who haven't acted yet.
+- **The mini-Phoenix demo leaks a combiner — but it's a demo:** `run_pipeline.py`
+  scores `P(fav)·1.0 + P(reply)·0.5 + P(retweet)·0.3 + P(dwell)·0.2`. Real xAI code,
+  but it weights only 4 of 19 heads and inverts the 2023 production ordering
+  (reply 27× fav), so it establishes only that dwell is positive-and-smallest in the
+  demo — it is not a production weight set.
+- **The redaction is airtight and deliberate:** the published home-mixer crate cannot
+  compile (`lib.rs` declares no `mod params`), and GitHub issues are disabled on
+  xai-org/x-algorithm — there is no channel through which the weights can leak short of
+  an official release.
+
+Bangermeter ships all of the above as labeled facts and directional signals; the score
+itself remains built exclusively from the 2023 published weight set.
+
 ## The weight set Bangermeter uses (extension/weights.js)
 
 fav 0.5 · retweet 1.0 · reply 13.5 · good_profile_click 12.0 · good_click_v1 11.0 (max with

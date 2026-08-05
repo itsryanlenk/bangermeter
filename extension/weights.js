@@ -34,15 +34,54 @@ var BANGERMETER_CONFIG = {
     video_playback_50: { weight: 0.005, provenance: "2023-published", label: "Video 50% watch" },
     negative_feedback_v2: { weight: -74.0, provenance: "2023-published", label: "Negative feedback" },
     reported: { weight: -369.0, provenance: "2023-published", label: "Reports" },
-    // Never-published heads — excluded from score, surfaced as unweighted signals.
+    // Never-published heads — excluded from the score, surfaced as sourced signals.
+    // Deep-dive (Aug 2026) verdict: no number above folklore grade exists for ANY of
+    // these; what IS sourced is direction, structure, and a few official statements.
     bookmark: { weight: 0, provenance: "excluded", label: "Bookmarks",
-      note: "No published value; dropped from the 2026 head roster entirely." },
-    share: { weight: 0, provenance: "excluded", label: "Shares" },
-    share_menu_click: { weight: 0, provenance: "excluded", label: "Share menu clicks" },
-    tweet_detail_dwell: { weight: 0, provenance: "excluded", label: "Detail dwell 15s" },
-    profile_dwell: { weight: 0, provenance: "excluded", label: "Profile dwell 20s" },
-    strong_negative_feedback: { weight: 0, provenance: "excluded", label: "Strong negative" },
-    weak_negative_feedback: { weight: 0, provenance: "excluded", label: "Weak negative" }
+      note: "Never numerically published. Musk (Jan 2023): a bookmark is a 'de facto silent like' — ≈1 like, official statement, not a shipped number. Dropped from the 2026 Phoenix roster. '10×/20×' claims are folklore." },
+    share: { weight: 0, provenance: "excluded", label: "Shares",
+      note: "Weight redacted, but officially POSITIVE (xai-org README). Musk (Sep 2024): forwarding a post to friends is 'one of the strongest signals'. 2026 has three separate share heads (share / via-DM / copy-link)." },
+    share_menu_click: { weight: 0, provenance: "excluded", label: "Share menu clicks",
+      note: "Never published and no successor head exists in the 2026 roster." },
+    tweet_detail_dwell: { weight: 0, provenance: "excluded", label: "Detail dwell 15s",
+      note: "Never published. Positive by structure; fires at ≥15s on the detail page (shipped constant). The '+10 dwell' figure is folklore." },
+    profile_dwell: { weight: 0, provenance: "excluded", label: "Profile dwell 20s",
+      note: "Never published. Fires at ≥20s (shipped constant). No named head in 2026 — folded into the dwell/profile-click family." },
+    strong_negative_feedback: { weight: 0, provenance: "excluded", label: "Strong negative",
+      note: "Value never published, but shipped param bounds [-1000, 0] prove it can only be negative. Report's allowed floor is 20× deeper (-20000). 'Block -120 / mute -100' trace to a fan-site fabrication." },
+    weak_negative_feedback: { weight: 0, provenance: "excluded", label: "Weak negative",
+      note: "Same posture as strong negative: negative-only by shipped bounds [-1000, 0]; value and action-mapping never published." }
+  },
+
+  // Grade-A facts with no published weights — displayable as FACTS in the UI,
+  // never fed into the score (deep-dive research, Aug 2026).
+  sourcedFacts: {
+    thresholds: {
+      goodClickSeconds: 2,
+      goodProfileClickSeconds: 10,
+      detailDwellSeconds: 15,
+      profileDwellSeconds: 20,
+      convoDwellSeconds: 60,
+      goodClickV2Seconds: 120,
+      provenance: "shipped constants: signal.thrift, PredictedScoreFeature.scala, CombinedFeatures.scala"
+    },
+    grox: {
+      qualityGate: 0.4,
+      repliesIneligible: true,
+      provenance: "grox/classifiers/content/banger_initial_screen.py:129 + task_filters.py (xai-org, May 2026)"
+    },
+    negativeBounds: {
+      strongWeakFloor: -1000,
+      reportFloor: -20000,
+      provenance: "HomeGlobalParams.scala shipped FSBoundedParam bounds (Sept 2025)"
+    },
+    phoenix2026: {
+      headCount: 19,
+      notDwelledIsNegative: true,
+      offsetRule: "any net-negative post ranks below every net-positive post",
+      dmShareStatement: "Musk (Sep 2024): forwarding posts to friends is 'one of the strongest signals'",
+      provenance: "weighted_scorer.rs / ranking_scorer.rs / README (xai-org, 2026)"
+    }
   },
 
   epsilon: 0.001, // NaviModelScorer.Epsilon
