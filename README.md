@@ -45,10 +45,10 @@ with direction and provenance, rescoring factors (reply ×0.75, optional out-of-
   original March 31 table had reply=27 before X retuned it within five days — weights are
   "periodically adjusted" by X's own admission). Heads that never had a published value
   (bookmark, share, dwell, …) are **excluded**, not guessed, and shown as sourced signals.
-- **Two archival-sourced factors** (leak-hunt research, Aug 2026): verified authors get the
+- **Two archival-sourced factors** (leak-hunt research, Aug 2026): an OPT-IN toggle applies the
   2023-era **×4 in-network / ×2 out-of-network** multiplier recovered from the archived
-  initial-release commit (`ec83d01dca`, removed from X's code Sept 2025, labeled as
-  historical), and posts with a displayed **Community Note** get ×0.5 on the prospective
+  initial-release commit (`ec83d01dca`, removed from X's code Sept 2025 — off by default
+  since it floors every verified author near the top of the scale), and posts with a displayed **Community Note** get ×0.5 on the prospective
   score (sourced range 0.4–0.55 from X's own A/B test, Nature Communications, and PNAS
   causal studies).
 - **No folklore numbers.** "Links −30–50%", "3+ hashtags −40%", "bookmark 20×", "retweet
@@ -79,7 +79,7 @@ with direction and provenance, rescoring factors (reply ×0.75, optional out-of-
 | `extension/weights.js` | Single source of truth: weight layer + estimator layer, all provenance-tagged |
 | `extension/scoring.js` | Pure scoring engine (exact repo math) |
 | `extension/content.js` | Badges, breakdown panel, compose meter |
-| `extension/test.html` | Engine self-test — open in any browser (29 assertions) |
+| `extension/test.html` | Engine self-test — open in any browser (33 assertions) |
 | `extension/fixture.html` | X-DOM fixture harness for the content script |
 | `extension/bangermeter.user.js` | Single-file Tampermonkey/Greasemonkey build of the same tool |
 
@@ -93,7 +93,7 @@ against the current production structure in
 
 ## Verification status
 
-- Engine math: **29/29 self-tests pass** (`test.html`), including small-sample shrinkage
+- Engine math: **33/33 self-tests pass** (`test.html`), including small-sample shrinkage
   regressions and the verified-author / Community-Note factors.
 - Content script (badges, panel, meter, virtualized-list handling, quote-tweet scoping):
   **verified against the DOM fixture** (`fixture.html`).

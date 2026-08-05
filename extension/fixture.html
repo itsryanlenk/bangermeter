@@ -18,7 +18,7 @@
   </style>
 </head>
 <body>
-  <h3 style="max-width:560px;margin:0 auto 12px;">Fixture harness v7 (Bangermeter) — replicates X DOM structure</h3>
+  <h3 style="max-width:560px;margin:0 auto 12px;">Fixture harness v8 (Bangermeter) — replicates X DOM structure</h3>
 
   <!-- Compose box replica -->
   <div class="compose">
@@ -105,6 +105,21 @@
       <button data-testid="reply" aria-label="40 Replies. Reply">💬 40</button>
       <button data-testid="retweet" aria-label="20 reposts. Repost">🔁 20</button>
       <button data-testid="like" aria-label="150 Likes. Like">❤ 150</button>
+    </div>
+  </article>
+
+  <!-- 7: REGRESSION (user report 2026-08-05): verified author, GIF, 58 views, ZERO engagement.
+       Must NOT score ~C100/E99. -->
+  <article data-testid="tweet" id="t7">
+    <div data-testid="User-Name"><span class="name">Ryan</span>
+      <svg data-testid="icon-verified" width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#1d9bf0"/></svg>
+      <a href="/ryan/status/1007"><time datetime="2026-08-03T15:00:00.000Z">Aug 3</time></a></div>
+    <div data-testid="tweetText">me</div>
+    <div data-testid="videoPlayer" class="media">GIF</div>
+    <div role="group" aria-label="58 views">
+      <button data-testid="reply" aria-label="0 Replies. Reply">💬</button>
+      <button data-testid="retweet" aria-label="0 reposts. Repost">🔁</button>
+      <button data-testid="like" aria-label="0 Likes. Like">❤</button>
     </div>
   </article>
 

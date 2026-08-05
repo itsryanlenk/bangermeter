@@ -104,7 +104,12 @@ var BANGERMETER_CONFIG = {
     // Recovered from the ARCHIVED initial release commit ec83d01dca (leak-hunt, Aug 2026):
     // the only real numeric multipliers ever in serving code. Removed in the Sept 2025
     // re-release — applied here as an explicitly historical 2023-era factor.
+    // OFF BY DEFAULT (field regression 2026-08-05): with the score normalized against an
+    // unverified median baseline, a default-on ×4 floors every verified author near 99
+    // and erases all differentiation. The multiplier is also 2023-era code REMOVED from
+    // the Sept 2025 snapshot this tool targets — so it ships as an opt-in historical mode.
     blueVerified: { inNetwork: 4.0, outOfNetwork: 2.0, provenance: "2023-archived-commit",
+      enabledBySetting: "applyVerifiedBoost2023",
       label: "Verified author boost",
       note: "BlueVerifiedAuthorInNetworkMultiplier 4.0 / OutOfNetwork 2.0 at commit ec83d01dca; removed Sept 2025." },
     // Community Notes: scoring fully open (crhThreshold 0.40 etc.); the engagement effect
@@ -193,5 +198,6 @@ var BANGERMETER_CONFIG = {
 var BANGERMETER_DEFAULT_SETTINGS = {
   showBadges: true,
   scoreDrafts: true,
-  assumeOutOfNetwork: false
+  assumeOutOfNetwork: false,
+  applyVerifiedBoost2023: false
 };

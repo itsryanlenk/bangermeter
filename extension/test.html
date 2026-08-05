@@ -106,17 +106,30 @@
     var base = { text: "Hello world, a normal update today.", hasVideo: false, hasImage: false,
       hasExternalLink: false, hashtagCount: 0, isReply: false };
     var vNo = E.contentScore(base, {});
-    var vYes = E.contentScore(Object.assign({}, base, { isVerified: true }), {});
-    check("verified x4 on content raw", approx(vYes.raw, vNo.raw * 4.0, 1e-12), vYes.raw.toFixed(4));
-    var vOon = E.contentScore(Object.assign({}, base, { isVerified: true }), { assumeOutOfNetwork: true });
+    // DEFAULT OFF (field regression 2026-08-05: default-on x4 floored every verified
+    // author near 99): verified must change NOTHING unless the setting is on.
+    var vDefault = E.contentScore(Object.assign({}, base, { isVerified: true }), {});
+    check("verified is a NO-OP by default", vDefault.raw === vNo.raw, vDefault.raw.toFixed(4));
+    var vYes = E.contentScore(Object.assign({}, base, { isVerified: true }), { applyVerifiedBoost2023: true });
+    check("verified x4 on content when opted in", approx(vYes.raw, vNo.raw * 4.0, 1e-12), vYes.raw.toFixed(4));
+    var vOon = E.contentScore(Object.assign({}, base, { isVerified: true }), { assumeOutOfNetwork: true, applyVerifiedBoost2023: true });
     check("verified OON = x0.75 then x2.0", approx(vOon.raw, vNo.raw * 0.75 * 2.0, 1e-12), vOon.raw.toFixed(4));
     var noted = E.contentScore(Object.assign({}, base, { hasCommunityNote: true }), {});
     check("community note x0.5 on content", approx(noted.raw, vNo.raw * 0.5, 1e-12), noted.raw.toFixed(4));
     var engPlain = E.engagementScore({ counts: { likes: 100, retweets: 5, replies: 10, views: 50000 } }, {});
     var engNoted = E.engagementScore({ counts: { likes: 100, retweets: 5, replies: 10, views: 50000 }, hasCommunityNote: true }, {});
     check("community note NOT applied to engagement", engNoted.raw === engPlain.raw, engNoted.raw.toFixed(4));
-    var engVerified = E.engagementScore({ counts: { likes: 100, retweets: 5, replies: 10, views: 50000 }, isVerified: true }, {});
-    check("verified x4 on engagement raw", approx(engVerified.raw, engPlain.raw * 4.0, 1e-12), engVerified.raw.toFixed(4));
+    var engVDefault = E.engagementScore({ counts: { likes: 100, retweets: 5, replies: 10, views: 50000 }, isVerified: true }, {});
+    check("verified engagement NO-OP by default", engVDefault.raw === engPlain.raw, engVDefault.raw.toFixed(4));
+    var engVerified = E.engagementScore({ counts: { likes: 100, retweets: 5, replies: 10, views: 50000 }, isVerified: true }, { applyVerifiedBoost2023: true });
+    check("verified x4 on engagement when opted in", approx(engVerified.raw, engPlain.raw * 4.0, 1e-12), engVerified.raw.toFixed(4));
+
+    // THE EXACT USER-REPORTED CASE: verified, GIF/video, 58 views, zero engagement.
+    // Was C100/E~99; must now sit near the median (shrinkage: no data -> ~baseline).
+    var userCase = E.engagementScore({ counts: { likes: 0, retweets: 0, replies: 0, views: 58 }, isVerified: true, hasVideo: true }, {});
+    check("zero-engagement verified post scores ~median", userCase.score >= 44 && userCase.score <= 52, userCase.score);
+    var userContent = E.contentScore({ text: "me", hasVideo: true, isVerified: true }, {});
+    check("zero-signal verified content ~median", userContent.score >= 45 && userContent.score <= 58, userContent.score);
 
     // content score: plain median tweet ~= 50
     var plain = E.contentScore({ text: "Just had a nice coffee this morning with an old friend in the city.", hasVideo: false, hasImage: false, hasExternalLink: false, hashtagCount: 0, isReply: false }, {});

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangermeter — Pre-Phoenix Algorithm Scorer
 // @namespace    bangermeter
-// @version      1.5.0
+// @version      1.5.1
 // @description  Scores tweets with the open-sourced pre-Phoenix X ranking fundamentals (exact NaviModelScorer math + last published weights, 2026-research-validated).
 // @match        https://x.com/*
 // @match        https://twitter.com/*
@@ -11,7 +11,8 @@
 
 // Single-file build generated from extension/ (weights.js + scoring.js + content.js + styles.css).
 // The settings popup is not available in the userscript version; defaults apply
-// (badges ON, draft meter ON, out-of-network assumption OFF — edit BANGERMETER_DEFAULT_SETTINGS below to change).
+// (badges ON, draft meter ON, out-of-network OFF, 2023 verified boost OFF — edit
+// BANGERMETER_DEFAULT_SETTINGS below to change).
 (function () {
   var s = document.createElement('style');
   s.textContent = "/* Bangermeter — injected styles (neo-brutalist brand system)\n   Rules: hard shadows (no blur), 2-3px black borders, flat opaque colors,\n   sharp corners, physical hover feedback, high contrast. No gradients,\n   no transparency, no soft shadows. */\n\n:root {\n  --ts-black: #000000;\n  --ts-white: #FFFFFF;\n  --ts-cream: #F5F0E6;\n  --ts-red: #FF5252;\n  --ts-yellow: #FFEB3B;\n  --ts-blue: #2196F3;\n  --ts-green: #4CAF50;\n  --ts-orange: #FF9800;\n  --ts-ink: #555555;\n  /* Font stacks intentionally rely on locally-installed fonts with strong\n     fallbacks (Arial Black / Impact / Arial) — a content script should not\n     phone home to a font CDN. */\n  --ts-font-display: \u0027Archivo Black\u0027, \u0027Arial Black\u0027, Impact, sans-serif;\n  --ts-font-body: \u0027Space Grotesk\u0027, Arial, sans-serif;\n}\n\n/* ── Badge ─────────────────────────────────────────────────────────────── */\n\n.bangermeter-badge {\n  display: inline-flex;\n  align-items: center;\n  gap: 5px;\n  margin-left: 10px;\n  padding: 2px 7px;\n  border-radius: 0;\n  background: var(--ts-white);\n  border: 2px solid var(--ts-black);\n  box-shadow: 2px 2px 0 var(--ts-black);\n  font-family: var(--ts-font-body);\n  font-size: 12px;\n  font-weight: 700;\n  line-height: 16px;\n  color: var(--ts-black);\n  cursor: pointer;\n  user-select: none;\n  align-self: center;\n  transition: transform 0.1s ease, box-shadow 0.1s ease;\n}\n.bangermeter-badge:hover {\n  transform: translate(-1px, -1px);\n  box-shadow: 3px 3px 0 var(--ts-black);\n}\n.bangermeter-badge:active {\n  transform: translate(1px, 1px);\n  box-shadow: 1px 1px 0 var(--ts-black);\n}\n.bangermeter-badge:focus-visible {\n  outline: 3px solid var(--ts-blue);\n  outline-offset: 2px;\n}\n\n.bangermeter-icon { display: inline-flex; align-items: center; }\n.bangermeter-icon svg { width: 12px; height: 12px; display: block; }\n\n.bangermeter-bolt-box {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  width: 16px;\n  height: 16px;\n  background: var(--ts-yellow);\n  border: 2px solid var(--ts-black);\n}\n.bangermeter-bolt-box svg { width: 10px; height: 10px; }\n\n/* Score chips: flat neo color + black text + black border */\n.bangermeter-seg {\n  padding: 0 4px;\n  border: 2px solid var(--ts-black);\n  color: var(--ts-black);\n  font-weight: 700;\n}\n.bangermeter-high { background: var(--ts-green); }\n.bangermeter-mid { background: var(--ts-yellow); }\n.bangermeter-low { background: var(--ts-red); }\n\n/* ── Breakdown panel ───────────────────────────────────────────────────── */\n\n.bangermeter-panel {\n  position: fixed;\n  z-index: 2147483647;\n  width: 380px;\n  max-height: 70vh;\n  overflow-y: auto;\n  background: var(--ts-white);\n  color: var(--ts-black);\n  border: 3px solid var(--ts-black);\n  border-radius: 0;\n  box-shadow: 8px 8px 0 var(--ts-black);\n  font-family: var(--ts-font-body);\n  font-size: 13px;\n  padding: 0 0 8px 0;\n}\n\n.bangermeter-panel-head {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  padding: 10px 14px;\n  border-bottom: 3px solid var(--ts-black);\n  position: sticky;\n  top: 0;\n  z-index: 2;\n  background: var(--ts-black);\n}\n.bangermeter-panel-title {\n  display: inline-flex;\n  align-items: center;\n  gap: 8px;\n  font-family: var(--ts-font-display);\n  font-weight: 400;\n  font-size: 14px;\n  letter-spacing: 0.04em;\n  text-transform: uppercase;\n  color: var(--ts-white);\n}\n.bangermeter-panel-title .bangermeter-bolt-box { background: var(--ts-yellow); }\n\n.bangermeter-panel-close {\n  border: 2px solid var(--ts-black);\n  background: var(--ts-yellow);\n  color: var(--ts-black);\n  font-size: 16px;\n  font-weight: 700;\n  line-height: 1;\n  cursor: pointer;\n  width: 24px;\n  height: 24px;\n  padding: 0;\n  border-radius: 0;\n  box-shadow: 2px 2px 0 var(--ts-white);\n  transition: transform 0.1s ease, box-shadow 0.1s ease;\n}\n.bangermeter-panel-close:hover {\n  transform: translate(-1px, -1px);\n  box-shadow: 3px 3px 0 var(--ts-white);\n}\n.bangermeter-panel-close:active {\n  transform: translate(1px, 1px);\n  box-shadow: 1px 1px 0 var(--ts-white);\n}\n.bangermeter-panel-close:focus-visible {\n  outline: 3px solid var(--ts-blue);\n  outline-offset: 2px;\n}\n\n.bangermeter-panel-section {\n  padding: 12px 14px;\n  border-bottom: 2px solid var(--ts-black);\n}\n.bangermeter-panel-section:last-child { border-bottom: none; }\n\n.bangermeter-panel-scorerow {\n  display: flex;\n  align-items: center;\n  gap: 10px;\n  margin-bottom: 8px;\n}\n.bangermeter-panel-scorelabel {\n  font-family: var(--ts-font-display);\n  font-weight: 400;\n  font-size: 13px;\n  text-transform: uppercase;\n  letter-spacing: 0.03em;\n}\n.bangermeter-panel-scoreval {\n  font-family: var(--ts-font-display);\n  font-weight: 400;\n  font-size: 20px;\n  line-height: 1.2;\n  padding: 1px 10px;\n  border: 2px solid var(--ts-black);\n  box-shadow: 2px 2px 0 var(--ts-black);\n  margin-left: auto;\n}\n\n.bangermeter-sub {\n  font-size: 11.5px;\n  color: var(--ts-ink);\n  margin: 0 0 8px;\n  line-height: 1.4;\n}\n\n/* Contribution rows (inside \"Show the math\") */\n.bangermeter-contrib {\n  position: relative;\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  padding: 2px 0;\n  min-height: 18px;\n}\n.bangermeter-contrib-bar {\n  position: absolute;\n  left: 0;\n  top: 2px;\n  bottom: 2px;\n  background: #C8E6C9;\n  border-radius: 0;\n  z-index: 0;\n}\n.bangermeter-contrib-bar.bangermeter-neg { background: #FFCDD2; }\n.bangermeter-contrib-label { position: relative; z-index: 1; flex: 1; font-size: 12px; }\n.bangermeter-contrib-val {\n  position: relative;\n  z-index: 1;\n  font-variant-numeric: tabular-nums;\n  font-size: 11px;\n  color: var(--ts-ink);\n}\n\n.bangermeter-subhead {\n  font-family: var(--ts-font-display);\n  font-weight: 400;\n  font-size: 11px;\n  text-transform: uppercase;\n  letter-spacing: 0.04em;\n  margin: 8px 0 4px;\n}\n\n.bangermeter-mod { display: flex; gap: 6px; padding: 2px 0; font-size: 12.5px; align-items: baseline; }\n.bangermeter-mod-dir { width: 14px; text-align: center; font-weight: 700; }\n.bangermeter-up { color: #2E7D32; }\n.bangermeter-down { color: #C62828; }\n\n/* Rescorer callout: yellow highlight bar */\n.bangermeter-rescorer {\n  display: inline-block;\n  margin-top: 8px;\n  font-size: 12px;\n  font-weight: 700;\n  color: var(--ts-black);\n  background: var(--ts-yellow);\n  border: 2px solid var(--ts-black);\n  padding: 2px 8px;\n}\n\n.bangermeter-unweighted { margin-top: 6px; font-size: 12px; color: var(--ts-ink); }\n.bangermeter-context {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  font-size: 12px;\n  font-weight: 700;\n  margin-bottom: 6px;\n}\n.bangermeter-context .bangermeter-icon svg { width: 14px; height: 14px; }\n.bangermeter-fineprint { font-size: 11px; color: var(--ts-ink); margin-top: 6px; line-height: 1.4; }\n\n.bangermeter-plainrow {\n  display: flex;\n  gap: 7px;\n  padding: 3px 0;\n  font-size: 12.5px;\n  align-items: center;\n}\n.bangermeter-plainrow .bangermeter-icon svg { width: 14px; height: 14px; }\n.bangermeter-worth { color: var(--ts-ink); font-size: 11.5px; }\n\n/* Expandable math sections */\n.bangermeter-math { margin-top: 10px; }\n.bangermeter-math summary {\n  cursor: pointer;\n  font-family: var(--ts-font-display);\n  font-weight: 400;\n  font-size: 11px;\n  text-transform: uppercase;\n  letter-spacing: 0.03em;\n  color: var(--ts-blue);\n  user-select: none;\n  list-style: none;\n}\n.bangermeter-math summary:hover { text-decoration: underline; }\n.bangermeter-math summary::-webkit-details-marker { display: none; }\n.bangermeter-math summary::before { content: \"+ \"; }\n.bangermeter-math[open] summary::before { content: \"− \"; }\n\n/* ── Compose meter ─────────────────────────────────────────────────────── */\n\n.bangermeter-meter {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  margin: 8px 0 4px;\n  font-family: var(--ts-font-body);\n  font-size: 12px;\n  color: var(--ts-black);\n}\n.bangermeter-meter.bangermeter-hidden { display: none; }\n.bangermeter-meter-track {\n  flex: 0 0 90px;\n  height: 12px;\n  border-radius: 0;\n  background: var(--ts-white);\n  border: 2px solid var(--ts-black);\n  box-shadow: 2px 2px 0 var(--ts-black);\n  overflow: hidden;\n}\n.bangermeter-meter-fill { height: 100%; border-radius: 0; transition: width 0.2s ease; }\n.bangermeter-fill-high { background: var(--ts-green); }\n.bangermeter-fill-mid { background: var(--ts-yellow); }\n.bangermeter-fill-low { background: var(--ts-red); }\n.bangermeter-meter-score {\n  display: inline-flex;\n  align-items: center;\n  gap: 4px;\n  font-weight: 700;\n}\n.bangermeter-meter-hints {\n  display: flex;\n  gap: 10px;\n  font-weight: 600;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n/* ── Motion preferences ────────────────────────────────────────────────── */\n\n@media (prefers-reduced-motion: reduce) {\n  .bangermeter-badge, .bangermeter-panel-close, .bangermeter-meter-fill {\n    transition: none;\n  }\n  .bangermeter-badge:hover, .bangermeter-panel-close:hover {\n    transform: none;\n  }\n}\n";
@@ -124,7 +125,12 @@ var BANGERMETER_CONFIG = {
     // Recovered from the ARCHIVED initial release commit ec83d01dca (leak-hunt, Aug 2026):
     // the only real numeric multipliers ever in serving code. Removed in the Sept 2025
     // re-release — applied here as an explicitly historical 2023-era factor.
+    // OFF BY DEFAULT (field regression 2026-08-05): with the score normalized against an
+    // unverified median baseline, a default-on ×4 floors every verified author near 99
+    // and erases all differentiation. The multiplier is also 2023-era code REMOVED from
+    // the Sept 2025 snapshot this tool targets — so it ships as an opt-in historical mode.
     blueVerified: { inNetwork: 4.0, outOfNetwork: 2.0, provenance: "2023-archived-commit",
+      enabledBySetting: "applyVerifiedBoost2023",
       label: "Verified author boost",
       note: "BlueVerifiedAuthorInNetworkMultiplier 4.0 / OutOfNetwork 2.0 at commit ec83d01dca; removed Sept 2025." },
     // Community Notes: scoring fully open (crhThreshold 0.40 etc.); the engagement effect
@@ -213,7 +219,8 @@ var BANGERMETER_CONFIG = {
 var BANGERMETER_DEFAULT_SETTINGS = {
   showBadges: true,
   scoreDrafts: true,
-  assumeOutOfNetwork: false
+  assumeOutOfNetwork: false,
+  applyVerifiedBoost2023: false
 };
 
 // Bangermeter — scoring engine (pure functions, no DOM access)
@@ -326,7 +333,7 @@ var BangermeterEngine = (function () {
       raw *= C.rescorers.outOfNetwork.factor;
       rescorers.push({ label: C.rescorers.outOfNetwork.label, factor: C.rescorers.outOfNetwork.factor });
     }
-    if (features.isVerified) {
+    if (features.isVerified && settings && settings.applyVerifiedBoost2023) {
       var bv = C.rescorers.blueVerified;
       var bvFactor = (settings && settings.assumeOutOfNetwork) ? bv.outOfNetwork : bv.inNetwork;
       raw *= bvFactor;
@@ -439,7 +446,7 @@ var BangermeterEngine = (function () {
       raw *= C.rescorers.outOfNetwork.factor;
       rescorers.push({ label: C.rescorers.outOfNetwork.label, factor: C.rescorers.outOfNetwork.factor });
     }
-    if (features.isVerified) {
+    if (features.isVerified && settings && settings.applyVerifiedBoost2023) {
       var bv = C.rescorers.blueVerified;
       var bvFactor = (settings && settings.assumeOutOfNetwork) ? bv.outOfNetwork : bv.inNetwork;
       raw *= bvFactor;
@@ -968,6 +975,14 @@ var BangermeterEngine = (function () {
       fresh.title = "Earlybird age-decay sigmoid: base 0.6, halflife 360 min, slope 0.003";
       sec3.appendChild(fresh);
     }
+    if (result.features.isVerified && !settings.applyVerifiedBoost2023) {
+      var vNote = el("div", "bangermeter-fineprint",
+        "Verified author: 2023-era code boosted verified posts ×4 in-network / ×2 out-of-network " +
+        "(removed from X's code Sept 2025). Not applied to this score — enable “2023 verified " +
+        "boost” in the popup to simulate that era.");
+      sec3.appendChild(vNote);
+    }
+
     // Grade-A facts for the never-published heads (Aug 2026 deep research) —
     // facts only, none of these enters the score.
     var F = BANGERMETER_CONFIG.sourcedFacts;

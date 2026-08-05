@@ -468,6 +468,14 @@
       fresh.title = "Earlybird age-decay sigmoid: base 0.6, halflife 360 min, slope 0.003";
       sec3.appendChild(fresh);
     }
+    if (result.features.isVerified && !settings.applyVerifiedBoost2023) {
+      var vNote = el("div", "bangermeter-fineprint",
+        "Verified author: 2023-era code boosted verified posts ×4 in-network / ×2 out-of-network " +
+        "(removed from X's code Sept 2025). Not applied to this score — enable “2023 verified " +
+        "boost” in the popup to simulate that era.");
+      sec3.appendChild(vNote);
+    }
+
     // Grade-A facts for the never-published heads (Aug 2026 deep research) —
     // facts only, none of these enters the score.
     var F = BANGERMETER_CONFIG.sourcedFacts;

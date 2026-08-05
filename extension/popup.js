@@ -1,7 +1,7 @@
 // Bangermeter — popup: settings + active weight table
 
 (function () {
-  var ids = ["showBadges", "scoreDrafts", "assumeOutOfNetwork"];
+  var ids = ["showBadges", "scoreDrafts", "assumeOutOfNetwork", "applyVerifiedBoost2023"];
 
   try {
     chrome.storage.sync.get(BANGERMETER_DEFAULT_SETTINGS, function (stored) {

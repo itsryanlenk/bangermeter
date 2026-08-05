@@ -108,7 +108,7 @@ var BangermeterEngine = (function () {
       raw *= C.rescorers.outOfNetwork.factor;
       rescorers.push({ label: C.rescorers.outOfNetwork.label, factor: C.rescorers.outOfNetwork.factor });
     }
-    if (features.isVerified) {
+    if (features.isVerified && settings && settings.applyVerifiedBoost2023) {
       var bv = C.rescorers.blueVerified;
       var bvFactor = (settings && settings.assumeOutOfNetwork) ? bv.outOfNetwork : bv.inNetwork;
       raw *= bvFactor;
@@ -221,7 +221,7 @@ var BangermeterEngine = (function () {
       raw *= C.rescorers.outOfNetwork.factor;
       rescorers.push({ label: C.rescorers.outOfNetwork.label, factor: C.rescorers.outOfNetwork.factor });
     }
-    if (features.isVerified) {
+    if (features.isVerified && settings && settings.applyVerifiedBoost2023) {
       var bv = C.rescorers.blueVerified;
       var bvFactor = (settings && settings.assumeOutOfNetwork) ? bv.outOfNetwork : bv.inNetwork;
       raw *= bvFactor;
