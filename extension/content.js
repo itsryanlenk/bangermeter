@@ -119,6 +119,19 @@
 
     var isThreadStarter = /🧵/.test(text) || /(^|\s)1\/\d+/.test(text);
 
+    // Verified badge on the AUTHOR (not a quoted tweet's author)
+    var isVerified = false;
+    var vIcons = article.querySelectorAll('svg[data-testid="icon-verified"]');
+    for (var v = 0; v < vIcons.length; v++) {
+      if (!inQuote(vIcons[v])) { isVerified = true; break; }
+    }
+
+    // Community Note attached (Birdwatch pivot element)
+    var hasCommunityNote = !!article.querySelector('[data-testid="birdwatch-pivot"]');
+
+    // FOSNR restricted-reach interstitial (qualitative flag; magnitude unpublished)
+    var visibilityLimited = /visibility limited/i.test(firstDivs);
+
     var idLink = article.querySelector('a[href*="/status/"] time');
     var tweetId = null;
     if (idLink) {
@@ -137,6 +150,9 @@
       hashtagCount: hashtagCount,
       isReply: isReply,
       isThreadStarter: isThreadStarter,
+      isVerified: isVerified,
+      hasCommunityNote: hasCommunityNote,
+      visibilityLimited: visibilityLimited,
       ageMinutes: ageMinutes
     };
   }
@@ -263,6 +279,12 @@
   function plainRescorerText(r) {
     if (r.label.indexOf("Reply") === 0) return "This is a reply — the algorithm scores replies at 75%";
     if (r.label.indexOf("Out-of-network") === 0) return "Out-of-network view assumed — scored at 75%";
+    if (r.label.indexOf("Verified") === 0) {
+      return "Verified author — ×" + r.factor + " boost per 2023 code (removed from X's code Sept 2025)";
+    }
+    if (r.label.indexOf("Community-noted") === 0) {
+      return "Community Note attached — future engagement suppressed ~50% (three causal studies)";
+    }
     return r.label;
   }
 
@@ -341,10 +363,23 @@
       sec1.appendChild(el("div", "bangermeter-sub", "No special signals — scored as a typical post."));
     }
     result.content.rescorers.forEach(function (r) {
-      var rrow = el("div", "bangermeter-rescorer", "▼ " + plainRescorerText(r));
+      var rrow = el("div", "bangermeter-rescorer",
+        (r.factor >= 1 ? "▲ " : "▼ ") + plainRescorerText(r));
       rrow.title = r.label;
       sec1.appendChild(rrow);
     });
+    if (result.features.visibilityLimited) {
+      var vl = el("div", "bangermeter-rescorer",
+        "▼ Visibility limited by X — reach suppressed (magnitude unpublished)");
+      vl.title = "FOSNR restricted-reach interstitial detected (FreedomOfSpeechNotReach.scala label taxonomy; numeric penalty never released)";
+      sec1.appendChild(vl);
+    }
+    if (result.features.hasCommunityNote) {
+      sec1.appendChild(el("div", "bangermeter-fineprint",
+        "Community Note effect sourced from: X's own A/B test (25–34% fewer like/repost decisions), " +
+        "Chuai et al. Nature Communications (−61% subsequent reposts), Slaughter et al. PNAS " +
+        "(−46% reposts / −44% likes post-attach)."));
+    }
     if (result.features.isReply) {
       var bangNote = el("div", "bangermeter-sub",
         "Replies are also ineligible for X's Grok “banger screen” — only original posts get " +
@@ -397,7 +432,8 @@
         sec2.appendChild(el("div", "bangermeter-fineprint", result.engagement.smoothingNote));
       }
       result.engagement.rescorers.forEach(function (r) {
-        var rrow = el("div", "bangermeter-rescorer", "▼ " + plainRescorerText(r));
+        var rrow = el("div", "bangermeter-rescorer",
+          (r.factor >= 1 ? "▲ " : "▼ ") + plainRescorerText(r));
         rrow.title = r.label;
         sec2.appendChild(rrow);
       });

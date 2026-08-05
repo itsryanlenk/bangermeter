@@ -173,6 +173,72 @@ weights still rank *relative* performance sensibly, not as a formal validation s
 The small-sample shrinkage matters in practice: without it, any reply on a low-view post
 pins the engagement score to 100.
 
+## Leak hunt: involuntary-disclosure channels (Aug 2026)
+
+A third research pass swept the channels where internals could have leaked or been
+compelled into the public record: US litigation (CourtListener/RECAP), the EU's entire
+DSA track, the FTC consent decree, scrubbed git history and day-one forks, the Jan 2023
+pre-open-source leak, ex-employee books/talks/podcasts, patents, and internal-document
+journalism.
+
+**Core verdict: no true weight leak exists anywhere.** Zero RECAP hits for internal
+terminology ("heavy ranker", "TweepCred", "unregretted user-seconds"); the EU's €120M DSA
+fine (Dec 2025) covers checkmarks/ad-repository/researcher-access only; the Jan 2023
+GitHub leak contained auth/infra code only; no ex-employee has ever disclosed weights; no
+verified config leak exists on any forum 2024–2026. Internals *have* been compelled twice —
+into the European Commission's non-public file (Jan 2025 RFI + retention order) and the
+Paris prosecutor's seizure (Feb 2026 raid, criminal probe) — so the watchlist for future
+involuntary disclosure is an EC non-compliance decision on the recommender proceeding and
+any French trial record.
+
+**But the hunt recovered real, previously-uncatalogued grade-A material:**
+
+- **There are TWO sourced weight snapshots, not one.** The original March 31, 2023 README
+  of the-algorithm-ml had **reply = 27** (not 13.5) and scored the good-click pair as
+  max(both probabilities) × 11. Commit `b85210863f` (Apr 5, 2023) rewrote it to the
+  now-famous table — and added X's own disclaimer that weights live in a Feature Switch
+  config and are **"periodically adjusted."** Bangermeter's table is the April 5 snapshot,
+  now labeled as such. X retuned reply by 2× within five days of open-sourcing — the best
+  evidence that any static table is a snapshot of a moving target.
+- **Blue-verified author multipliers with hard values** survive in the archived initial
+  commit (`ec83d01dca`): **×4.0 in-network / ×2.0 out-of-network** (plus creator
+  multipliers 1.1/1.3) — the only real numeric multipliers ever present in serving code.
+  Removed in the Sept 2025 re-release, which is why they were invisible until this pass.
+  Bangermeter now applies them as an explicitly historical factor when the author is
+  verified.
+- **Community Notes is fully open and its effect is quantified.** Live scoring constants
+  are public (crhThreshold 0.40, CRNH intercept < −0.05 − 0.8·|factor|, minRatingsNeeded 5,
+  λᵢ 0.15 / λf 0.03), and three independent causal studies quantify the engagement effect
+  of a displayed note: X's own A/B (25–34% fewer like/repost decisions), Chuai et al.
+  Nature Communications (−61.2% subsequent reposts), Slaughter et al. PNAS (−46.1% reposts
+  / −44.1% likes post-attach). Bangermeter now detects an attached note and applies a
+  ×0.5 suppression (sourced range ≈0.4–0.55) to the prospective content score.
+- **A Twitter-fitted engagement power law in a granted patent** (US11606323B2): expected
+  interactions = **0.049 × followers^0.3677**, fitted on observed Twitter data — the only
+  public engagement-vs-follower-count curve. Usable for account-size normalization
+  (documented; not yet implemented since follower counts aren't visible in timeline DOM).
+- **A complete deprecated Earlybird linear weight table** recoverable from git history
+  (deleted in commit `138bb51997`): fav 30.0, retweet 20.0, reply 1.0, reputation 0.2,
+  follow boosts 4.0/3.0, media boosts 2.0. Retrieval-stage dead code at release — kept as
+  reference only, never mixed with the heavy-ranker table (note its *inverted* fav/reply
+  ordering vs the heavy ranker).
+- **Patent corroboration of the weight architecture**: US11516155B1 (filed Dec 2019)
+  discloses the positive/negative/reciprocal three-head weighted sum and states the
+  reciprocal weight exceeds the negative weight — consistent with 75.0 vs |−74.0|, filed
+  three years before the release.
+- **Restricted-reach interstitials are detectable**: FreedomOfSpeechNotReach.scala
+  publishes the label-to-action taxonomy (no magnitudes); Bangermeter flags
+  visibility-limited posts qualitatively instead of scoring them.
+
+**Debunked for the record:** Grok "reveals" of ranking weights are confabulations by
+construction (the weights are redacted from every release Grok could read, and xAI's own
+grok-prompts repo shows Grok has no ranking-config access); the 2023 force-push scrubbed
+only test-account IDs and employee names, never weights; the famous `author_is_elon` code
+was metrics instrumentation, not a boost — though the reported **×1,000 "power user
+multiplier"** on Musk's account (Platformer, Feb 2023; corroborated in *Character Limit*)
+is credible grade-B history and explains why some accounts defy any weight model: it was
+an account-level serving intervention, never part of the scorer.
+
 ## Key sources
 
 - [xai-org/x-algorithm](https://github.com/xai-org/x-algorithm) (Jan 20 + May 15, 2026) — production structure

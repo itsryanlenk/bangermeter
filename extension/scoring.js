@@ -108,6 +108,13 @@ var BangermeterEngine = (function () {
       raw *= C.rescorers.outOfNetwork.factor;
       rescorers.push({ label: C.rescorers.outOfNetwork.label, factor: C.rescorers.outOfNetwork.factor });
     }
+    if (features.isVerified) {
+      var bv = C.rescorers.blueVerified;
+      var bvFactor = (settings && settings.assumeOutOfNetwork) ? bv.outOfNetwork : bv.inNetwork;
+      raw *= bvFactor;
+      rescorers.push({ label: "Verified author ×" + bvFactor + " (2023 code, removed Sept 2025)",
+        factor: bvFactor });
+    }
 
     // Baseline over the same observable heads (median tweet rates)
     var B = C.baselineP;
@@ -213,6 +220,19 @@ var BangermeterEngine = (function () {
     if (settings && settings.assumeOutOfNetwork) {
       raw *= C.rescorers.outOfNetwork.factor;
       rescorers.push({ label: C.rescorers.outOfNetwork.label, factor: C.rescorers.outOfNetwork.factor });
+    }
+    if (features.isVerified) {
+      var bv = C.rescorers.blueVerified;
+      var bvFactor = (settings && settings.assumeOutOfNetwork) ? bv.outOfNetwork : bv.inNetwork;
+      raw *= bvFactor;
+      rescorers.push({ label: "Verified author ×" + bvFactor + " (2023 code, removed Sept 2025)",
+        factor: bvFactor });
+    }
+    // Community Note suppression applies to the PROSPECTIVE score only — a tweet's
+    // actual counts (engagement score) already embed any suppression that occurred.
+    if (features.hasCommunityNote) {
+      raw *= C.rescorers.communityNote.factor;
+      rescorers.push({ label: C.rescorers.communityNote.label, factor: C.rescorers.communityNote.factor });
     }
 
     // Fixed reference baseline: median no-video tweet, no modifiers, no rescoring

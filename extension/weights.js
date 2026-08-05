@@ -15,7 +15,14 @@
 //   "estimate"         — estimator-layer number (baseline rates / directional modifiers).
 
 var BANGERMETER_CONFIG = {
-  version: "1.0.0",
+  version: "0.7.0",
+
+  // The weight table below is the APRIL 5, 2023 snapshot (the-algorithm-ml commit
+  // b85210863f). The original March 31 table had reply=27 and max-semantics
+  // good-clicks; the same Apr 5 edit added X's own disclaimer that weights live in
+  // a Feature Switch config and are "periodically adjusted" — i.e. any static table
+  // is a dated snapshot by X's own admission (leak-hunt research, Aug 2026).
+  weightsSnapshot: "April 5, 2023 (the-algorithm-ml commit b85210863f)",
 
   // ── WEIGHT LAYER ────────────────────────────────────────────────────────────
   // Heavy-ranker heads (PredictedScoreFeature.scala; NaviModelScorer weighted sum).
@@ -93,7 +100,21 @@ var BANGERMETER_CONFIG = {
       note: "Viewer-specific; shown as context, applied only in OON view mode." },
     reply: { factor: 0.75, provenance: "2025-repo", label: "Reply ×0.75" },
     authorDiversity: { decay: 0.5, floor: 0.25, provenance: "2025-repo",
-      label: "Author diversity decay", note: "Feed-mode only: (1-floor)·decay^n + floor" }
+      label: "Author diversity decay", note: "Feed-mode only: (1-floor)·decay^n + floor" },
+    // Recovered from the ARCHIVED initial release commit ec83d01dca (leak-hunt, Aug 2026):
+    // the only real numeric multipliers ever in serving code. Removed in the Sept 2025
+    // re-release — applied here as an explicitly historical 2023-era factor.
+    blueVerified: { inNetwork: 4.0, outOfNetwork: 2.0, provenance: "2023-archived-commit",
+      label: "Verified author boost",
+      note: "BlueVerifiedAuthorInNetworkMultiplier 4.0 / OutOfNetwork 2.0 at commit ec83d01dca; removed Sept 2025." },
+    // Community Notes: scoring fully open (crhThreshold 0.40 etc.); the engagement effect
+    // of a DISPLAYED note is quantified by three independent causal studies — X's own A/B
+    // (25-34% fewer like/repost decisions), Chuai et al. Nature Comms (-61.2% subsequent
+    // reposts), Slaughter et al. PNAS (-46.1% reposts / -44.1% likes post-attach).
+    // Applied to the prospective content score only (actual counts already embed it).
+    communityNote: { factor: 0.5, provenance: "2026-studies",
+      label: "Community-noted ×0.5",
+      note: "Sourced suppression range ≈0.4–0.55× on go-forward engagement; midpoint applied." }
   },
 
   // ── ESTIMATOR LAYER ─────────────────────────────────────────────────────────

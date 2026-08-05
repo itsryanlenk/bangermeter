@@ -100,6 +100,24 @@
     var viral = E.engagementScore({ counts: { likes: 2000, retweets: 300, replies: 500, views: 100000 } }, {});
     check("large-sample viral still reaches 100", viral.score === 100 && viral.lowSample === false, viral.score);
 
+    // LEAK-HUNT FACTORS (Aug 2026): verified-author multiplier (archived commit
+    // ec83d01dca: x4 in-network / x2 out-of-network) and Community Note suppression
+    // (x0.5, three causal studies; content score only).
+    var base = { text: "Hello world, a normal update today.", hasVideo: false, hasImage: false,
+      hasExternalLink: false, hashtagCount: 0, isReply: false };
+    var vNo = E.contentScore(base, {});
+    var vYes = E.contentScore(Object.assign({}, base, { isVerified: true }), {});
+    check("verified x4 on content raw", approx(vYes.raw, vNo.raw * 4.0, 1e-12), vYes.raw.toFixed(4));
+    var vOon = E.contentScore(Object.assign({}, base, { isVerified: true }), { assumeOutOfNetwork: true });
+    check("verified OON = x0.75 then x2.0", approx(vOon.raw, vNo.raw * 0.75 * 2.0, 1e-12), vOon.raw.toFixed(4));
+    var noted = E.contentScore(Object.assign({}, base, { hasCommunityNote: true }), {});
+    check("community note x0.5 on content", approx(noted.raw, vNo.raw * 0.5, 1e-12), noted.raw.toFixed(4));
+    var engPlain = E.engagementScore({ counts: { likes: 100, retweets: 5, replies: 10, views: 50000 } }, {});
+    var engNoted = E.engagementScore({ counts: { likes: 100, retweets: 5, replies: 10, views: 50000 }, hasCommunityNote: true }, {});
+    check("community note NOT applied to engagement", engNoted.raw === engPlain.raw, engNoted.raw.toFixed(4));
+    var engVerified = E.engagementScore({ counts: { likes: 100, retweets: 5, replies: 10, views: 50000 }, isVerified: true }, {});
+    check("verified x4 on engagement raw", approx(engVerified.raw, engPlain.raw * 4.0, 1e-12), engVerified.raw.toFixed(4));
+
     // content score: plain median tweet ~= 50
     var plain = E.contentScore({ text: "Just had a nice coffee this morning with an old friend in the city.", hasVideo: false, hasImage: false, hasExternalLink: false, hashtagCount: 0, isReply: false }, {});
     check("plain tweet content ~50", plain.score >= 45 && plain.score <= 60, plain.score);

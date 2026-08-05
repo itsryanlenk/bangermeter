@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangermeter — Pre-Phoenix Algorithm Scorer
 // @namespace    bangermeter
-// @version      1.4.0
+// @version      1.5.0
 // @description  Scores tweets with the open-sourced pre-Phoenix X ranking fundamentals (exact NaviModelScorer math + last published weights, 2026-research-validated).
 // @match        https://x.com/*
 // @match        https://twitter.com/*
@@ -35,7 +35,14 @@
 //   "estimate"         — estimator-layer number (baseline rates / directional modifiers).
 
 var BANGERMETER_CONFIG = {
-  version: "1.0.0",
+  version: "0.7.0",
+
+  // The weight table below is the APRIL 5, 2023 snapshot (the-algorithm-ml commit
+  // b85210863f). The original March 31 table had reply=27 and max-semantics
+  // good-clicks; the same Apr 5 edit added X's own disclaimer that weights live in
+  // a Feature Switch config and are "periodically adjusted" — i.e. any static table
+  // is a dated snapshot by X's own admission (leak-hunt research, Aug 2026).
+  weightsSnapshot: "April 5, 2023 (the-algorithm-ml commit b85210863f)",
 
   // ── WEIGHT LAYER ────────────────────────────────────────────────────────────
   // Heavy-ranker heads (PredictedScoreFeature.scala; NaviModelScorer weighted sum).
@@ -113,7 +120,21 @@ var BANGERMETER_CONFIG = {
       note: "Viewer-specific; shown as context, applied only in OON view mode." },
     reply: { factor: 0.75, provenance: "2025-repo", label: "Reply ×0.75" },
     authorDiversity: { decay: 0.5, floor: 0.25, provenance: "2025-repo",
-      label: "Author diversity decay", note: "Feed-mode only: (1-floor)·decay^n + floor" }
+      label: "Author diversity decay", note: "Feed-mode only: (1-floor)·decay^n + floor" },
+    // Recovered from the ARCHIVED initial release commit ec83d01dca (leak-hunt, Aug 2026):
+    // the only real numeric multipliers ever in serving code. Removed in the Sept 2025
+    // re-release — applied here as an explicitly historical 2023-era factor.
+    blueVerified: { inNetwork: 4.0, outOfNetwork: 2.0, provenance: "2023-archived-commit",
+      label: "Verified author boost",
+      note: "BlueVerifiedAuthorInNetworkMultiplier 4.0 / OutOfNetwork 2.0 at commit ec83d01dca; removed Sept 2025." },
+    // Community Notes: scoring fully open (crhThreshold 0.40 etc.); the engagement effect
+    // of a DISPLAYED note is quantified by three independent causal studies — X's own A/B
+    // (25-34% fewer like/repost decisions), Chuai et al. Nature Comms (-61.2% subsequent
+    // reposts), Slaughter et al. PNAS (-46.1% reposts / -44.1% likes post-attach).
+    // Applied to the prospective content score only (actual counts already embed it).
+    communityNote: { factor: 0.5, provenance: "2026-studies",
+      label: "Community-noted ×0.5",
+      note: "Sourced suppression range ≈0.4–0.55× on go-forward engagement; midpoint applied." }
   },
 
   // ── ESTIMATOR LAYER ─────────────────────────────────────────────────────────
@@ -305,6 +326,13 @@ var BangermeterEngine = (function () {
       raw *= C.rescorers.outOfNetwork.factor;
       rescorers.push({ label: C.rescorers.outOfNetwork.label, factor: C.rescorers.outOfNetwork.factor });
     }
+    if (features.isVerified) {
+      var bv = C.rescorers.blueVerified;
+      var bvFactor = (settings && settings.assumeOutOfNetwork) ? bv.outOfNetwork : bv.inNetwork;
+      raw *= bvFactor;
+      rescorers.push({ label: "Verified author ×" + bvFactor + " (2023 code, removed Sept 2025)",
+        factor: bvFactor });
+    }
 
     // Baseline over the same observable heads (median tweet rates)
     var B = C.baselineP;
@@ -410,6 +438,19 @@ var BangermeterEngine = (function () {
     if (settings && settings.assumeOutOfNetwork) {
       raw *= C.rescorers.outOfNetwork.factor;
       rescorers.push({ label: C.rescorers.outOfNetwork.label, factor: C.rescorers.outOfNetwork.factor });
+    }
+    if (features.isVerified) {
+      var bv = C.rescorers.blueVerified;
+      var bvFactor = (settings && settings.assumeOutOfNetwork) ? bv.outOfNetwork : bv.inNetwork;
+      raw *= bvFactor;
+      rescorers.push({ label: "Verified author ×" + bvFactor + " (2023 code, removed Sept 2025)",
+        factor: bvFactor });
+    }
+    // Community Note suppression applies to the PROSPECTIVE score only — a tweet's
+    // actual counts (engagement score) already embed any suppression that occurred.
+    if (features.hasCommunityNote) {
+      raw *= C.rescorers.communityNote.factor;
+      rescorers.push({ label: C.rescorers.communityNote.label, factor: C.rescorers.communityNote.factor });
     }
 
     // Fixed reference baseline: median no-video tweet, no modifiers, no rescoring
@@ -578,6 +619,19 @@ var BangermeterEngine = (function () {
 
     var isThreadStarter = /🧵/.test(text) || /(^|\s)1\/\d+/.test(text);
 
+    // Verified badge on the AUTHOR (not a quoted tweet's author)
+    var isVerified = false;
+    var vIcons = article.querySelectorAll('svg[data-testid="icon-verified"]');
+    for (var v = 0; v < vIcons.length; v++) {
+      if (!inQuote(vIcons[v])) { isVerified = true; break; }
+    }
+
+    // Community Note attached (Birdwatch pivot element)
+    var hasCommunityNote = !!article.querySelector('[data-testid="birdwatch-pivot"]');
+
+    // FOSNR restricted-reach interstitial (qualitative flag; magnitude unpublished)
+    var visibilityLimited = /visibility limited/i.test(firstDivs);
+
     var idLink = article.querySelector('a[href*="/status/"] time');
     var tweetId = null;
     if (idLink) {
@@ -596,6 +650,9 @@ var BangermeterEngine = (function () {
       hashtagCount: hashtagCount,
       isReply: isReply,
       isThreadStarter: isThreadStarter,
+      isVerified: isVerified,
+      hasCommunityNote: hasCommunityNote,
+      visibilityLimited: visibilityLimited,
       ageMinutes: ageMinutes
     };
   }
@@ -722,6 +779,12 @@ var BangermeterEngine = (function () {
   function plainRescorerText(r) {
     if (r.label.indexOf("Reply") === 0) return "This is a reply — the algorithm scores replies at 75%";
     if (r.label.indexOf("Out-of-network") === 0) return "Out-of-network view assumed — scored at 75%";
+    if (r.label.indexOf("Verified") === 0) {
+      return "Verified author — ×" + r.factor + " boost per 2023 code (removed from X's code Sept 2025)";
+    }
+    if (r.label.indexOf("Community-noted") === 0) {
+      return "Community Note attached — future engagement suppressed ~50% (three causal studies)";
+    }
     return r.label;
   }
 
@@ -800,10 +863,23 @@ var BangermeterEngine = (function () {
       sec1.appendChild(el("div", "bangermeter-sub", "No special signals — scored as a typical post."));
     }
     result.content.rescorers.forEach(function (r) {
-      var rrow = el("div", "bangermeter-rescorer", "▼ " + plainRescorerText(r));
+      var rrow = el("div", "bangermeter-rescorer",
+        (r.factor >= 1 ? "▲ " : "▼ ") + plainRescorerText(r));
       rrow.title = r.label;
       sec1.appendChild(rrow);
     });
+    if (result.features.visibilityLimited) {
+      var vl = el("div", "bangermeter-rescorer",
+        "▼ Visibility limited by X — reach suppressed (magnitude unpublished)");
+      vl.title = "FOSNR restricted-reach interstitial detected (FreedomOfSpeechNotReach.scala label taxonomy; numeric penalty never released)";
+      sec1.appendChild(vl);
+    }
+    if (result.features.hasCommunityNote) {
+      sec1.appendChild(el("div", "bangermeter-fineprint",
+        "Community Note effect sourced from: X's own A/B test (25–34% fewer like/repost decisions), " +
+        "Chuai et al. Nature Communications (−61% subsequent reposts), Slaughter et al. PNAS " +
+        "(−46% reposts / −44% likes post-attach)."));
+    }
     if (result.features.isReply) {
       var bangNote = el("div", "bangermeter-sub",
         "Replies are also ineligible for X's Grok “banger screen” — only original posts get " +
@@ -856,7 +932,8 @@ var BangermeterEngine = (function () {
         sec2.appendChild(el("div", "bangermeter-fineprint", result.engagement.smoothingNote));
       }
       result.engagement.rescorers.forEach(function (r) {
-        var rrow = el("div", "bangermeter-rescorer", "▼ " + plainRescorerText(r));
+        var rrow = el("div", "bangermeter-rescorer",
+          (r.factor >= 1 ? "▲ " : "▼ ") + plainRescorerText(r));
         rrow.title = r.label;
         sec2.appendChild(rrow);
       });
