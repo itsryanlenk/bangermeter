@@ -199,5 +199,6 @@ var BANGERMETER_DEFAULT_SETTINGS = {
   showBadges: true,
   scoreDrafts: true,
   assumeOutOfNetwork: false,
-  applyVerifiedBoost2023: false
+  applyVerifiedBoost2023: false,
+  theme: "auto"
 };

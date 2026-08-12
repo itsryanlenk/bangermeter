@@ -105,6 +105,21 @@
       outline: 3px solid var(--ts-blue);
       outline-offset: 2px;
     }
+    select {
+      font-family: var(--ts-font-body);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--ts-black);
+      background: var(--ts-white);
+      border: 3px solid var(--ts-black);
+      border-radius: 0;
+      padding: 3px 6px;
+      cursor: pointer;
+    }
+    select:focus-visible {
+      outline: 3px solid var(--ts-blue);
+      outline-offset: 2px;
+    }
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
     td { padding: 3px 0; border-bottom: 2px solid var(--ts-cream); }
     tr:last-child td { border-bottom: none; }
@@ -152,6 +167,14 @@
     <div class="setting">
       <label for="applyVerifiedBoost2023" title="Simulate the 2023-era verified boost (×4 in-network / ×2 out-of-network, archived commit ec83d01dca). Removed from X's code Sept 2025 — off by default because it floors every verified author near the top of the scale.">2023 verified boost (×4/×2, historical)</label>
       <input type="checkbox" id="applyVerifiedBoost2023">
+    </div>
+    <div class="setting">
+      <label for="theme" title="Panel and draft-meter theme. Auto follows X's own theme (default / dim / lights out).">Panel theme</label>
+      <select id="theme">
+        <option value="auto">Auto (match X)</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
     </div>
   </section>
 

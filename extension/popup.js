@@ -14,6 +14,11 @@
           chrome.storage.sync.set(patch);
         });
       });
+      var themeSel = document.getElementById("theme");
+      themeSel.value = stored.theme || "auto";
+      themeSel.addEventListener("change", function () {
+        chrome.storage.sync.set({ theme: themeSel.value });
+      });
     });
   } catch (e) { /* storage unavailable (preview harness) — table still renders below */ }
 

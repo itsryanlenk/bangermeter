@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangermeter — Pre-Phoenix Algorithm Scorer
 // @namespace    bangermeter
-// @version      1.5.1
+// @version      1.6.0
 // @description  Scores tweets with the open-sourced pre-Phoenix X ranking fundamentals (exact NaviModelScorer math + last published weights, 2026-research-validated).
 // @match        https://x.com/*
 // @match        https://twitter.com/*
@@ -11,11 +11,11 @@
 
 // Single-file build generated from extension/ (weights.js + scoring.js + content.js + styles.css).
 // The settings popup is not available in the userscript version; defaults apply
-// (badges ON, draft meter ON, out-of-network OFF, 2023 verified boost OFF — edit
-// BANGERMETER_DEFAULT_SETTINGS below to change).
+// (badges ON, draft meter ON, theme AUTO, out-of-network OFF, 2023 verified boost OFF —
+// edit BANGERMETER_DEFAULT_SETTINGS below to change).
 (function () {
   var s = document.createElement('style');
-  s.textContent = "/* Bangermeter — injected styles (neo-brutalist brand system)\n   Rules: hard shadows (no blur), 2-3px black borders, flat opaque colors,\n   sharp corners, physical hover feedback, high contrast. No gradients,\n   no transparency, no soft shadows. */\n\n:root {\n  --ts-black: #000000;\n  --ts-white: #FFFFFF;\n  --ts-cream: #F5F0E6;\n  --ts-red: #FF5252;\n  --ts-yellow: #FFEB3B;\n  --ts-blue: #2196F3;\n  --ts-green: #4CAF50;\n  --ts-orange: #FF9800;\n  --ts-ink: #555555;\n  /* Font stacks intentionally rely on locally-installed fonts with strong\n     fallbacks (Arial Black / Impact / Arial) — a content script should not\n     phone home to a font CDN. */\n  --ts-font-display: \u0027Archivo Black\u0027, \u0027Arial Black\u0027, Impact, sans-serif;\n  --ts-font-body: \u0027Space Grotesk\u0027, Arial, sans-serif;\n}\n\n/* ── Badge ─────────────────────────────────────────────────────────────── */\n\n.bangermeter-badge {\n  display: inline-flex;\n  align-items: center;\n  gap: 5px;\n  margin-left: 10px;\n  padding: 2px 7px;\n  border-radius: 0;\n  background: var(--ts-white);\n  border: 2px solid var(--ts-black);\n  box-shadow: 2px 2px 0 var(--ts-black);\n  font-family: var(--ts-font-body);\n  font-size: 12px;\n  font-weight: 700;\n  line-height: 16px;\n  color: var(--ts-black);\n  cursor: pointer;\n  user-select: none;\n  align-self: center;\n  transition: transform 0.1s ease, box-shadow 0.1s ease;\n}\n.bangermeter-badge:hover {\n  transform: translate(-1px, -1px);\n  box-shadow: 3px 3px 0 var(--ts-black);\n}\n.bangermeter-badge:active {\n  transform: translate(1px, 1px);\n  box-shadow: 1px 1px 0 var(--ts-black);\n}\n.bangermeter-badge:focus-visible {\n  outline: 3px solid var(--ts-blue);\n  outline-offset: 2px;\n}\n\n.bangermeter-icon { display: inline-flex; align-items: center; }\n.bangermeter-icon svg { width: 12px; height: 12px; display: block; }\n\n.bangermeter-bolt-box {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  width: 16px;\n  height: 16px;\n  background: var(--ts-yellow);\n  border: 2px solid var(--ts-black);\n}\n.bangermeter-bolt-box svg { width: 10px; height: 10px; }\n\n/* Score chips: flat neo color + black text + black border */\n.bangermeter-seg {\n  padding: 0 4px;\n  border: 2px solid var(--ts-black);\n  color: var(--ts-black);\n  font-weight: 700;\n}\n.bangermeter-high { background: var(--ts-green); }\n.bangermeter-mid { background: var(--ts-yellow); }\n.bangermeter-low { background: var(--ts-red); }\n\n/* ── Breakdown panel ───────────────────────────────────────────────────── */\n\n.bangermeter-panel {\n  position: fixed;\n  z-index: 2147483647;\n  width: 380px;\n  max-height: 70vh;\n  overflow-y: auto;\n  background: var(--ts-white);\n  color: var(--ts-black);\n  border: 3px solid var(--ts-black);\n  border-radius: 0;\n  box-shadow: 8px 8px 0 var(--ts-black);\n  font-family: var(--ts-font-body);\n  font-size: 13px;\n  padding: 0 0 8px 0;\n}\n\n.bangermeter-panel-head {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  padding: 10px 14px;\n  border-bottom: 3px solid var(--ts-black);\n  position: sticky;\n  top: 0;\n  z-index: 2;\n  background: var(--ts-black);\n}\n.bangermeter-panel-title {\n  display: inline-flex;\n  align-items: center;\n  gap: 8px;\n  font-family: var(--ts-font-display);\n  font-weight: 400;\n  font-size: 14px;\n  letter-spacing: 0.04em;\n  text-transform: uppercase;\n  color: var(--ts-white);\n}\n.bangermeter-panel-title .bangermeter-bolt-box { background: var(--ts-yellow); }\n\n.bangermeter-panel-close {\n  border: 2px solid var(--ts-black);\n  background: var(--ts-yellow);\n  color: var(--ts-black);\n  font-size: 16px;\n  font-weight: 700;\n  line-height: 1;\n  cursor: pointer;\n  width: 24px;\n  height: 24px;\n  padding: 0;\n  border-radius: 0;\n  box-shadow: 2px 2px 0 var(--ts-white);\n  transition: transform 0.1s ease, box-shadow 0.1s ease;\n}\n.bangermeter-panel-close:hover {\n  transform: translate(-1px, -1px);\n  box-shadow: 3px 3px 0 var(--ts-white);\n}\n.bangermeter-panel-close:active {\n  transform: translate(1px, 1px);\n  box-shadow: 1px 1px 0 var(--ts-white);\n}\n.bangermeter-panel-close:focus-visible {\n  outline: 3px solid var(--ts-blue);\n  outline-offset: 2px;\n}\n\n.bangermeter-panel-section {\n  padding: 12px 14px;\n  border-bottom: 2px solid var(--ts-black);\n}\n.bangermeter-panel-section:last-child { border-bottom: none; }\n\n.bangermeter-panel-scorerow {\n  display: flex;\n  align-items: center;\n  gap: 10px;\n  margin-bottom: 8px;\n}\n.bangermeter-panel-scorelabel {\n  font-family: var(--ts-font-display);\n  font-weight: 400;\n  font-size: 13px;\n  text-transform: uppercase;\n  letter-spacing: 0.03em;\n}\n.bangermeter-panel-scoreval {\n  font-family: var(--ts-font-display);\n  font-weight: 400;\n  font-size: 20px;\n  line-height: 1.2;\n  padding: 1px 10px;\n  border: 2px solid var(--ts-black);\n  box-shadow: 2px 2px 0 var(--ts-black);\n  margin-left: auto;\n}\n\n.bangermeter-sub {\n  font-size: 11.5px;\n  color: var(--ts-ink);\n  margin: 0 0 8px;\n  line-height: 1.4;\n}\n\n/* Contribution rows (inside \"Show the math\") */\n.bangermeter-contrib {\n  position: relative;\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  padding: 2px 0;\n  min-height: 18px;\n}\n.bangermeter-contrib-bar {\n  position: absolute;\n  left: 0;\n  top: 2px;\n  bottom: 2px;\n  background: #C8E6C9;\n  border-radius: 0;\n  z-index: 0;\n}\n.bangermeter-contrib-bar.bangermeter-neg { background: #FFCDD2; }\n.bangermeter-contrib-label { position: relative; z-index: 1; flex: 1; font-size: 12px; }\n.bangermeter-contrib-val {\n  position: relative;\n  z-index: 1;\n  font-variant-numeric: tabular-nums;\n  font-size: 11px;\n  color: var(--ts-ink);\n}\n\n.bangermeter-subhead {\n  font-family: var(--ts-font-display);\n  font-weight: 400;\n  font-size: 11px;\n  text-transform: uppercase;\n  letter-spacing: 0.04em;\n  margin: 8px 0 4px;\n}\n\n.bangermeter-mod { display: flex; gap: 6px; padding: 2px 0; font-size: 12.5px; align-items: baseline; }\n.bangermeter-mod-dir { width: 14px; text-align: center; font-weight: 700; }\n.bangermeter-up { color: #2E7D32; }\n.bangermeter-down { color: #C62828; }\n\n/* Rescorer callout: yellow highlight bar */\n.bangermeter-rescorer {\n  display: inline-block;\n  margin-top: 8px;\n  font-size: 12px;\n  font-weight: 700;\n  color: var(--ts-black);\n  background: var(--ts-yellow);\n  border: 2px solid var(--ts-black);\n  padding: 2px 8px;\n}\n\n.bangermeter-unweighted { margin-top: 6px; font-size: 12px; color: var(--ts-ink); }\n.bangermeter-context {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  font-size: 12px;\n  font-weight: 700;\n  margin-bottom: 6px;\n}\n.bangermeter-context .bangermeter-icon svg { width: 14px; height: 14px; }\n.bangermeter-fineprint { font-size: 11px; color: var(--ts-ink); margin-top: 6px; line-height: 1.4; }\n\n.bangermeter-plainrow {\n  display: flex;\n  gap: 7px;\n  padding: 3px 0;\n  font-size: 12.5px;\n  align-items: center;\n}\n.bangermeter-plainrow .bangermeter-icon svg { width: 14px; height: 14px; }\n.bangermeter-worth { color: var(--ts-ink); font-size: 11.5px; }\n\n/* Expandable math sections */\n.bangermeter-math { margin-top: 10px; }\n.bangermeter-math summary {\n  cursor: pointer;\n  font-family: var(--ts-font-display);\n  font-weight: 400;\n  font-size: 11px;\n  text-transform: uppercase;\n  letter-spacing: 0.03em;\n  color: var(--ts-blue);\n  user-select: none;\n  list-style: none;\n}\n.bangermeter-math summary:hover { text-decoration: underline; }\n.bangermeter-math summary::-webkit-details-marker { display: none; }\n.bangermeter-math summary::before { content: \"+ \"; }\n.bangermeter-math[open] summary::before { content: \"− \"; }\n\n/* ── Compose meter ─────────────────────────────────────────────────────── */\n\n.bangermeter-meter {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  margin: 8px 0 4px;\n  font-family: var(--ts-font-body);\n  font-size: 12px;\n  color: var(--ts-black);\n}\n.bangermeter-meter.bangermeter-hidden { display: none; }\n.bangermeter-meter-track {\n  flex: 0 0 90px;\n  height: 12px;\n  border-radius: 0;\n  background: var(--ts-white);\n  border: 2px solid var(--ts-black);\n  box-shadow: 2px 2px 0 var(--ts-black);\n  overflow: hidden;\n}\n.bangermeter-meter-fill { height: 100%; border-radius: 0; transition: width 0.2s ease; }\n.bangermeter-fill-high { background: var(--ts-green); }\n.bangermeter-fill-mid { background: var(--ts-yellow); }\n.bangermeter-fill-low { background: var(--ts-red); }\n.bangermeter-meter-score {\n  display: inline-flex;\n  align-items: center;\n  gap: 4px;\n  font-weight: 700;\n}\n.bangermeter-meter-hints {\n  display: flex;\n  gap: 10px;\n  font-weight: 600;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n/* ── Motion preferences ────────────────────────────────────────────────── */\n\n@media (prefers-reduced-motion: reduce) {\n  .bangermeter-badge, .bangermeter-panel-close, .bangermeter-meter-fill {\n    transition: none;\n  }\n  .bangermeter-badge:hover, .bangermeter-panel-close:hover {\n    transform: none;\n  }\n}\n";
+  s.textContent = "/* Bangermeter — injected styles (neo-brutalist brand system)\n   Rules: hard shadows (no blur), 2-3px borders, flat opaque colors, sharp corners,\n   physical hover feedback, high contrast. No gradients, no transparency.\n   Panel + meter are theme-aware via [data-bm-theme=\"dark\"] (set from X\u0027s own theme);\n   the badge stays light deliberately — it is the brand chip. */\n\n:root {\n  --ts-black: #000000;\n  --ts-white: #FFFFFF;\n  --ts-cream: #F5F0E6;\n  --ts-red: #FF5252;\n  --ts-yellow: #FFEB3B;\n  --ts-blue: #2196F3;\n  --ts-green: #4CAF50;\n  --ts-orange: #FF9800;\n  /* Font stacks intentionally rely on locally-installed fonts with strong\n     fallbacks (Arial Black / Impact / Arial) — a content script should not\n     phone home to a font CDN. */\n  --ts-font-display: \u0027Archivo Black\u0027, \u0027Arial Black\u0027, Impact, sans-serif;\n  --ts-font-body: \u0027Space Grotesk\u0027, Arial, sans-serif;\n}\n\n/* Theme tokens: light defaults, dark overrides */\n.bangermeter-panel,\n.bangermeter-meter {\n  --bm-surface: #FFFFFF;\n  --bm-text: #000000;\n  --bm-ink: #555555;\n  --bm-line: #000000;\n  --bm-shadow: #000000;\n  --bm-up: #2E7D32;\n  --bm-down: #C62828;\n  --bm-barpos: #C8E6C9;\n  --bm-barneg: #FFCDD2;\n  --bm-link: #2196F3;\n}\n.bangermeter-panel[data-bm-theme=\"dark\"],\n.bangermeter-meter[data-bm-theme=\"dark\"] {\n  --bm-surface: #1C1C1C;\n  --bm-text: #FFFFFF;\n  --bm-ink: #B8B8B8;\n  --bm-line: #FFFFFF;\n  --bm-shadow: #FFFFFF;\n  --bm-up: #7DDB82;\n  --bm-down: #FF8A80;\n  --bm-barpos: #1E4620;\n  --bm-barneg: #5A1F1F;\n  --bm-link: #64B5F6;\n}\n\n/* ── Badge (always light — the brand chip) ─────────────────────────────── */\n\n.bangermeter-badge {\n  display: inline-flex;\n  align-items: center;\n  gap: 5px;\n  margin-left: 10px;\n  padding: 2px 7px;\n  border-radius: 0;\n  background: var(--ts-white);\n  border: 2px solid var(--ts-black);\n  box-shadow: 2px 2px 0 var(--ts-black);\n  font-family: var(--ts-font-body);\n  font-size: 12px;\n  font-weight: 700;\n  line-height: 16px;\n  color: var(--ts-black);\n  cursor: pointer;\n  user-select: none;\n  align-self: center;\n  transition: transform 0.1s ease, box-shadow 0.1s ease;\n}\n.bangermeter-badge:hover {\n  transform: translate(-1px, -1px);\n  box-shadow: 3px 3px 0 var(--ts-black);\n}\n.bangermeter-badge:active {\n  transform: translate(1px, 1px);\n  box-shadow: 1px 1px 0 var(--ts-black);\n}\n.bangermeter-badge:focus-visible {\n  outline: 3px solid var(--ts-blue);\n  outline-offset: 2px;\n}\n\n.bangermeter-icon { display: inline-flex; align-items: center; }\n.bangermeter-icon svg { width: 12px; height: 12px; display: block; }\n\n/* The brand mark: bolt is ALWAYS black on yellow, regardless of surrounding\n   text color (fixes white-bolt bug in the black header). */\n.bangermeter-bolt-box {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  width: 16px;\n  height: 16px;\n  background: var(--ts-yellow);\n  border: 2px solid var(--ts-black);\n  color: var(--ts-black);\n  flex: none;\n}\n.bangermeter-bolt-box svg { width: 10px; height: 10px; display: block; }\n\n/* Score chips: flat neo color + black text + black border (both themes) */\n.bangermeter-seg {\n  padding: 0 4px;\n  border: 2px solid var(--ts-black);\n  color: var(--ts-black);\n  font-weight: 700;\n}\n.bangermeter-high { background: var(--ts-green); }\n.bangermeter-mid { background: var(--ts-yellow); }\n.bangermeter-low { background: var(--ts-red); }\n\n/* ── Breakdown panel ───────────────────────────────────────────────────── */\n\n.bangermeter-panel {\n  position: fixed;\n  z-index: 2147483647;\n  width: 380px;\n  max-height: 70vh;\n  overflow-y: auto;\n  background: var(--bm-surface);\n  color: var(--bm-text);\n  border: 3px solid var(--bm-line);\n  border-radius: 0;\n  box-shadow: 8px 8px 0 var(--bm-shadow);\n  font-family: var(--ts-font-body);\n  font-size: 13px;\n  padding: 0 0 8px 0;\n}\n\n/* Neo scrollbar: square yellow thumb, thick rails */\n.bangermeter-panel::-webkit-scrollbar { width: 14px; }\n.bangermeter-panel::-webkit-scrollbar-track {\n  background: var(--bm-surface);\n  border-left: 2px solid var(--bm-line);\n}\n.bangermeter-panel::-webkit-scrollbar-thumb {\n  background: var(--ts-yellow);\n  border: 2px solid var(--bm-line);\n  border-radius: 0;\n}\n.bangermeter-panel::-webkit-scrollbar-thumb:hover { background: var(--ts-orange); }\n\n.bangermeter-panel-head {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  padding: 10px 14px;\n  border-bottom: 3px solid var(--bm-line);\n  position: sticky;\n  top: 0;\n  z-index: 2;\n  background: var(--ts-black);\n}\n.bangermeter-panel-title {\n  display: inline-flex;\n  align-items: center;\n  gap: 8px;\n  font-family: var(--ts-font-display);\n  font-weight: 400;\n  font-size: 14px;\n  letter-spacing: 0.04em;\n  text-transform: uppercase;\n  color: var(--ts-white);\n}\n\n.bangermeter-panel-close {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  border: 2px solid var(--ts-black);\n  background: var(--ts-yellow);\n  color: var(--ts-black);\n  cursor: pointer;\n  width: 26px;\n  height: 26px;\n  padding: 0;\n  border-radius: 0;\n  box-shadow: 2px 2px 0 var(--ts-white);\n  transition: transform 0.1s ease, box-shadow 0.1s ease;\n  flex: none;\n}\n.bangermeter-panel-close svg { width: 12px; height: 12px; display: block; }\n.bangermeter-panel-close:hover {\n  transform: translate(-1px, -1px);\n  box-shadow: 3px 3px 0 var(--ts-white);\n}\n.bangermeter-panel-close:active {\n  transform: translate(1px, 1px);\n  box-shadow: 1px 1px 0 var(--ts-white);\n}\n.bangermeter-panel-close:focus-visible {\n  outline: 3px solid var(--ts-blue);\n  outline-offset: 2px;\n}\n\n.bangermeter-panel-section {\n  padding: 12px 14px;\n  border-bottom: 2px solid var(--bm-line);\n}\n.bangermeter-panel-section:last-child { border-bottom: none; }\n\n.bangermeter-panel-scorerow {\n  display: flex;\n  align-items: center;\n  gap: 10px;\n  margin-bottom: 8px;\n}\n.bangermeter-panel-scorelabel {\n  font-family: var(--ts-font-display);\n  font-weight: 400;\n  font-size: 13px;\n  text-transform: uppercase;\n  letter-spacing: 0.03em;\n}\n.bangermeter-panel-scoreval {\n  font-family: var(--ts-font-display);\n  font-weight: 400;\n  font-size: 20px;\n  line-height: 1.2;\n  padding: 1px 10px;\n  border: 2px solid var(--ts-black);\n  box-shadow: 2px 2px 0 var(--bm-shadow);\n  margin-left: auto;\n  color: var(--ts-black);\n}\n\n.bangermeter-sub {\n  font-size: 11.5px;\n  color: var(--bm-ink);\n  margin: 0 0 8px;\n  line-height: 1.4;\n}\n\n/* Contribution rows (inside \"Show the math\") */\n.bangermeter-contrib {\n  position: relative;\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  padding: 2px 0;\n  min-height: 18px;\n}\n.bangermeter-contrib-bar {\n  position: absolute;\n  left: 0;\n  top: 2px;\n  bottom: 2px;\n  background: var(--bm-barpos);\n  border-radius: 0;\n  z-index: 0;\n}\n.bangermeter-contrib-bar.bangermeter-neg { background: var(--bm-barneg); }\n.bangermeter-contrib-label { position: relative; z-index: 1; flex: 1; font-size: 12px; }\n.bangermeter-contrib-val {\n  position: relative;\n  z-index: 1;\n  font-variant-numeric: tabular-nums;\n  font-size: 11px;\n  color: var(--bm-ink);\n}\n\n.bangermeter-subhead {\n  font-family: var(--ts-font-display);\n  font-weight: 400;\n  font-size: 11px;\n  text-transform: uppercase;\n  letter-spacing: 0.04em;\n  margin: 8px 0 4px;\n}\n\n.bangermeter-mod { display: flex; gap: 6px; padding: 2px 0; font-size: 12.5px; align-items: baseline; }\n.bangermeter-mod-dir { width: 14px; text-align: center; font-weight: 700; flex: none; }\n.bangermeter-mod-label { flex: 1; }\n.bangermeter-up { color: var(--bm-up); }\n.bangermeter-down { color: var(--bm-down); }\n\n/* Rescorer callout: yellow highlight bar (both themes — brand) */\n.bangermeter-rescorer {\n  display: inline-block;\n  margin-top: 8px;\n  font-size: 12px;\n  font-weight: 700;\n  color: var(--ts-black);\n  background: var(--ts-yellow);\n  border: 2px solid var(--ts-black);\n  padding: 2px 8px;\n}\n\n.bangermeter-unweighted { margin-top: 6px; font-size: 12px; color: var(--bm-ink); }\n.bangermeter-context {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  font-size: 12px;\n  font-weight: 700;\n  margin-bottom: 6px;\n}\n.bangermeter-context .bangermeter-icon svg { width: 14px; height: 14px; }\n.bangermeter-fineprint { font-size: 11px; color: var(--bm-ink); margin-top: 6px; line-height: 1.4; }\n\n.bangermeter-plainrow {\n  display: flex;\n  gap: 7px;\n  padding: 3px 0;\n  font-size: 12.5px;\n  align-items: flex-start;\n}\n.bangermeter-plainrow .bangermeter-icon { margin-top: 2px; }\n.bangermeter-plainrow .bangermeter-icon svg { width: 14px; height: 14px; }\n.bangermeter-plainrow \u003e span:not(.bangermeter-icon):not(.bangermeter-worth) {\n  white-space: nowrap;\n  flex: none;\n}\n.bangermeter-worth { color: var(--bm-ink); font-size: 11.5px; flex: 1 1 140px; min-width: 140px; }\n\n/* Expandable math sections */\n.bangermeter-math { margin-top: 10px; }\n.bangermeter-math summary {\n  cursor: pointer;\n  font-family: var(--ts-font-display);\n  font-weight: 400;\n  font-size: 11px;\n  text-transform: uppercase;\n  letter-spacing: 0.03em;\n  color: var(--bm-link);\n  user-select: none;\n  list-style: none;\n}\n.bangermeter-math summary:hover { text-decoration: underline; }\n.bangermeter-math summary::-webkit-details-marker { display: none; }\n.bangermeter-math summary::before { content: \"+ \"; }\n.bangermeter-math[open] summary::before { content: \"− \"; }\n.bangermeter-math summary:focus-visible {\n  outline: 3px solid var(--ts-blue);\n  outline-offset: 2px;\n}\n\n/* ── Compose meter ─────────────────────────────────────────────────────── */\n\n.bangermeter-meter {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  margin: 8px 0 4px;\n  font-family: var(--ts-font-body);\n  font-size: 12px;\n  color: var(--bm-text);\n}\n.bangermeter-meter.bangermeter-hidden { display: none; }\n.bangermeter-meter-track {\n  flex: 0 0 90px;\n  height: 12px;\n  border-radius: 0;\n  background: var(--bm-surface);\n  border: 2px solid var(--bm-line);\n  box-shadow: 2px 2px 0 var(--bm-shadow);\n  overflow: hidden;\n}\n.bangermeter-meter-fill { height: 100%; border-radius: 0; transition: width 0.2s ease; }\n.bangermeter-fill-high { background: var(--ts-green); }\n.bangermeter-fill-mid { background: var(--ts-yellow); }\n.bangermeter-fill-low { background: var(--ts-red); }\n.bangermeter-meter-score {\n  display: inline-flex;\n  align-items: center;\n  gap: 4px;\n  font-weight: 700;\n}\n.bangermeter-meter-hints {\n  display: flex;\n  gap: 10px;\n  font-weight: 600;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n/* ── Motion preferences ────────────────────────────────────────────────── */\n\n@media (prefers-reduced-motion: reduce) {\n  .bangermeter-badge, .bangermeter-panel-close, .bangermeter-meter-fill {\n    transition: none;\n  }\n  .bangermeter-badge:hover, .bangermeter-panel-close:hover {\n    transform: none;\n  }\n}\n";
   (document.head || document.documentElement).appendChild(s);
 })();
 
@@ -220,7 +220,8 @@ var BANGERMETER_DEFAULT_SETTINGS = {
   showBadges: true,
   scoreDrafts: true,
   assumeOutOfNetwork: false,
-  applyVerifiedBoost2023: false
+  applyVerifiedBoost2023: false,
+  theme: "auto"
 };
 
 // Bangermeter — scoring engine (pure functions, no DOM access)
@@ -528,6 +529,26 @@ var BangermeterEngine = (function () {
     });
   } catch (e) { /* storage unavailable — run with defaults */ }
 
+  // ── theming ───────────────────────────────────────────────────────────────
+  // Panel + meter follow X's OWN theme (default/dim/lights-out), not the OS,
+  // unless the user pins light/dark in settings. The badge stays light — brand.
+  function xThemeIsDark() {
+    try {
+      var bg = getComputedStyle(document.body).backgroundColor;
+      var m = bg.match(/\d+/g);
+      if (!m || m.length < 3) return false;
+      var lum = 0.299 * m[0] + 0.587 * m[1] + 0.114 * m[2];
+      return lum < 128;
+    } catch (e) { return false; }
+  }
+
+  function applyTheme(node) {
+    var mode = settings.theme || "auto";
+    var dark = mode === "dark" || (mode === "auto" && xThemeIsDark());
+    if (dark) node.setAttribute("data-bm-theme", "dark");
+    else node.removeAttribute("data-bm-theme");
+  }
+
   // ── tweet feature extraction ──────────────────────────────────────────────
 
   var COUNT_WORDS = {
@@ -733,6 +754,7 @@ var BangermeterEngine = (function () {
   // ── breakdown panel ───────────────────────────────────────────────────────
 
   var panel = null;
+  var lastBadgeFocus = null;
 
   function el(tag, cls, text) {
     var node = document.createElement(tag);
@@ -838,12 +860,19 @@ var BangermeterEngine = (function () {
     var result = BangermeterEngine.scoreTweet(features, settings);
 
     panel = el("div", "bangermeter-panel");
+    panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-label", "Bangermeter score breakdown");
+    applyTheme(panel);
+    lastBadgeFocus = anchor;
     var head = el("div", "bangermeter-panel-head");
     var title = el("span", "bangermeter-panel-title");
     title.appendChild(boltBox());
     title.appendChild(document.createTextNode("Bangermeter"));
     head.appendChild(title);
-    var close = el("button", "bangermeter-panel-close", "×");
+    var close = el("button", "bangermeter-panel-close");
+    close.setAttribute("aria-label", "Close breakdown");
+    // SVG × so it is optically centered (a text glyph sits on its baseline)
+    close.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="square" aria-hidden="true"><path d="M5.5 5.5 18.5 18.5M18.5 5.5 5.5 18.5"/></svg>';
     close.addEventListener("click", closePanel);
     head.appendChild(close);
     panel.appendChild(head);
@@ -1050,6 +1079,8 @@ var BangermeterEngine = (function () {
       document.addEventListener("click", outsideClose, true);
       document.addEventListener("keydown", escClose, true);
     }, 0);
+    // Move focus into the dialog for keyboard users
+    try { close.focus({ preventScroll: true }); } catch (e) { /* focus optional */ }
   }
 
   function outsideClose(ev) {
@@ -1057,9 +1088,15 @@ var BangermeterEngine = (function () {
   }
   function escClose(ev) { if (ev.key === "Escape") closePanel(); }
   function closePanel() {
+    var hadPanel = !!panel;
     if (panel) { panel.remove(); panel = null; }
     document.removeEventListener("click", outsideClose, true);
     document.removeEventListener("keydown", escClose, true);
+    // Return focus to the badge that opened the dialog
+    if (hadPanel && lastBadgeFocus && lastBadgeFocus.isConnected) {
+      try { lastBadgeFocus.focus({ preventScroll: true }); } catch (e) { /* optional */ }
+    }
+    lastBadgeFocus = null;
   }
 
   // ── compose-box draft meter ───────────────────────────────────────────────
@@ -1091,7 +1128,9 @@ var BangermeterEngine = (function () {
     if (meter) return meter;
 
     meter = el("div", "bangermeter-meter");
+    meter.setAttribute("role", "img");
     var bar = el("div", "bangermeter-meter-track");
+    bar.setAttribute("aria-hidden", "true");
     bar.appendChild(el("div", "bangermeter-meter-fill"));
     meter.appendChild(bar);
     meter.appendChild(el("span", "bangermeter-meter-score", ""));
@@ -1108,8 +1147,10 @@ var BangermeterEngine = (function () {
     var text = editor.innerText || "";
     if (text.trim().length === 0) { meter.classList.add("bangermeter-hidden"); return; }
     meter.classList.remove("bangermeter-hidden");
+    applyTheme(meter);
 
     var result = BangermeterEngine.contentScore(draftFeatures(editor, text), settings);
+    meter.setAttribute("aria-label", "Bangermeter draft score " + result.score + " out of 100");
     var fill = meter.querySelector(".bangermeter-meter-fill");
     fill.style.width = result.score + "%";
     fill.className = "bangermeter-meter-fill bangermeter-fill-" + scoreLevel(result.score);

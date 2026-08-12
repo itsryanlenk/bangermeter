@@ -7,6 +7,9 @@ ALGORITHM.md
 HANDOFF.md
 WEBSITE-BRIEF.md
 
+# Build artifacts
+dist/
+
 # OS noise
 Thumbs.db
 desktop.ini

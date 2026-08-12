@@ -21,6 +21,26 @@
     });
   } catch (e) { /* storage unavailable — run with defaults */ }
 
+  // ── theming ───────────────────────────────────────────────────────────────
+  // Panel + meter follow X's OWN theme (default/dim/lights-out), not the OS,
+  // unless the user pins light/dark in settings. The badge stays light — brand.
+  function xThemeIsDark() {
+    try {
+      var bg = getComputedStyle(document.body).backgroundColor;
+      var m = bg.match(/\d+/g);
+      if (!m || m.length < 3) return false;
+      var lum = 0.299 * m[0] + 0.587 * m[1] + 0.114 * m[2];
+      return lum < 128;
+    } catch (e) { return false; }
+  }
+
+  function applyTheme(node) {
+    var mode = settings.theme || "auto";
+    var dark = mode === "dark" || (mode === "auto" && xThemeIsDark());
+    if (dark) node.setAttribute("data-bm-theme", "dark");
+    else node.removeAttribute("data-bm-theme");
+  }
+
   // ── tweet feature extraction ──────────────────────────────────────────────
 
   var COUNT_WORDS = {
@@ -226,6 +246,7 @@
   // ── breakdown panel ───────────────────────────────────────────────────────
 
   var panel = null;
+  var lastBadgeFocus = null;
 
   function el(tag, cls, text) {
     var node = document.createElement(tag);
@@ -331,12 +352,19 @@
     var result = BangermeterEngine.scoreTweet(features, settings);
 
     panel = el("div", "bangermeter-panel");
+    panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-label", "Bangermeter score breakdown");
+    applyTheme(panel);
+    lastBadgeFocus = anchor;
     var head = el("div", "bangermeter-panel-head");
     var title = el("span", "bangermeter-panel-title");
     title.appendChild(boltBox());
     title.appendChild(document.createTextNode("Bangermeter"));
     head.appendChild(title);
-    var close = el("button", "bangermeter-panel-close", "×");
+    var close = el("button", "bangermeter-panel-close");
+    close.setAttribute("aria-label", "Close breakdown");
+    // SVG × so it is optically centered (a text glyph sits on its baseline)
+    close.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="square" aria-hidden="true"><path d="M5.5 5.5 18.5 18.5M18.5 5.5 5.5 18.5"/></svg>';
     close.addEventListener("click", closePanel);
     head.appendChild(close);
     panel.appendChild(head);
@@ -543,6 +571,8 @@
       document.addEventListener("click", outsideClose, true);
       document.addEventListener("keydown", escClose, true);
     }, 0);
+    // Move focus into the dialog for keyboard users
+    try { close.focus({ preventScroll: true }); } catch (e) { /* focus optional */ }
   }
 
   function outsideClose(ev) {
@@ -550,9 +580,15 @@
   }
   function escClose(ev) { if (ev.key === "Escape") closePanel(); }
   function closePanel() {
+    var hadPanel = !!panel;
     if (panel) { panel.remove(); panel = null; }
     document.removeEventListener("click", outsideClose, true);
     document.removeEventListener("keydown", escClose, true);
+    // Return focus to the badge that opened the dialog
+    if (hadPanel && lastBadgeFocus && lastBadgeFocus.isConnected) {
+      try { lastBadgeFocus.focus({ preventScroll: true }); } catch (e) { /* optional */ }
+    }
+    lastBadgeFocus = null;
   }
 
   // ── compose-box draft meter ───────────────────────────────────────────────
@@ -584,7 +620,9 @@
     if (meter) return meter;
 
     meter = el("div", "bangermeter-meter");
+    meter.setAttribute("role", "img");
     var bar = el("div", "bangermeter-meter-track");
+    bar.setAttribute("aria-hidden", "true");
     bar.appendChild(el("div", "bangermeter-meter-fill"));
     meter.appendChild(bar);
     meter.appendChild(el("span", "bangermeter-meter-score", ""));
@@ -601,8 +639,10 @@
     var text = editor.innerText || "";
     if (text.trim().length === 0) { meter.classList.add("bangermeter-hidden"); return; }
     meter.classList.remove("bangermeter-hidden");
+    applyTheme(meter);
 
     var result = BangermeterEngine.contentScore(draftFeatures(editor, text), settings);
+    meter.setAttribute("aria-label", "Bangermeter draft score " + result.score + " out of 100");
     var fill = meter.querySelector(".bangermeter-meter-fill");
     fill.style.width = result.score + "%";
     fill.className = "bangermeter-meter-fill bangermeter-fill-" + scoreLevel(result.score);
