@@ -64,18 +64,35 @@ Txt $g "Zero data collected." "Arial" 15 ([System.Drawing.FontStyle]::Bold) $GRA
 $capFont = New-Object System.Drawing.Font("Arial", 19, [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
 $capW = [int]$g.MeasureString($W.facts.shortChipCaption, $capFont).Width
 $capFont.Dispose()
-NeoBox $g 48 690 ($capW + 36) 42 $YELLOW 3 5
+$CHIP_X = 48; $CHIP_SHADOW = 5
+$chipW = $capW + 36
+NeoBox $g $CHIP_X 690 $chipW 42 $YELLOW 3 $CHIP_SHADOW
 Txt $g $W.facts.shortChipCaption "Arial" 19 ([System.Drawing.FontStyle]::Bold) $BLACK 66 700
 
-# Screenshot at native size with neo frame, centred in the space right of the brand
-# column so a differently-sized capture still composes correctly.
-$colRight = 370
-$sx = [int]($colRight + (1280 - $colRight - $shot.Width) / 2)
-$sy = [int]((800 - $shot.Height) / 2)
-$g.FillRectangle((B $BLACK), ($sx + 10), ($sy + 10), $shot.Width, $shot.Height)
-$g.DrawImage($shot, $sx, $sy, $shot.Width, $shot.Height)
+# ── Place the capture so it can never collide with the left column ──────────
+# Both the chip and the capture grow with their content (caption length, crop
+# size), so a fixed x would eventually overlap — and did. Derive the boundary
+# from what the left column actually occupies, including the chip's hard shadow,
+# then scale the capture down if it cannot fit at native size.
+$GUTTER = 36; $RIGHT_MARGIN = 28; $FRAME_SHADOW = 10
+$leftEdge = [Math]::Max(370, $CHIP_X + $chipW + $CHIP_SHADOW) + $GUTTER
+$availW = 1280 - $leftEdge - $RIGHT_MARGIN - $FRAME_SHADOW
+$availH = 800 - 40 - $FRAME_SHADOW
+
+$scale = [Math]::Min(1.0, [Math]::Min($availW / $shot.Width, $availH / $shot.Height))
+$shotW = [int]($shot.Width * $scale)
+$shotH = [int]($shot.Height * $scale)
+$sx = [int]($leftEdge + ($availW - $shotW) / 2)
+$sy = [int]((800 - $shotH) / 2)
+
+if ($sx -lt ($CHIP_X + $chipW + $CHIP_SHADOW)) { throw "layout: capture would overlap the caption chip" }
+Write-Host ("capture {0}x{1} -> {2}x{3} (scale {4:N2}) at x={5}, chip ends x={6}" -f `
+  $shot.Width, $shot.Height, $shotW, $shotH, $scale, $sx, ($CHIP_X + $chipW + $CHIP_SHADOW))
+
+$g.FillRectangle((B $BLACK), ($sx + $FRAME_SHADOW), ($sy + $FRAME_SHADOW), $shotW, $shotH)
+$g.DrawImage($shot, $sx, $sy, $shotW, $shotH)
 $pen = New-Object System.Drawing.Pen($BLACK, 3)
-$g.DrawRectangle($pen, ($sx + 1.5), ($sy + 1.5), ($shot.Width - 3), ($shot.Height - 3))
+$g.DrawRectangle($pen, ($sx + 1.5), ($sy + 1.5), ($shotW - 3), ($shotH - 3))
 $pen.Dispose()
 
 $bmp.Save("D:\Twitter Tweet Scan\store-assets\screenshot-1280x800.png", [System.Drawing.Imaging.ImageFormat]::Png)
