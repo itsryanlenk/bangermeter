@@ -86,10 +86,10 @@ var BANGERMETER_CONFIG = {
       provenance: "2026-published", label: "Shares" },
     share_via_dm: { weight: 5.0, param: "rust_home_mixer_share_via_dm_weight",
       provenance: "2026-published", label: "Share via DM",
-      note: "Musk (Sep 2024) called forwarding posts to friends 'one of the strongest signals'. Now confirmed numerically: a DM share is worth 10 likes." },
+      note: "Per impression this is worth 10× a like and matches a reply exactly. Musk (Sep 2024) called forwarding posts to friends 'one of the strongest signals'; 5.0 puts it in the second tier, a quarter of a copy-link share — consistent with that remark, but a vague quote is not something a number can confirm." },
     share_via_copy_link: { weight: 20.0, param: "rust_home_mixer_share_via_copy_link_weight",
       provenance: "2026-published", label: "Share via copy link",
-      note: "The single heaviest positive head — 40× a like, 4× a reply. Copying a post's link is the strongest positive action a viewer can take." },
+      note: "The heaviest positive weight in the table: per impression it is worth 40× a like and 4× a reply, so no single action a viewer takes is worth more. That is a claim about value per event, not about volume — copy-link shares are rare, so they move far fewer posts than likes do. Bangermeter cannot observe them at all and scores this head from a baseline estimate." },
     follow_author: { weight: 4.0, param: "rust_home_mixer_follow_author_weight",
       provenance: "2026-published", label: "Follow author" },
     click: { weight: 0.4, param: "rust_home_mixer_click_weight",
@@ -1281,17 +1281,22 @@ var BangermeterEngine = (function () {
       sec3.appendChild(vNote);
     }
 
-    // What the Aug 13, 2026 release actually says. Every number here is
-    // transcribed from param.rs — none of it is inference.
+    // What the Aug 13, 2026 release actually says. Every WEIGHT here is read
+    // from the transcribed param.rs table; the ratios are arithmetic on those
+    // weights, and they describe value PER EVENT, not how often the event
+    // happens. The closing note keeps that distinction visible, because a
+    // heavy weight on a rare action is not the same as a big lever.
     var H = BANGERMETER_CONFIG.heads;
     var F = BANGERMETER_CONFIG.sourcedFacts;
     var d4 = mathDetails("What X's published weights actually say");
     [
-      "▲ Copying a post's link is the strongest action there is — " + H.share_via_copy_link.weight +
-        ", which is " + (H.share_via_copy_link.weight / H.favorite.weight) + " likes and " +
-        (H.share_via_copy_link.weight / H.reply.weight) + " replies.",
-      "▲ Sharing to DMs pays " + H.share_via_dm.weight + "; the share menu itself pays " +
-        H.share.weight + ". Musk's “one of the strongest signals” line finally has a number.",
+      "▲ No single action is worth more than copying a post's link — " + H.share_via_copy_link.weight +
+        " per share, which is " + (H.share_via_copy_link.weight / H.favorite.weight) + " likes or " +
+        (H.share_via_copy_link.weight / H.reply.weight) + " replies. It is also rare, so it decides " +
+        "far fewer posts than likes do.",
+      "▲ Sharing to DMs pays " + H.share_via_dm.weight + " — the same as a reply. The share menu " +
+        "itself pays " + H.share.weight + ". Musk called DM-forwarding “one of the strongest " +
+        "signals”; this is the second tier, a quarter of a copy-link share.",
       "▲ A reply from someone you mutually follow is worth " +
         (H.reply.weight + BANGERMETER_CONFIG.bidirectionalFollowReplyBoost) + ", not " +
         H.reply.weight + " — but only on original posts, never on replies or reposts.",
@@ -1322,8 +1327,11 @@ var BangermeterEngine = (function () {
       d4.appendChild(row);
     });
     d4.appendChild(el("div", "bangermeter-fineprint",
-      BANGERMETER_CONFIG.weightsMeaningNote + " Most of these heads need Phoenix's own " +
-      "predictions, so they inform what you read here without entering the score above."));
+      BANGERMETER_CONFIG.weightsMeaningNote + " These are values per event, not per post: a " +
+      "heavy weight on a rare action still moves fewer posts than a light weight on a common " +
+      "one. Only likes, replies and reposts above come from this post's real counts — the rest " +
+      "need Phoenix's own predictions, so they inform what you read here without entering the " +
+      "score above."));
     sec3.appendChild(d4);
 
     var d3 = mathDetails("About these scores");
