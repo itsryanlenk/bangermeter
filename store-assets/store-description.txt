@@ -1,0 +1,63 @@
+See what X's algorithm actually rewards — on every post, as you scroll.
+
+On August 13, 2026, X published the real ranking weights for the For You timeline: the exact numbers that decide how far a post travels. Bangermeter puts them on every post in your feed.
+
+No leaked screenshots. No "I reverse-engineered the algorithm" threads. The weights come straight from X's published source, and every factor in the breakdown is cited to the line of code it came from.
+
+
+WHAT YOU GET
+
+• A score badge on every post as you scroll. Two numbers, 0–100, where 50 is a typical post.
+  – Content Appeal: what the ranking signals would predict from the content alone.
+  – Earned Engagement: how the weights value what the post actually earned, per view.
+
+• Click the badge for a plain-English breakdown. Which signals fired and why, what each reply and repost is actually worth, the rescoring factors that applied, and how fresh the post is. Every section has a "Show the math" expander with the full weight × probability table if you want the numbers.
+
+• A live meter in the compose box. Score your draft as you type, with hints as they trigger — asks a question, substantive text, bare link, hashtag pile, engagement bait.
+
+• A weight table in the popup. All 26 ranking heads, their published values, and which ones the extension can measure versus estimate.
+
+
+SOME OF WHAT THE WEIGHTS SAY
+
+• Copying a post's link is the strongest thing a reader can do — worth 40 likes.
+• A reply is worth 10 likes. From someone you mutually follow, 20.
+• Sharing to DMs is worth 10 likes. Nothing in the visible counts shows you it happened.
+• Profile clicks are worth nothing. That head used to pay, and X zeroed it.
+• Muting hurts nearly twice as much as blocking.
+• Scrolling straight past is a scored penalty.
+• Bookmarks are not a scored action at all.
+• Links do get credit. The "link penalty" was always folklore.
+
+
+HOW IT'S HONEST ABOUT WHAT IT KNOWS
+
+The weights are X's. The probabilities are estimates.
+
+X predicts how likely you are to reply, share or mute a post using a model nobody outside the company has. Bangermeter derives three of those probabilities from real counts — likes, replies and reposts — and estimates the rest from what's in the post. Every head in the popup is labelled as measured, estimated, or zeroed by X, so you always know which is which.
+
+It also matters that these weights multiply a predicted probability, not a count. A report is not a 234-point deduction; that number is the coefficient on how likely a viewer is to report you. Anything claiming these are per-action point totals has it wrong.
+
+There are no invented numbers anywhere in this extension. Circulating figures that failed source-tracing — "bookmark 20x", "links minus 30-50%", "block minus 120" — were left out rather than guessed at, and none of them matched the real values when those were published.
+
+This is a relative score against a typical post. It is not a prediction of reach, and nothing can honestly promise you one.
+
+
+PRIVACY
+
+• No data collection. None.
+• No network requests. The extension never phones home, because there is no home.
+• No account, no sign-in, no analytics, no tracking.
+• The only permission is storage, used to remember your settings.
+
+Everything runs locally in your browser. The source is public and reviewable.
+
+
+OPEN SOURCE
+
+MIT licensed, with the full research record and 112 automated tests that check every published weight against X's source individually.
+
+github.com/itsryanlenk/bangermeter
+
+
+Bangermeter is an independent open-source project. It is not affiliated with, endorsed by, or sponsored by X Corp or xAI.
