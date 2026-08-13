@@ -1,75 +1,90 @@
 # Bangermeter ⚡
 
-**Score any tweet with X's own open-sourced ranking fundamentals.**
+**Score any post with X's own published ranking weights.**
 
-A Chrome extension that scores tweets on x.com using the exact weighted-sum formula from
-[twitter/the-algorithm](https://github.com/twitter/the-algorithm) (`NaviModelScorer`) with
-the last officially published weight set — validated against the Phoenix-era
-[xai-org/x-algorithm](https://github.com/xai-org/x-algorithm) release and everything else
-learned since January 2026. Full source-traced findings: [RESEARCH.md](RESEARCH.md).
+A Chrome extension that scores posts on x.com using the real For You weights and the real
+scorer arithmetic from [xai-org/x-algorithm](https://github.com/xai-org/x-algorithm) —
+`home-mixer/params/param.rs` for the values, `home-mixer/scorers/ranking_scorer.rs` for the
+math. Full source-traced findings: [RESEARCH.md](RESEARCH.md).
+
+> **August 13, 2026.** X published the production weights for the For You timeline. Until
+> that morning the only weights anyone had were a March/April 2023 snapshot, and about a
+> third of the ranking heads had never been given a number at all. Bangermeter v0.9.0
+> replaces the entire weight layer with the published set. Everything below describes the
+> new one.
 
 ## Install
 
 1. Open `chrome://extensions`
 2. Enable **Developer mode** (top right)
 3. Click **Load unpacked** → select the `extension/` folder
-4. Browse x.com — every timeline tweet gets a ⚡ badge; click it for the full breakdown.
+4. Browse x.com — every timeline post gets a ⚡ badge; click it for the full breakdown.
    The compose box gets a live draft meter as you type.
 
 ## What the scores mean
 
-Every tweet gets up to two 0–100 scores (50 = median baseline tweet):
+Every post gets up to two 0–100 scores (50 = median baseline post):
 
-- **C — Content score (prospective).** Estimates how the pre-Phoenix pipeline would value
-  this tweet's *content*: baseline engagement probabilities per head, adjusted by detected
-  content signals (question, thread, video, bare link, hashtag spam, engagement bait), run
-  through the exact repo formula.
-- **E — Engagement score (retrospective).** Applies the published weights to the tweet's
-  *actual* engagement rates (likes/reposts/replies ÷ views): "how the algorithm's weighted
-  sum values what this tweet earned." Requires a visible view count.
+- **C — Content score (prospective).** What the ranker would be predisposed to predict from
+  the *content* alone: baseline action probabilities per head, adjusted by detected content
+  signals (question, thread, video, bare link, hashtag piles, engagement bait), run through
+  the published weights and the real scorer arithmetic.
+- **E — Engagement score (retrospective).** Applies the published weights to the post's
+  *actual* rates (likes/reposts/replies ÷ views). Requires a visible view count.
 
 Click the badge for the breakdown: per-head contributions (`weight × P`), detected signals
-with direction and provenance, rescoring factors (reply ×0.75, optional out-of-network
-×0.75), unweighted signals (e.g. bookmarks), and age-decay context.
+with direction and provenance, rescoring factors, freshness, and a collapsible table of
+what the published weights actually say.
 
 ## Methodology and honesty
 
-- **Formula:** exact `NaviModelScorer.computeWeightedModelScore` math — weighted sum over
-  engagement heads, ε = 0.001, negative-sum squashing, good-click v1/v2 max-combine — plus
-  the `HeuristicScorer` rescoring chain. This score *skeleton* is confirmed to survive in
-  X's 2026 production code (`xai-org/x-algorithm`, `weighted_scorer.rs`).
-- **Weights:** the published 2023 set (fav 0.5, retweet 1.0, reply 13.5, profile-click
-  12, conversation-click 11/10, video-50% 0.005, author-engages-replier 75, negative
-  feedback −74, report −369) — confirmed by 2026 research as **the only sourced values
-  ever released**. Specifically the **April 5, 2023 snapshot** (commit `b85210863f`; the
-  original March 31 table had reply=27 before X retuned it within five days — weights are
-  "periodically adjusted" by X's own admission). Heads that never had a published value
-  (bookmark, share, dwell, …) are **excluded**, not guessed, and shown as sourced signals.
-- **Two archival-sourced factors** (leak-hunt research, Aug 2026): an OPT-IN toggle applies the
-  2023-era **×4 in-network / ×2 out-of-network** multiplier recovered from the archived
-  initial-release commit (`ec83d01dca`, removed from X's code Sept 2025 — off by default
-  since it floors every verified author near the top of the scale), and posts with a displayed **Community Note** get ×0.5 on the prospective
-  score (sourced range 0.4–0.55 from X's own A/B test, Nature Communications, and PNAS
-  causal studies).
-- **No folklore numbers.** "Links −30–50%", "3+ hashtags −40%", "bookmark 20×", "retweet
-  20×" all fail source-tracing. Link/hashtag signals appear only as *mild, labeled,
-  directional* estimator adjustments.
-- **Two separate layers.** The weight layer (published values) never mixes with the
-  estimator layer (how we approximate P(engagement) from what a browser can see). Every
-  number in the UI is tagged with its provenance.
-- **Relative score, not predicted reach.** The repo's heartbeat-optimizer code reveals
-  production weights were per-user-bucket and time-varying; any static set is one point in
-  a moving distribution. Since ~Nov 2025 production ranking is Phoenix (Grok transformer),
-  so this is a historical-fundamentals lens, not a reach predictor.
+- **Formula:** `Σ(weight × P(action))` over the Phoenix head set, then `offset_score` —
+  positive posts get `+0.001`, and any post whose weighted sum goes **net-negative** is
+  rescaled into `[0, 0.000894)`, which drops it below every positive-scoring post no matter
+  what else it earned. Then the post-hoc factors: author diversity
+  `(1 − floor) × decay^k + floor`, and the ×0.75 out-of-network factor. This is a direct
+  port of `ranking_scorer.rs`, not an approximation of it.
+- **Weights:** the published production set. Likes 0.5 · replies 5.0 (**20.0** on an
+  original post from a mutual follow) · reposts 1.0 · quotes 5.0 · shares 2.0 · DM shares
+  5.0 · **copy-link shares 20.0** · follow-author 4.0 · post clicks 0.4 · link opens 0.2 ·
+  photo expand / video open / video-quality-view / quoted click 0.05 · dwell time 0.004 per
+  second · not-dwelled −0.02 · not-interested −43.2 · block −31.2 · mute −58.8 · report
+  −234.0. Profile clicks, binary dwell and quoted-vqv ship at **0.0** — X zeroed them, and
+  the tool shows that rather than hiding it.
+- **Weights multiply predicted probabilities, not counts.** A report does not cost 234
+  points; −234 is the coefficient on *how likely a viewer is to report the post*. X's own
+  comment above the table says the values already fold in how rare each action typically
+  is. Any tool or thread that reads these as per-action point totals is wrong.
+- **The honest boundary.** The weights are X's. The probabilities are ours. X predicts them
+  with Phoenix, a transformer we don't have; Bangermeter derives three of them from real
+  counts (likes, replies, reposts) and estimates the rest from content signals. Every
+  number in the UI is tagged with which layer it came from, and the popup labels every head
+  as `from counts`, `estimated`, `zeroed by X` or `viewer-specific`.
+- **Gates we can see and gates we can't.** Video-quality-view needs duration strictly over
+  10s, so GIFs and short clips are excluded — the extension reads the duration overlay
+  where X renders one. A second vqv gate (the *viewer* having under 10,000 followers) is
+  viewer state a page script cannot read; it is disclosed, not modelled.
+- **No folklore numbers.** "Bookmark 20×", "links −30–50%", "3+ hashtags −40%", "block
+  −120 / mute −100" all failed source-tracing before the release — and none of them matched
+  the real values when those arrived. Bookmarks turn out to have **no head at all**.
+- **Two archival factors, opt-in or sourced.** The 2023-era **×4 / ×2** verified-author
+  multiplier (archived commit `ec83d01dca`; absent from the 2026 release) is behind a
+  default-off toggle. Posts with a displayed **Community Note** get ×0.5 on the prospective
+  score — that 0.5 is our round figure inside a ×0.39–0.75 range from three causal studies,
+  and is labelled as our pick, not X's.
+- **Relative score, not predicted reach.** X says it syncs these defaults from production
+  by cron, which makes them current rather than historical — but the score is still a
+  relative read against a typical post, not an impression forecast.
 
 ## Known limitations
 
-- "Replying to" detection and count parsing assume an English X locale.
+- Count parsing and "Replying to" detection assume an English X locale.
 - The E score needs a visible view count (hidden on some surfaces).
-- Viewer-specific factors (in-network status, feedback fatigue, Control AI) can't be
-  observed; out-of-network ×0.75 is available as a popup toggle instead.
-- X changes its DOM without notice; selectors have documented fallbacks but may need
-  updating.
+- Viewer-specific factors can't be observed: in-network status, mutual-follow status and
+  the vqv follower gate. Out-of-network and mutual-follow are popup toggles instead.
+- Quote counts aren't exposed in the timeline DOM, so the quote head (5.0) is estimated
+  rather than measured.
+- X changes its DOM without notice; selectors have documented fallbacks.
 
 ## Project files
 
@@ -77,26 +92,25 @@ with direction and provenance, rescoring factors (reply ×0.75, optional out-of-
 |---|---|
 | `extension/` | The Chrome extension (MV3, vanilla JS, no build step) |
 | `extension/weights.js` | Single source of truth: weight layer + estimator layer, all provenance-tagged |
-| `extension/scoring.js` | Pure scoring engine (exact repo math) |
+| `extension/scoring.js` | Pure scoring engine (direct port of `ranking_scorer.rs`) |
 | `extension/content.js` | Badges, breakdown panel, compose meter |
-| `extension/test.html` | Engine self-test — open in any browser (33 assertions) |
+| `extension/test.html` | Engine self-test — open in any browser (112 assertions) |
 | `extension/fixture.html` | X-DOM fixture harness for the content script |
-| `extension/bangermeter.user.js` | Single-file Tampermonkey/Greasemonkey build of the same tool |
-
-The scoring formulas were extracted from the September 2025 re-release of
-[twitter/the-algorithm](https://github.com/twitter/the-algorithm) (commit `c54bec0d` —
-`NaviModelScorer.scala`, `PredictedScoreFeature.scala`, `HeuristicScorer.scala`,
-`RescoringFactorProvider.scala`, and the earlybird `AgeDecay` sigmoid), cross-checked
-against the current production structure in
-[xai-org/x-algorithm](https://github.com/xai-org/x-algorithm) (`weighted_scorer.rs`,
-`oon_scorer.rs`, `author_diversity_scorer.rs`).
+| `extension/bangermeter.user.js` | Single-file Tampermonkey build (generated — see `store-assets/make-userscript.ps1`) |
 
 ## Verification status
 
-- Engine math: **33/33 self-tests pass** (`test.html`), including small-sample shrinkage
-  regressions and the verified-author / Community-Note factors.
-- Content script (badges, panel, meter, virtualized-list handling, quote-tweet scoping):
-  **verified against the DOM fixture** (`fixture.html`).
-- Live x.com: verified in a logged-in session (Aug 2026). X changes its DOM without
-  notice; selectors target `article[data-testid="tweet"]`, the action-bar `role="group"`
-  aria-label, and `tweetTextarea_*` with per-button fallbacks.
+- Engine math: **112/112 self-tests pass** (`test.html`). Every one of the 26 published
+  weights and its feature-switch parameter name is asserted against `param.rs`
+  individually, so a silent transcription error fails the suite rather than shipping.
+- Adversarially reviewed at v0.9.0 by three independent passes — weight transcription,
+  Rust-to-JS arithmetic fidelity, and a stale-claim sweep. The arithmetic pass swept
+  ~654k generated inputs for NaN, out-of-range and non-monotonic scores and found none,
+  and used mutation testing to prove which assertions were load-bearing. Findings from
+  all three are fixed in this release; the notable ones are recorded in
+  [RESEARCH.md](RESEARCH.md).
+- Content script (badges, panel, meter, virtualized lists, quote-tweet scoping): exercised
+  against the DOM fixture (`fixture.html`). The fixture is an eyeball harness — it renders
+  and must not throw; it carries no assertions.
+- Live x.com: last verified Aug 2026 on the v0.8.0 UI. The v0.9.0 scoring change has been
+  verified against the fixture and the unit suite, not yet re-verified in a live session.

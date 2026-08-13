@@ -6,6 +6,7 @@ repo/
 ALGORITHM.md
 HANDOFF.md
 WEBSITE-BRIEF.md
+WEBSITE-CHANGES-*.md
 
 # Build artifacts
 dist/

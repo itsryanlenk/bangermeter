@@ -1,32 +1,58 @@
-# The Research — Does the pre-Phoenix algorithm data still hold in 2026?
+# The Research — from "the weights are redacted" to having them
 
-Bangermeter scores tweets with the formulas and weights from X's open-sourced ranking
-code. Those weights were published in **March 2023** and production moved to the Grok-based
-**Phoenix** ranker in late 2025 — so before trusting them, every scoring element was
-source-traced against everything published since. This document is the result (compiled
-August 2026), plus live backtesting notes.
+> ## ⚠️ Superseded in part, on August 13, 2026
+>
+> X published the production For You weights in
+> [`home-mixer/params/param.rs`](https://github.com/xai-org/x-algorithm/blob/main/home-mixer/params/param.rs),
+> with the file header `mirrored from config feature-switch defaults; last sync
+> 2026-08-12T04:09:22Z` and a README note that "we run cron scripts that set the defaults
+> in this repository's code to be the primary production values."
+>
+> **This falsifies headline finding 3 below, and resolves most of the "unknown" rows in
+> the verdict table.** Bangermeter v0.9.0 replaced its entire weight layer with the
+> published set the same day. The rest of this document is preserved as the research
+> record that made that swap safe — see "What the release settled" immediately below for
+> the reconciliation.
+>
+> It also **vindicated the folklore-debunking work**: every circulating "leaked weight"
+> this project rejected over three research sweeps turned out to match none of the real
+> values. "Block −120 / mute −100" is really −31.2 / −58.8. "Reply = 27× a like" is really
+> 10×. "Bookmark 20×" describes a head that does not exist.
 
-## Headline findings
+## What the release settled
+
+| Question this doc left open | Answer, Aug 13 2026 |
+|---|---|
+| Are shares weighted? | Yes: share 2.0, DM share 5.0, **copy-link share 20.0** — the heaviest positive head in the system |
+| Is dwell weighted? | Continuous dwell time yes, 0.004/second. **Binary dwell ships at 0.0** |
+| Is scroll-past really negative? | Yes: not_dwelled −0.02 |
+| What are the granular negatives? | not_interested −43.2 · block −31.2 · mute −58.8 · report −234.0. **Muting hurts nearly 2× blocking** |
+| Are bookmarks weighted? | There is **no bookmark head at all**. Bookmarks survive only as a user-history feature (`n_bm_share`) in the dwell-regret gate |
+| Do links get credit? | Yes, `open_link` 0.2. The "suppression via head omission" reading is retired |
+| Is profile-click still 12.0? | It is **0.0**. X zeroed the head |
+| Did the reply weight hold at 13.5? | No: **5.0**, plus a +15.0 boost to **20.0** on original posts from mutual follows |
+| Is the OON factor really 0.75? | Yes — and `EnableOonRescoreForInNetworkRepliesRetweets` (default true) applies it to in-network replies and reposts too, exactly once |
+| Author diversity decay/floor? | Confirmed 0.5 / 0.25, formula identical |
+| Was there ever a 0.4 Grok quality gate? | **No.** This project asserted one through v0.8.0 and it was wrong — no such threshold exists in the published grox pipeline, and the file it was cited to does not exist. What is real: `grox/flows/upa/task_filter.py` rejects replies and protected accounts outright |
+
+## Headline findings (as of the original sweeps)
 
 1. **A successor repo exists.** xAI open-sourced the Phoenix-era production stack on
    **Jan 20, 2026** at [xai-org/x-algorithm](https://github.com/xai-org/x-algorithm)
    (Rust/Python; Home Mixer, Thunder, Phoenix transformer ported from Grok-1), updated
-   **May 15, 2026** with "Grox" content classifiers (slop_score 1–3, quality_score 0–1
-   with ~0.4 viral threshold) and a runnable non-production "mini Phoenix" checkpoint.
+   **May 15, 2026** with "Grox" content classifiers and a runnable non-production
+   "mini Phoenix" checkpoint, and again **Aug 13, 2026** with the weights, the visibility
+   filtering stack, and Phoenix training code.
 2. **The scoring skeleton survives verbatim.** `Score = Σ(weight_i × P(action_i)) + offset`,
-   times multiplicative rescorers, is still production (`weighted_scorer.rs`,
-   `ranking_scorer.rs`). The out-of-network multiplier and author-diversity
-   decay-with-floor carry over in identical functional form (`oon_scorer.rs`,
-   `author_diversity_scorer.rs`). This is why Bangermeter's architecture matches current
-   production even though its weights are historical.
-3. **Weights are still redacted everywhere.** The `params` module that `weighted_scorer.rs`
-   imports is absent from both 2026 trees. The **March 2023 table remains the only sourced
-   weight set ever released**. Researchers quoted by Engadget (Feb 4, 2026) confirm
-   unverifiability.
-4. **Every viral 2026 "weight leak" fails source-tracing.** "Reply = 27× a like" is
-   13.5/0.5 recycled; "150×" is 75.0/0.5 recycled (and usually *misread* — see below);
-   "bookmark 20×", "retweet 20×", "links −30–50%", "3+ hashtags −40%", "follow +50",
-   "block −120" exist in no repo release.
+   times multiplicative rescorers, is still production (`ranking_scorer.rs`). The
+   out-of-network multiplier and author-diversity decay-with-floor carry over in identical
+   functional form. Confirmed exactly right when the values arrived.
+3. ~~**Weights are still redacted everywhere.**~~ **FALSIFIED Aug 13, 2026** — see the
+   supersession note above. True for the Jan and May 2026 releases; the August release
+   published them. The Engadget (Feb 4, 2026) unverifiability reporting was accurate for
+   its date.
+4. **Every viral 2026 "weight leak" fails source-tracing.** Held up, and then some — none
+   of the circulating figures matched the real values when those were published.
 5. **The September 2025 re-release is the transition state.**
    [twitter/the-algorithm](https://github.com/twitter/the-algorithm) received exactly one
    post-2023 commit — `c54bec0d`, authored 2025-09-03 (+65,319/−3,195, squashed) —
@@ -48,6 +74,12 @@ August 2026), plus live backtesting notes.
 | Jul 28–29, 2026 | Musk/Bier publicly declare the link penalty dead ("haven't for over a year") |
 
 ## Verdict table (per scoring element)
+
+> **Historical.** This table records how each 2023-era element was judged *before* the
+> Aug 13 2026 release. The "What the release settled" table above carries the current
+> values. Rows marked **supported** for the 2023 numbers were supported *as the last
+> published values* — several of those numbers have since changed (reply 13.5 → 5.0,
+> report −369 → −234, profile-click 12.0 → 0.0).
 
 | Element | Verdict | Note |
 |---|---|---|
@@ -72,11 +104,17 @@ August 2026), plus live backtesting notes.
 | Grok slop decay (off, 1.0 in 2025 code) | **changed by Phoenix** | Dormant 2025 hook became production Grox classifiers May 2026 |
 | MTL normalization | **supported** | Monotonic; safe to omit for relative ranking |
 | Heartbeat optimizer | **supported (off)** | Reveals production weights were per-user-bucket and time-varying → any static set is approximate |
-| Earlybird link handling | **changed by Phoenix** | No explicit penalty ever existed; suppression happens via head omission (no head rewards link clicks). Officially "dead" since ~mid-2025 |
+| Earlybird link handling | **resolved Aug 2026** | No explicit penalty ever existed. The "suppression via head omission" reading was ALSO wrong: `open_link` pays 0.2. Links are rewarded, just weakly |
 | Earlybird multiple-hashtags penalty | **changed by Phoenix** | Exists in code, magnitude never published; "−40%" is folklore. Direction (3+) plausible |
 | Earlybird offensive/text-quality | **changed by Phoenix** | Retired in production ("eliminated every single hand-engineered feature"); safety now via Grox |
 
-## Deep-dive: the seven never-published heads (Aug 2026)
+## Deep-dive: the seven never-published heads (Aug 2026, pre-release)
+
+> **Five of these seven now have published values** (share 2.0, share_via_dm 5.0,
+> share_via_copy_link 20.0, dwell 0.0, not_dwelled −0.02). Bookmark turned out to have no
+> head at all, and strong/weak negative feedback were replaced by the four named negatives.
+> The section's conclusion — that no circulating number for any of them was credible — was
+> correct, and is why none of them was ever guessed into the score.
 
 A second research pass focused exclusively on the heads that have never had a published
 weight (bookmark, share, share_menu_click, tweet_detail_dwell, profile_dwell, strong/weak
@@ -107,20 +145,29 @@ inventions ("block −75", "−1000×"). None cites a code path.
 
 **Genuinely new grade-A facts this pass surfaced:**
 
-- **The exact 2026 head roster (19 heads, verified verbatim in `weighted_scorer.rs`):**
+- **The 2026 head roster** — catalogued here as 19 heads; the Aug 2026 release shows **26**,
+  adding `video_open`, `open_link`, `quoted_vqv`, `post_unexplored`, `cont_click_dwell_time`,
+  `cont_active_secs_5m_residual_norm` and `not_dwelled` to the list below:
   favorite, reply, retweet, photo_expand, click, profile_click, vqv, share, share_via_dm,
   share_via_copy_link, dwell, quote, quoted_click, cont_dwell_time, follow_author,
   not_interested, block_author, mute_author, report. Bookmark and reply_engaged_by_author
-  confirmed dropped; `quoted_click` was previously uncatalogued.
-- **Scroll-past is an explicit penalty:** `not_dwelled` is a negative-weighted head in
-  `ranking_scorer.rs` (direction sourced, value redacted).
-- **Sourced interaction thresholds** (constants, not weights — displayable as facts):
-  a click "counts" at ≥2s post-click dwell, good profile click at ≥10s, detail-page dwell
-  at ≥15s, profile dwell at ≥20s, conversation dwell at ≥60s, good-click-v2 at ≥2min.
-- **The Grox banger gate:** `quality_score ≥ 0.4` (0–1 scale) marks a post
-  banger-positive; **only original posts are eligible — replies are excluded** from the
-  banger screen (`banger_initial_screen.py`, `task_filters.py`). The slop_score rubric
-  remains unpublished (prompt templates scrubbed from the repo).
+  confirmed dropped — both held up.
+- **Scroll-past is an explicit penalty:** `not_dwelled`, confirmed at **−0.02**.
+- **Interaction thresholds** (2023-era constants: click ≥2s, profile click ≥10s, detail
+  dwell ≥15s, profile dwell ≥20s, conversation ≥60s, good-click-v2 ≥2min). **Superseded**
+  as a scoring model: 2026 pays dwell continuously at 0.004/second rather than at
+  thresholds, and the composite good-click heads no longer exist. The one duration gate
+  that IS live is `MinVideoDurationMs` = 10,000 on video-quality-view, plus an
+  undocumented second gate that zeroes vqv when the *viewer* has ≥10,000 followers
+  (`candidates_util.rs`).
+- **The Grox banger filter:** ~~`quality_score ≥ 0.4`~~ **RETRACTED** — no numeric quality
+  threshold exists in the published pipeline, and the files this was cited to
+  (`banger_initial_screen.py`, `task_filters.py`) are not in the repo. What is real, in
+  `grox/flows/upa/task_filter.py`: `TaskInitialBangerFilter` rejects any post with
+  `ancestors` (every reply) and any post from a protected account, before evaluation
+  begins. Quality is carried as a boolean `isHighQuality`, not a score with a cutoff.
+  **Only original posts from public accounts are eligible** — that half of the original
+  claim holds. The slop_score rubric remains unpublished.
 - **Net-negative posts rank below all net-positive posts:** `offset_score()` compresses
   any net-negative combined score into a band strictly below every net-positive post.
 - **Blocks/mutes are filters, not weights, for users who already acted:** existing
@@ -131,20 +178,58 @@ inventions ("block −75", "−1000×"). None cites a code path.
   but it weights only 4 of 19 heads and inverts the 2023 production ordering
   (reply 27× fav), so it establishes only that dwell is positive-and-smallest in the
   demo — it is not a production weight set.
-- **The redaction is airtight and deliberate:** the published home-mixer crate cannot
-  compile (`lib.rs` declares no `mod params`), and GitHub issues are disabled on
-  xai-org/x-algorithm — there is no channel through which the weights can leak short of
-  an official release.
-
-Bangermeter ships all of the above as labeled facts and directional signals; the score
-itself remains built exclusively from the 2023 published weight set.
+- **The redaction was airtight — until X chose to end it.** The published home-mixer crate
+  could not compile (`lib.rs` declared no `mod params`), and GitHub issues are disabled on
+  xai-org/x-algorithm, so there was no channel through which the weights could leak short
+  of an official release. That conclusion was correct, and the resolution came exactly the
+  way it predicted: an official release, on Aug 13 2026, adding the missing `params` module.
 
 ## The weight set Bangermeter uses (extension/weights.js)
 
-fav 0.5 · retweet 1.0 · reply 13.5 · good_profile_click 12.0 · good_click_v1 11.0 (max with
-v2 10.0) · video_playback_50 0.005 · reply_engaged_by_author 75.0 · negative_feedback_v2
-−74.0 · report −369.0 · all never-published heads 0.0 (shown as unweighted signals) ·
-OON ×0.75 · reply ×0.75 · author-diversity 0.5/0.25 (feed mode only).
+**Current, as of v0.9.0** — the published production set, transcribed verbatim from
+`home-mixer/params/param.rs`:
+
+favorite 0.5 · reply 5.0 (**20.0** with the +15.0 bidirectional-follow boost on original
+posts) · retweet 1.0 · quote 5.0 · share 2.0 · share_via_dm 5.0 · **share_via_copy_link
+20.0** · follow_author 4.0 · click 0.4 · open_link 0.2 · photo_expand 0.05 · video_open
+0.05 · vqv 0.05 · quoted_click 0.05 · post_unexplored 0.02 · cont_dwell_time 0.004/s ·
+**profile_click 0.0 · dwell 0.0 · quoted_vqv 0.0 · cont_click_dwell_time 0.0 ·
+cont_active_secs_5m_residual_norm 0.0** · not_dwelled −0.02 · not_interested −43.2 ·
+block_author −31.2 · mute_author −58.8 · report −234.0.
+
+Sums as `ScoringWeights::from_params` builds them: positive 43.32, negative 367.22, total
+410.54. Offset 0.001. Rescorers: OON ×0.75 (applied once, and also to in-network replies
+and reposts), topic-request OON ×0.5, author diversity 0.5/0.25.
+
+Superseded (v0.8.0 and earlier): fav 0.5 · retweet 1.0 · reply 13.5 · good_profile_click
+12.0 · good_click_v1 11.0 (max with v2 10.0) · video_playback_50 0.005 ·
+reply_engaged_by_author 75.0 · negative_feedback_v2 −74.0 · report −369.0.
+
+## Adversarial review, v0.9.0
+
+The weight swap was reviewed by three independent passes before shipping. Recording the
+findings because two of them were the project's own errors, not X's:
+
+- **Weight transcription:** 26/26 heads and all 26 feature-switch parameter strings verified
+  exact against `param.rs`; no missing or invented heads. Clean.
+- **Arithmetic fidelity:** the JS port matches `ranking_scorer.rs` on all six checked
+  functions. ~654k generated inputs produced no NaN, no out-of-range score and no
+  non-monotonicity. Mutation testing found five assertions that were not load-bearing;
+  all five now have real coverage.
+- **Errors found and fixed:**
+  - A `quality_score ≥ 0.4` Grok gate asserted since v0.6.0 — **invented**. No such
+    threshold exists, and the file it was cited to (`grox/classifiers/content/
+    banger_initial_screen.py`) does not exist in the repo. Removed. What is real:
+    `grox/flows/upa/task_filter.py` rejects replies and protected accounts.
+  - `parseCount` stripped commas before its own decimal-comma branch could run, so
+    "12,3 K" parsed as 123,000 — a latent 10×–1000× misparse behind the English-only
+    locale guard. Fixed with coverage.
+  - The vqv duration gate was documented but not implemented; GIFs and short clips were
+    being credited 0.05 they never earn. Now gated, with GIF detection and duration
+    parsing from the DOM overlay.
+  - The new-user OON factor (0.00001) is **inert at published defaults** —
+    `NewUserAgeThresholdSecs` ships at 0, so `age < 0s` is false for everyone. Documented
+    as inert rather than described as live.
 
 ## Design consequences
 

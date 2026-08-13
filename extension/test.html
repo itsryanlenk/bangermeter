@@ -8,17 +8,21 @@
     .pass { color: #00ba7c; }
     .fail { color: #f4212e; font-weight: bold; }
     h1 { font-size: 16px; }
+    h2 { font-size: 13px; color: #8b98a5; margin: 14px 0 4px; text-transform: uppercase; letter-spacing: .06em; }
     pre { background: #1c2732; padding: 8px; border-radius: 8px; overflow-x: auto; }
   </style>
 </head>
 <body>
-  <h1>Bangermeter engine self-test (v0.5.0)</h1>
+  <h1>Bangermeter engine self-test (v0.9.0 — 2026-08-13 Phoenix weights)</h1>
   <div id="out"></div>
   <script src="weights.js"></script>
   <script src="scoring.js"></script>
   <script>
     var out = document.getElementById("out");
     var passed = 0, failed = 0;
+    function section(t) {
+      var h = document.createElement("h2"); h.textContent = t; out.appendChild(h);
+    }
     function check(name, cond, detail) {
       var div = document.createElement("div");
       div.className = cond ? "pass" : "fail";
@@ -28,133 +32,315 @@
     }
     function approx(a, b, eps) { return Math.abs(a - b) < (eps || 1e-9); }
     var E = BangermeterEngine;
+    var C = BANGERMETER_CONFIG;
+    var H = C.heads;
 
-    // parseCount
+    // ================================================================
+    // WEIGHT LAYER — verbatim against xai-org/x-algorithm
+    // home-mixer/params/param.rs (sync 2026-08-12T04:09:22Z)
+    // Every value below was transcribed from the published file. If any
+    // of these fail, the tool is lying about X's algorithm.
+    // ================================================================
+    section("Weight layer — verbatim param.rs");
+
+    var PARAM_RS = {
+      favorite: 0.5, reply: 5.0, retweet: 1.0, photo_expand: 0.05, video_open: 0.05,
+      click: 0.4, open_link: 0.2, profile_click: 0.0, vqv: 0.05, share: 2.0,
+      share_via_dm: 5.0, share_via_copy_link: 20.0, dwell: 0.0, quote: 5.0,
+      quoted_click: 0.05, quoted_vqv: 0.0, follow_author: 4.0, post_unexplored: 0.02,
+      cont_dwell_time: 0.004, cont_click_dwell_time: 0.0,
+      cont_active_secs_5m_residual_norm: 0.0,
+      not_interested: -43.2, block_author: -31.2, mute_author: -58.8,
+      report: -234.0, not_dwelled: -0.02
+    };
+    Object.keys(PARAM_RS).forEach(function (k) {
+      check("param.rs " + k + " = " + PARAM_RS[k],
+        H[k] && H[k].weight === PARAM_RS[k], H[k] ? H[k].weight : "MISSING HEAD");
+    });
+    check("bidirectional follow reply boost = 15.0",
+      C.bidirectionalFollowReplyBoost === 15.0, C.bidirectionalFollowReplyBoost);
+    check("bidirectional follow dwell boost = 0.0",
+      C.bidirectionalFollowDwellBoost === 0.0, C.bidirectionalFollowDwellBoost);
+    check("every head carries its feature-switch param name",
+      Object.keys(H).every(function (k) { return typeof H[k].param === "string" && H[k].param.indexOf("rust_home_mixer_") === 0; }));
+    check("every head is provenance 2026-published",
+      Object.keys(H).every(function (k) { return H[k].provenance === "2026-published"; }));
+    check("no bookmark head exists in the 2026 roster", H.bookmark === undefined);
+    check("no 2023-era heads survive",
+      H.good_click_v1 === undefined && H.good_profile_click === undefined &&
+      H.reply_engaged_by_author === undefined && H.negative_feedback_v2 === undefined &&
+      H.video_playback_50 === undefined && H.reported === undefined);
+
+    // ---- weight sums, exactly as ScoringWeights::new builds them ----
+    // ranking_scorer.rs:105-128. cont_* terms and the bidirectional boost are
+    // deliberately NOT in positive_sum.
+    section("Weight sums (ranking_scorer.rs:105-128)");
+    check("positive_sum = 43.32", approx(C.weightSums.positive, 43.32, 1e-9), C.weightSums.positive);
+    check("negative_sum = 367.22", approx(C.weightSums.negative, 367.22, 1e-9), C.weightSums.negative);
+    check("total_sum = 410.54", approx(C.weightSums.total, 410.54, 1e-9), C.weightSums.total);
+    check("cont_dwell_time excluded from positive_sum",
+      C.weightSums.positiveMembers.indexOf("cont_dwell_time") === -1);
+    check("NEGATIVE_SCORES_OFFSET = 0.001", C.negativeScoresOffset === 0.001);
+
+    // ================================================================
+    // offset_score — ranking_scorer.rs:525-533
+    // ================================================================
+    section("offset_score");
+    check("positive branch adds the offset", approx(E.offsetScore(2.0), 2.001), E.offsetScore(2.0));
+    // negative branch: (combined + negative_sum) / total_sum * OFFSET
+    var negExpect = (-10 + 367.22) / 410.54 * 0.001;
+    check("negative branch rescales into (0, offset)", approx(E.offsetScore(-10), negExpect), E.offsetScore(-10));
+    check("every negative post sorts below every positive post",
+      E.offsetScore(-0.0001) < E.offsetScore(0), E.offsetScore(-0.0001) + " < " + E.offsetScore(0));
+    // The deepest possible negative lands at 0 up to f64 error on negative_sum
+    // (summing the published weights is not exact). Kept bit-faithful; the
+    // display layer guards the sign instead.
+    check("deepest negative lands at ~0",
+      Math.abs(E.offsetScore(-C.weightSums.negative)) < 1e-15, E.offsetScore(-C.weightSums.negative));
+
+    // A net-negative post must still produce a finite, low score rather than NaN.
+    var awful = E.contentScore({ text: "LIKE IF YOU AGREE FOLLOW ME NOW #a #b #c",
+      hasExternalLink: true, hashtagCount: 3, isReply: true }, { assumeOutOfNetwork: true });
+    check("net-negative post is flagged", awful.netNegative === true, awful.combined);
+    check("net-negative post scores finite and low",
+      Number.isFinite(awful.score) && awful.score >= 0 && awful.score < 30, awful.score);
+
+    // ================================================================
+    // weightedScore — Σ(weight × P) with the pos/neg split
+    // ================================================================
+    section("weightedScore");
+    var r1 = E.weightedScore({ favorite: { weight: 0.5, p: 0.01 } });
+    check("fav only: 0.5 x 0.01 + offset", approx(r1.raw, 0.005 + 0.001), r1.raw);
+    var r2 = E.weightedScore({ report: { weight: -234.0, p: 0.5 } });
+    check("report-dominated post hits the negative branch",
+      approx(r2.raw, (-117 + 367.22) / 410.54 * 0.001), r2.raw);
+    check("pos/neg parts reported separately",
+      approx(r1.pos, 0.005) && r1.neg === 0, r1.pos + "/" + r1.neg);
+    var rz = E.weightedScore({ profile_click: { weight: 0.0, p: 0.9 }, dwell: { weight: 0.0, p: 0.9 } });
+    check("zeroed heads contribute exactly nothing", approx(rz.combined, 0), rz.combined);
+
+    // ================================================================
+    // reply_weight_for — ranking_scorer.rs:180-193
+    // Boost applies ONLY to an original post from a mutual-follow author.
+    // ================================================================
+    section("Bidirectional-follow reply boost");
+    check("mutual + original post -> 20.0",
+      E.replyWeightFor({ isMutualFollow: true, isReply: false, isRepost: false }) === 20.0,
+      E.replyWeightFor({ isMutualFollow: true, isReply: false, isRepost: false }));
+    check("not mutual -> 5.0",
+      E.replyWeightFor({ isMutualFollow: false, isReply: false, isRepost: false }) === 5.0);
+    check("mutual but a reply -> 5.0 (ineligible)",
+      E.replyWeightFor({ isMutualFollow: true, isReply: true, isRepost: false }) === 5.0);
+    check("mutual but a repost -> 5.0 (ineligible)",
+      E.replyWeightFor({ isMutualFollow: true, isReply: false, isRepost: true }) === 5.0);
+
+    // ================================================================
+    // oon_applies — ranking_scorer.rs:747-754
+    // EnableOonRescoreForInNetworkRepliesRetweets defaults true, so an
+    // IN-network reply or repost also takes the 0.75 discount — but ONCE.
+    // ================================================================
+    section("OON discount");
+    check("out-of-network -> applies", E.oonApplies({ inNetwork: false }) === true);
+    check("in-network original -> does not apply",
+      E.oonApplies({ inNetwork: true, isReply: false, isRepost: false }) === false);
+    check("in-network reply -> applies", E.oonApplies({ inNetwork: true, isReply: true }) === true);
+    check("in-network repost -> applies", E.oonApplies({ inNetwork: true, isRepost: true }) === true);
+    check("unknown network -> does not apply", E.oonApplies({ inNetwork: null }) === false);
+
+    // REGRESSION: pre-0.9.0 applied a "reply x0.75" AND an "OON x0.75"
+    // independently, so an out-of-network reply was discounted twice
+    // (0.5625). Production multiplies by effective_oon exactly once.
+    var oonReply = E.engagementScore(
+      { counts: { likes: 200, retweets: 10, replies: 20, views: 50000 }, isReply: true },
+      { assumeOutOfNetwork: true });
+    var inNetOriginal = E.engagementScore(
+      { counts: { likes: 200, retweets: 10, replies: 20, views: 50000 }, isReply: false }, {});
+    check("OON discount is applied ONCE, not squared",
+      approx(oonReply.raw, inNetOriginal.raw * 0.75, 1e-12),
+      oonReply.raw + " vs " + (inNetOriginal.raw * 0.75));
+
+    // Same guarantee on the repost path, which the reply case does not cover.
+    var inNetRepost = E.engagementScore(
+      { counts: { likes: 200, retweets: 10, replies: 20, views: 50000 }, isRepost: true }, {});
+    check("in-network repost takes the discount once",
+      approx(inNetRepost.raw, inNetOriginal.raw * 0.75, 1e-12), inNetRepost.raw);
+    var oonRepost = E.engagementScore(
+      { counts: { likes: 200, retweets: 10, replies: 20, views: 50000 }, isRepost: true },
+      { assumeOutOfNetwork: true });
+    check("out-of-network repost is still only discounted once",
+      approx(oonRepost.raw, inNetOriginal.raw * 0.75, 1e-12), oonRepost.raw);
+    // A repost is ineligible for the mutual-follow reply boost even when the
+    // viewer has the mutual-follow setting on.
+    var mutualRepost = E.engagementScore(
+      { counts: { likes: 200, retweets: 10, replies: 20, views: 50000 }, isRepost: true },
+      { assumeMutualFollow: true });
+    check("mutual-follow boost never reaches a repost",
+      approx(mutualRepost.raw, inNetRepost.raw, 1e-12), mutualRepost.raw);
+
+    // ================================================================
+    // author diversity — diversity_multiplier(decay, floor, k)
+    // (1 - floor) * decay^k + floor
+    // ================================================================
+    section("Author diversity");
+    check("k=0 -> 1.0", approx(E.diversityMultiplier(0), 1.0), E.diversityMultiplier(0));
+    check("k=1 -> 0.625", approx(E.diversityMultiplier(1), 0.625), E.diversityMultiplier(1));
+    check("k=2 -> 0.4375", approx(E.diversityMultiplier(2), 0.4375), E.diversityMultiplier(2));
+    check("decays toward the 0.25 floor", E.diversityMultiplier(30) > 0.25 && E.diversityMultiplier(30) < 0.2501);
+
+    // The pos/neg split is by the sign of the TERM, not the sign of the weight
+    // (ranking_scorer.rs:515-521). A negative weight times a negative probability
+    // is the only input that distinguishes the two rules.
+    var rSign = E.weightedScore({ report: { weight: -234.0, p: -0.1 } });
+    check("pos/neg split follows the TERM's sign, not the weight's",
+      approx(rSign.pos, 23.4) && rSign.neg === 0, rSign.pos + "/" + rSign.neg);
+
+    // ================================================================
+    // Unchanged infrastructure
+    // ================================================================
+    section("Parsing and decay");
     check("parseCount 1,234", E.parseCount("1,234") === 1234);
     check("parseCount 12.3K", E.parseCount("12.3K") === 12300);
     check("parseCount 4.5M", E.parseCount("4.5M") === 4500000);
     check("parseCount empty", E.parseCount("") === null);
+    // Comma-as-decimal. Through v0.8.0 every one of these was wrong by 10x-1000x
+    // because commas were stripped before the decimal branch could see them.
+    check("parseCount 12,3 K (decimal comma)", E.parseCount("12,3 K") === 12300, E.parseCount("12,3 K"));
+    check("parseCount 1,2M (decimal comma)", E.parseCount("1,2M") === 1200000, E.parseCount("1,2M"));
+    check("parseCount 1,234,567 (thousands)", E.parseCount("1,234,567") === 1234567, E.parseCount("1,234,567"));
+    check("parseCount 1.234,5 (both separators)", E.parseCount("1.234,5") === 1235, E.parseCount("1.234,5"));
+    check("parseCount garbage", E.parseCount("abc") === null);
 
-    // naviScore exact math: fav only, w=0.5 p=0.01 -> 0.005 + eps
-    var r1 = E.naviScore({ fav: { weight: 0.5, p: 0.01 } });
-    check("navi positive adds epsilon", approx(r1.raw, 0.005 + 0.001), r1.raw);
+    // ================================================================
+    // vqv duration gate — candidates_util.rs::vqv_weight
+    // ================================================================
+    section("Video quality view gate");
+    check("no video -> ineligible", E.vqvEligible({ hasVideo: false }) === false);
+    check("GIF -> ineligible", E.vqvEligible({ hasVideo: true, isGif: true }) === false);
+    check("3s clip -> ineligible", E.vqvEligible({ hasVideo: true, videoSeconds: 3 }) === false);
+    check("exactly 10s -> ineligible (strictly greater)",
+      E.vqvEligible({ hasVideo: true, videoSeconds: 10 }) === false);
+    check("11s -> eligible", E.vqvEligible({ hasVideo: true, videoSeconds: 11 }) === true);
+    check("unknown duration -> eligible", E.vqvEligible({ hasVideo: true }) === true);
+    var gifPost = E.contentScore({ text: "look at this", hasVideo: true, isGif: true }, {});
+    var longVid = E.contentScore({ text: "look at this", hasVideo: true, videoSeconds: 40 }, {});
+    check("GIF scores below a qualifying video", gifPost.score < longVid.score,
+      gifPost.score + " vs " + longVid.score);
 
-    // negative combined squashed into (0, eps): report w=-369 p=0.5 -> combined=-184.5
-    // negSum=369, total=369 -> (combined+negSum)/total*eps = (184.5/369)*0.001 = 0.0005
-    var r2 = E.naviScore({ reported: { weight: -369, p: 0.5 } });
-    check("navi negative squashed", approx(r2.raw, 0.0005), r2.raw);
-
-    // good_click max-combine: v1 p=0.1 w=11, v2 p=0.3 w=10
-    // v1 contribution uses max(0.1,0.3)=0.3 -> 3.3 ; v2 separately 3.0 ; total 6.3 + eps
-    var r3 = E.naviScore({
-      good_click_v1: { weight: 11, p: 0.1 },
-      good_click_v2: { weight: 10, p: 0.3 }
-    });
-    check("good_click max-combine", approx(r3.raw, 6.3 + 0.001), r3.raw);
-
-    // ageDecay: at age = halflife the sigmoid midpoint -> base + (1-base)/2 = 0.8
+    // ================================================================
+    // Input robustness — the DOM layer should never send these, but a
+    // NaN or a string count must not silently become a 100.
+    // ================================================================
+    section("Input robustness");
+    check("strict mutual-follow flag: \"true\" is not true",
+      E.replyWeightFor({ isMutualFollow: "true" }) === 5.0);
+    check("strict mutual-follow flag: 1 is not true",
+      E.replyWeightFor({ isMutualFollow: 1 }) === 5.0);
+    var strCount = E.engagementScore({ counts: { likes: "100", retweets: 0, replies: 0, views: 50000 } }, {});
+    check("string count does not blow up the score",
+      Number.isFinite(strCount.score) && strCount.score <= 60, strCount.score);
+    var nanCount = E.engagementScore({ counts: { likes: NaN, retweets: 0, replies: 0, views: 1000 } }, {});
+    check("NaN count does not poison raw", Number.isFinite(nanCount.raw), nanCount.raw);
+    var strViews = E.engagementScore({ counts: { likes: 10, retweets: 0, replies: 0, views: "5000" } }, {});
+    check("string views still scores finite", Number.isFinite(strViews.score), strViews.score);
     check("ageDecay midpoint at halflife", approx(E.ageDecayFactor(360), 0.8), E.ageDecayFactor(360));
     check("ageDecay fresh > old", E.ageDecayFactor(0) > E.ageDecayFactor(2000));
 
-    // engagement score: baseline-rate tweet should land at exactly the midpoint (50)
-    var base = BANGERMETER_CONFIG.baselineP;
+    // ================================================================
+    // Engagement (retrospective) score
+    // ================================================================
+    section("Engagement score");
+    var base = C.baselineP;
     var views = 100000;
     var eng = E.engagementScore({
       counts: {
-        likes: Math.round(base.fav * views),
+        likes: Math.round(base.favorite * views),
         retweets: Math.round(base.retweet * views),
         replies: Math.round(base.reply * views),
         views: views
       },
       isReply: false
     }, {});
-    check("engagement baseline = 50", eng.score === 50, eng.score);
+    check("baseline-rate post = 50", eng.score === 50, eng.score);
 
-    // engagement: reply-heavy tweet outscores like-heavy tweet at same total count
+    // reply is still 10x a like (5.0 vs 0.5), down from 27x in the 2023 table
     var replyHeavy = E.engagementScore({ counts: { likes: 100, retweets: 0, replies: 400, views: 100000 } }, {});
     var likeHeavy = E.engagementScore({ counts: { likes: 400, retweets: 0, replies: 100, views: 100000 } }, {});
-    check("reply-heavy > like-heavy (reply w=13.5)", replyHeavy.score > likeHeavy.score,
+    check("reply-heavy > like-heavy (reply 5.0 vs fav 0.5)", replyHeavy.score > likeHeavy.score,
       replyHeavy.score + " vs " + likeHeavy.score);
 
-    // engagement: reply rescorer x0.75 applied
-    var notReply = E.engagementScore({ counts: { likes: 200, retweets: 10, replies: 20, views: 50000 }, isReply: false }, {});
-    var asReply = E.engagementScore({ counts: { likes: 200, retweets: 10, replies: 20, views: 50000 }, isReply: true }, {});
-    check("reply rescorer x0.75", approx(asReply.raw, notReply.raw * 0.75, 1e-12),
-      asReply.raw + " vs " + notReply.raw);
-
-    // engagement unavailable without views
     var noViews = E.engagementScore({ counts: { likes: 5, retweets: 1, replies: 0, views: null } }, {});
     check("no views -> unavailable", noViews.available === false);
 
-    // SHRINKAGE REGRESSIONS (the "buh" bug): tiny samples must not scream.
-    // 1 reply + 1 like in 19 views used to cap at 100; now shrunk toward median.
+    // Shrinkage regressions (the "buh" bug) — must survive the reweight.
     var buh = E.engagementScore({ counts: { likes: 1, retweets: 0, replies: 1, views: 19 } }, {});
     check("tiny sample can't hit 100 (buh case)", buh.score < 90 && buh.score > 50, buh.score);
     check("tiny sample flagged lowSample", buh.lowSample === true && buh.smoothingNote !== null);
-
-    // Zero-engagement reply at 6 views: no evidence -> near median, x0.75 reply factor
     var freshReply = E.engagementScore({ counts: { likes: 0, retweets: 0, replies: 0, views: 6 }, isReply: true }, {});
     check("no-data reply sits near median x0.75", freshReply.score >= 38 && freshReply.score <= 48, freshReply.score);
-
-    // Genuinely viral rates at scale still max out
     var viral = E.engagementScore({ counts: { likes: 2000, retweets: 300, replies: 500, views: 100000 } }, {});
     check("large-sample viral still reaches 100", viral.score === 100 && viral.lowSample === false, viral.score);
 
-    // LEAK-HUNT FACTORS (Aug 2026): verified-author multiplier (archived commit
-    // ec83d01dca: x4 in-network / x2 out-of-network) and Community Note suppression
-    // (x0.5, three causal studies; content score only).
-    var base = { text: "Hello world, a normal update today.", hasVideo: false, hasImage: false,
-      hasExternalLink: false, hashtagCount: 0, isReply: false };
-    var vNo = E.contentScore(base, {});
-    // DEFAULT OFF (field regression 2026-08-05: default-on x4 floored every verified
-    // author near 99): verified must change NOTHING unless the setting is on.
-    var vDefault = E.contentScore(Object.assign({}, base, { isVerified: true }), {});
-    check("verified is a NO-OP by default", vDefault.raw === vNo.raw, vDefault.raw.toFixed(4));
-    var vYes = E.contentScore(Object.assign({}, base, { isVerified: true }), { applyVerifiedBoost2023: true });
-    check("verified x4 on content when opted in", approx(vYes.raw, vNo.raw * 4.0, 1e-12), vYes.raw.toFixed(4));
-    var vOon = E.contentScore(Object.assign({}, base, { isVerified: true }), { assumeOutOfNetwork: true, applyVerifiedBoost2023: true });
-    check("verified OON = x0.75 then x2.0", approx(vOon.raw, vNo.raw * 0.75 * 2.0, 1e-12), vOon.raw.toFixed(4));
-    var noted = E.contentScore(Object.assign({}, base, { hasCommunityNote: true }), {});
-    check("community note x0.5 on content", approx(noted.raw, vNo.raw * 0.5, 1e-12), noted.raw.toFixed(4));
-    var engPlain = E.engagementScore({ counts: { likes: 100, retweets: 5, replies: 10, views: 50000 } }, {});
-    var engNoted = E.engagementScore({ counts: { likes: 100, retweets: 5, replies: 10, views: 50000 }, hasCommunityNote: true }, {});
-    check("community note NOT applied to engagement", engNoted.raw === engPlain.raw, engNoted.raw.toFixed(4));
-    var engVDefault = E.engagementScore({ counts: { likes: 100, retweets: 5, replies: 10, views: 50000 }, isVerified: true }, {});
-    check("verified engagement NO-OP by default", engVDefault.raw === engPlain.raw, engVDefault.raw.toFixed(4));
-    var engVerified = E.engagementScore({ counts: { likes: 100, retweets: 5, replies: 10, views: 50000 }, isVerified: true }, { applyVerifiedBoost2023: true });
-    check("verified x4 on engagement when opted in", approx(engVerified.raw, engPlain.raw * 4.0, 1e-12), engVerified.raw.toFixed(4));
+    // Bookmarks: observable, but there is NO bookmark head in 2026 at all.
+    var bm = E.engagementScore({ counts: { likes: 10, retweets: 1, replies: 1, bookmarks: 40, views: 5000 } }, {});
+    var noBm = E.engagementScore({ counts: { likes: 10, retweets: 1, replies: 1, views: 5000 } }, {});
+    check("bookmarks never touch the score", bm.raw === noBm.raw, bm.raw + " vs " + noBm.raw);
+    check("bookmarks surfaced as an unweighted signal", bm.unweightedSignals.length === 1);
 
-    // THE EXACT USER-REPORTED CASE: verified, GIF/video, 58 views, zero engagement.
-    // Was C100/E~99; must now sit near the median (shrinkage: no data -> ~baseline).
-    var userCase = E.engagementScore({ counts: { likes: 0, retweets: 0, replies: 0, views: 58 }, isVerified: true, hasVideo: true }, {});
-    check("zero-engagement verified post scores ~median", userCase.score >= 44 && userCase.score <= 52, userCase.score);
-    var userContent = E.contentScore({ text: "me", hasVideo: true, isVerified: true }, {});
-    check("zero-signal verified content ~median", userContent.score >= 45 && userContent.score <= 58, userContent.score);
-
-    // content score: plain median tweet ~= 50
+    // ================================================================
+    // Content (prospective) score
+    // ================================================================
+    section("Content score");
     var plain = E.contentScore({ text: "Just had a nice coffee this morning with an old friend in the city.", hasVideo: false, hasImage: false, hasExternalLink: false, hashtagCount: 0, isReply: false }, {});
     check("plain tweet content ~50", plain.score >= 45 && plain.score <= 60, plain.score);
-
-    // question boosts reply head -> should beat plain
     var question = E.contentScore({ text: "What single habit most improved your life this year?", hasVideo: false, hasImage: false, hasExternalLink: false, hashtagCount: 0, isReply: false }, {});
     check("question > plain", question.score > plain.score, question.score + " vs " + plain.score);
-
-    // bare link penalized below plain
     var bareLink = E.contentScore({ text: "example.com/post", hasVideo: false, hasImage: false, hasExternalLink: true, hashtagCount: 0, isReply: false }, {});
     check("bare link < plain", bareLink.score < plain.score, bareLink.score + " vs " + plain.score);
-
-    // engagement bait penalized (raises negative_feedback P)
     var bait = E.contentScore({ text: "Like if you agree! Follow me for more!", hasVideo: false, hasImage: false, hasExternalLink: false, hashtagCount: 0, isReply: false }, {});
     check("bait < plain", bait.score < plain.score, bait.score + " vs " + plain.score);
-
-    // hashtag spam penalized
     var tags = E.contentScore({ text: "Great day! #sun #fun #beach #vibes", hasVideo: false, hasImage: false, hasExternalLink: false, hashtagCount: 4, isReply: false }, {});
     check("3+ hashtags < plain", tags.score < plain.score, tags.score + " vs " + plain.score);
 
-    // excluded heads contribute nothing: bookmark weight is 0
-    check("bookmark head excluded", BANGERMETER_CONFIG.heads.bookmark.weight === 0);
+    // FLATTENING GUARD (v0.7.1 class of regression): adding ~15 new heads must
+    // not compress every post toward one number. A strong post and a weak post
+    // have to stay far apart.
+    var strong = E.contentScore({ text: "I spent six months rebuilding our deploy pipeline from scratch. Here is every mistake I made, what it cost, and what I would do differently — starting with the one that took down prod for four hours. What would you have done?", hasVideo: false, hasImage: true, hasExternalLink: false, hashtagCount: 0, isReply: false, isThreadStarter: true }, {});
+    check("strong post clears 65", strong.score >= 65, strong.score);
+    check("strong - bait spread >= 25 points", strong.score - bait.score >= 25,
+      strong.score + " - " + bait.score + " = " + (strong.score - bait.score));
 
-    // scoreTweet composite shape
+    // v0.7.1 REGRESSION: the exact user-reported case.
+    var userCase = E.engagementScore({ counts: { likes: 0, retweets: 0, replies: 0, views: 58 }, isVerified: true, hasVideo: true }, {});
+    check("zero-engagement verified post scores ~median", userCase.score >= 44 && userCase.score <= 52, userCase.score);
+    var userContent = E.contentScore({ text: "me", hasVideo: true, isVerified: true }, {});
+    check("zero-signal verified content ~median", userContent.score >= 42 && userContent.score <= 58, userContent.score);
+
+    // ================================================================
+    // Opt-in / historical factors
+    // ================================================================
+    section("Opt-in factors");
+    var vBase = { text: "Hello world, a normal update today.", hasVideo: false, hasImage: false,
+      hasExternalLink: false, hashtagCount: 0, isReply: false };
+    var vNo = E.contentScore(vBase, {});
+    var vDefault = E.contentScore(Object.assign({}, vBase, { isVerified: true }), {});
+    check("verified is a NO-OP by default", vDefault.raw === vNo.raw, vDefault.raw.toFixed(6));
+    var vYes = E.contentScore(Object.assign({}, vBase, { isVerified: true }), { applyVerifiedBoost2023: true });
+    check("verified x4 on content when opted in", approx(vYes.raw, vNo.raw * 4.0, 1e-12), vYes.raw.toFixed(6));
+    var noted = E.contentScore(Object.assign({}, vBase, { hasCommunityNote: true }), {});
+    check("community note x0.5 on content", approx(noted.raw, vNo.raw * 0.5, 1e-12), noted.raw.toFixed(6));
+    var engPlain = E.engagementScore({ counts: { likes: 100, retweets: 5, replies: 10, views: 50000 } }, {});
+    var engNoted = E.engagementScore({ counts: { likes: 100, retweets: 5, replies: 10, views: 50000 }, hasCommunityNote: true }, {});
+    check("community note NOT applied to engagement", engNoted.raw === engPlain.raw, engNoted.raw.toFixed(6));
+
+    // Mutual-follow boost end to end: an original post from a mutual scores
+    // higher than the same post from a stranger, because reply is 20.0 not 5.0.
+    var fromStranger = E.contentScore(Object.assign({}, vBase, { isMutualFollow: false }), {});
+    var fromMutual = E.contentScore(Object.assign({}, vBase, { isMutualFollow: true }), {});
+    check("mutual-follow original outscores stranger", fromMutual.raw > fromStranger.raw,
+      fromMutual.raw.toFixed(6) + " vs " + fromStranger.raw.toFixed(6));
+
+    // ================================================================
+    section("Composite");
     var full = E.scoreTweet({ text: "Hello", counts: { likes: 10, retweets: 1, replies: 2, views: 5000 }, hasVideo: false, hasImage: false, hasExternalLink: false, hashtagCount: 0, isReply: false, ageMinutes: 100 }, {});
     check("scoreTweet returns content+engagement+age", full.content.available && full.engagement.available && full.ageDecay !== null);
 

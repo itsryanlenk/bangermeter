@@ -111,6 +111,22 @@
 
     var hasVideo = anyOutsideQuote('[data-testid="videoPlayer"], [data-testid="videoComponent"], video');
     var hasImage = anyOutsideQuote('[data-testid="tweetPhoto"]');
+
+    // The video-quality-view head is gated on duration > 10s (candidates_util.rs).
+    // GIFs never qualify, and X labels them explicitly. Where a duration overlay
+    // is present ("0:23" / "1:04:12") we can settle it outright; otherwise the
+    // duration is unknown and we say so rather than assuming it qualifies.
+    var isGif = hasVideo && /(^|\s)GIF(\s|$)/.test(article.innerText.slice(0, 400));
+    var videoSeconds = null;
+    if (hasVideo && !isGif) {
+      var durMatch = article.innerText.match(/(?:^|\s)(\d{1,2}:\d{2}(?::\d{2})?)(?:\s|$)/);
+      if (durMatch) {
+        var parts = durMatch[1].split(":").map(Number);
+        videoSeconds = parts.length === 3
+          ? parts[0] * 3600 + parts[1] * 60 + parts[2]
+          : parts[0] * 60 + parts[1];
+      }
+    }
     var hasCard = anyOutsideQuote('[data-testid="card.wrapper"]');
     var hasTco = !!(textEl && textEl.querySelector('a[href*="//t.co/"]'));
     var linkishAnchor = false;
@@ -126,9 +142,14 @@
     var isReply = false;
     var socialContext = article.querySelector('[data-testid="socialContext"]');
     var firstDivs = article.innerText.slice(0, 200);
-    if (/Replying to/i.test(firstDivs) && !(socialContext && /reposted/i.test(socialContext.innerText))) {
+    var isRepost = !!(socialContext && /reposted/i.test(socialContext.innerText));
+    if (/Replying to/i.test(firstDivs) && !isRepost) {
       isReply = true;
     }
+
+    // Does THIS post quote another? (enables the quoted-click head)
+    var quoteCard = article.querySelector('div[role="link"]');
+    var isQuote = !!(quoteCard && quoteCard.querySelector('[data-testid="tweetText"]'));
 
     var ageMinutes = null;
     var timeEl = article.querySelector("time[datetime]");
@@ -165,10 +186,14 @@
       text: text,
       counts: extractCounts(article),
       hasVideo: hasVideo,
+      isGif: isGif,
+      videoSeconds: videoSeconds,
       hasImage: hasImage,
       hasExternalLink: hasCard || hasTco || linkishAnchor,
       hashtagCount: hashtagCount,
       isReply: isReply,
+      isRepost: isRepost,
+      isQuote: isQuote,
       isThreadStarter: isThreadStarter,
       isVerified: isVerified,
       hasCommunityNote: hasCommunityNote,
@@ -289,8 +314,8 @@
     conversation_length: "Meaty text — gives people a conversation to click into",
     thread_starter: "Starts a thread — keeps readers on the post longer",
     media_image: "Has a picture — small boost to likes",
-    has_video: "Has video — watches barely count (tiny weight, despite the folklore)",
-    external_link: "Contains a link — the algorithm gives zero credit for link clicks",
+    has_video: "Has video — watches barely count (0.05, and nothing under 10 seconds)",
+    external_link: "Contains a link — opening it pays 0.2, small but not zero",
     link_no_context: "Mostly just a link — low-context link posts do worse",
     many_hashtags: "3+ hashtags — the old algorithm flags hashtag piles",
     engagement_bait: "“Like if…” bait — invites “show less” clicks and penalties",
@@ -298,15 +323,29 @@
   };
 
   function plainRescorerText(r) {
-    if (r.label.indexOf("Reply") === 0) return "This is a reply — the algorithm scores replies at 75%";
-    if (r.label.indexOf("Out-of-network") === 0) return "Out-of-network view assumed — scored at 75%";
+    if (r.reason === "Out-of-network view assumed") return "Out-of-network view assumed — scored at 75%";
+    if (r.reason === "In-network reply") return "This is a reply — replies take the same 75% discount as out-of-network posts";
+    if (r.reason === "In-network repost") return "This is a repost — reposts take the same 75% discount as out-of-network posts";
     if (r.label.indexOf("Verified") === 0) {
-      return "Verified author — ×" + r.factor + " boost per 2023 code (removed from X's code Sept 2025)";
+      return "Verified author — ×" + r.factor + " boost per 2023 code (absent from the 2026 release)";
     }
     if (r.label.indexOf("Community-noted") === 0) {
       return "Community Note attached — future engagement suppressed ~50% (three causal studies)";
     }
     return r.label;
+  }
+
+  // Reply weight is viewer-dependent: 5.0 normally, 20.0 on an original post from
+  // an author the viewer mutually follows (BidirectionalFollowReplyWeightBoost).
+  function replyWorthText() {
+    var w = BangermeterEngine.replyWeightFor({
+      isMutualFollow: settings.assumeMutualFollow === true,
+      isReply: false, isRepost: false
+    });
+    var likes = w / BANGERMETER_CONFIG.heads.favorite.weight;
+    return settings.assumeMutualFollow
+      ? "each worth " + likes + " likes (mutual-follow boost on)"
+      : "each worth " + likes + " likes";
   }
 
   function mathDetails(summaryText) {
@@ -410,16 +449,19 @@
     }
     if (result.features.isReply) {
       var bangNote = el("div", "bangermeter-sub",
-        "Replies are also ineligible for X's Grok “banger screen” — only original posts get " +
-        "the viral quality gate (shipped 2026 code).");
+        "Replies are also filtered out of X's Grok “banger” pipeline before it runs — " +
+        "it only ever evaluates original posts (grox/flows/upa/task_filter.py).");
       sec1.appendChild(bangNote);
     }
 
     var d1 = mathDetails();
     d1.appendChild(el("div", "bangermeter-fineprint",
-      "Score = Σ(weight × P) over engagement heads (exact NaviModelScorer math, ε = 0.001), " +
+      "Score = Σ(weight × P) over the Phoenix heads, then offset_score (ranking_scorer.rs), " +
       "× rescorers, normalized so a median post = 50 (√ curve, capped at 100). " +
-      "Raw: " + result.content.raw.toFixed(4)));
+      "Raw: " + result.content.raw.toFixed(4) +
+      (result.content.netNegative
+        ? " — NET NEGATIVE: X rescales any post whose weighted sum goes below zero into [0, 0.000894), which puts it under every positive-scoring post in the feed."
+        : "")));
     contributionList(d1, result.content.contributions);
     sec1.appendChild(d1);
     panel.appendChild(sec1);
@@ -434,17 +476,17 @@
       var counts = result.features.counts || {};
       [
         { icon: "reply", n: counts.replies, one: "reply", many: "replies",
-          worth: "the algorithm's favorite — each worth ~27 likes",
-          tip: "Weight 13.5 vs 0.5 for a like (Mar 2023 published values)" },
+          worth: replyWorthText(),
+          tip: BANGERMETER_CONFIG.heads.reply.note },
         { icon: "repost", n: counts.retweets, one: "repost", many: "reposts",
-          worth: "each worth ~2 likes",
-          tip: "Weight 1.0 vs 0.5 for a like" },
+          worth: "each worth 2 likes",
+          tip: "Weight 1.0 vs 0.5 for a like (param.rs, Aug 2026)" },
         { icon: "like", n: counts.likes, one: "like", many: "likes",
           worth: "the baseline unit",
-          tip: "Weight 0.5" },
+          tip: "Weight 0.5 (param.rs, Aug 2026)" },
         { icon: "bookmark", n: counts.bookmarks, one: "bookmark", many: "bookmarks",
-          worth: "≈ a “quiet like” (Musk) — never weighted publicly",
-          tip: (BANGERMETER_CONFIG.heads.bookmark.note || "") }
+          worth: "not a scored action at all — no bookmark head exists",
+          tip: BANGERMETER_CONFIG.unweightedSignals.bookmark.note }
       ].forEach(function (r) {
         if (r.n == null) return;
         var row = el("div", "bangermeter-plainrow");
@@ -498,29 +540,44 @@
     }
     if (result.features.isVerified && !settings.applyVerifiedBoost2023) {
       var vNote = el("div", "bangermeter-fineprint",
-        "Verified author: 2023-era code boosted verified posts ×4 in-network / ×2 out-of-network " +
-        "(removed from X's code Sept 2025). Not applied to this score — enable “2023 verified " +
-        "boost” in the popup to simulate that era.");
+        "Verified author: 2023-era code boosted verified posts ×4 in-network / ×2 out-of-network. " +
+        "No such multiplier appears anywhere in the Aug 2026 release. Not applied to this score — " +
+        "enable “2023 verified boost” in the popup to simulate that era.");
       sec3.appendChild(vNote);
     }
 
-    // Grade-A facts for the never-published heads (Aug 2026 deep research) —
-    // facts only, none of these enters the score.
+    // What the Aug 13, 2026 release actually says. Every number here is
+    // transcribed from param.rs — none of it is inference.
+    var H = BANGERMETER_CONFIG.heads;
     var F = BANGERMETER_CONFIG.sourcedFacts;
-    var d4 = mathDetails("Sourced signals without published weights");
+    var d4 = mathDetails("What X's published weights actually say");
     [
-      "▲ Shares — officially positive; DM-forwarding is “one of the strongest signals” (Musk, Sep 2024). No number ever published.",
-      "▲ Bookmarks — ≈ a “quiet like” per Musk (Jan 2023); dropped from the 2026 head roster. 10×/20× claims are folklore.",
-      "▲ Dwell — positive by structure. What counts (shipped constants): click ≥" +
-        F.thresholds.goodClickSeconds + "s, profile visit ≥" + F.thresholds.goodProfileClickSeconds +
-        "s, detail page ≥" + F.thresholds.detailDwellSeconds + "s, profile dwell ≥" +
-        F.thresholds.profileDwellSeconds + "s, conversation ≥" + F.thresholds.convoDwellSeconds + "s.",
-      "▼ Scroll-past — “not_dwelled” is an explicit negative head in 2026 production (direction sourced, value redacted).",
-      "▼ Strong/weak negative feedback — provably negative-only (shipped bounds −1000…0); report's allowed floor is 20× deeper.",
-      "· Grok banger screen (2026): quality_score ≥ " + F.grox.qualityGate +
-        " gates viral distribution; original posts only — replies ineligible.",
-      "· 2026 scorer structure: " + F.phoenix2026.headCount +
-        " heads; any net-negative post ranks below every net-positive post."
+      "▲ Copying a post's link is the strongest action there is — " + H.share_via_copy_link.weight +
+        ", which is " + (H.share_via_copy_link.weight / H.favorite.weight) + " likes and " +
+        (H.share_via_copy_link.weight / H.reply.weight) + " replies.",
+      "▲ Sharing to DMs pays " + H.share_via_dm.weight + "; the share menu itself pays " +
+        H.share.weight + ". Musk's “one of the strongest signals” line finally has a number.",
+      "▲ A reply from someone you mutually follow is worth " +
+        (H.reply.weight + BANGERMETER_CONFIG.bidirectionalFollowReplyBoost) + ", not " +
+        H.reply.weight + " — but only on original posts, never on replies or reposts.",
+      "▲ Gaining a follower off a post pays " + H.follow_author.weight + ".",
+      "▲ Opening a link pays " + H.open_link.weight + ". Small, but the “links get zero credit” " +
+        "story is now provably wrong.",
+      "· Profile clicks pay NOTHING (" + H.profile_click.weight + "). The 2023 table paid 12.0 " +
+        "for a profile-click-and-engage — that head has been zeroed out.",
+      "· Binary dwell pays nothing either. Only dwell TIME pays, at " + H.cont_dwell_time.weight +
+        " per second.",
+      "· Video is worth " + H.vqv.weight + " per quality view, and anything under " +
+        (F.minVideoDurationMs.value / 1000) + " seconds earns none of it.",
+      "· Bookmarks have no head at all — they are not a scored action in 2026.",
+      "▼ Scrolling straight past costs " + H.not_dwelled.weight + ". Tiny per impression, but it " +
+        "happens on most of them.",
+      "▼ Muting (" + H.mute_author.weight + ") hurts nearly twice as much as blocking (" +
+        H.block_author.weight + "). Reporting costs " + H.report.weight + ".",
+      "▼ Any post whose weighted sum goes net-negative is rescaled below every positive post, " +
+        "no matter what else it earned.",
+      "· Grok's “banger” pipeline only ever looks at original posts — replies and " +
+        "protected accounts are filtered out before it runs."
     ].forEach(function (line) {
       var mark = line.charAt(0);
       var row = el("div", "bangermeter-mod");
@@ -530,14 +587,19 @@
       d4.appendChild(row);
     });
     d4.appendChild(el("div", "bangermeter-fineprint",
-      "Shipped-code and official-statement facts (Aug 2026 deep research). None carries a " +
-      "published weight, so none is included in the score."));
+      BANGERMETER_CONFIG.weightsMeaningNote + " Most of these heads need Phoenix's own " +
+      "predictions, so they inform what you read here without entering the score above."));
     sec3.appendChild(d4);
 
     var d3 = mathDetails("About these scores");
-    d3.appendChild(el("div", "bangermeter-fineprint", BANGERMETER_CONFIG.contextNotes.phoenix));
     d3.appendChild(el("div", "bangermeter-fineprint",
-      "Weights: last published set (Mar 2023), confirmed still the only sourced values as of Aug 2026. Relative score, not predicted reach."));
+      "Weights: " + BANGERMETER_CONFIG.weightsSnapshot + ". X states these are kept in sync with " +
+      "the live production configuration by cron, which makes them the first ranking weights ever " +
+      "published as current rather than historical."));
+    d3.appendChild(el("div", "bangermeter-fineprint",
+      "Alternative scoring modes exist in the same code (dwell-regret, with far deeper negatives). " +
+      "The shipped default is the weighted sum modelled here (value_model_mode = “" +
+      F.valueModelMode.value + "”). Relative score, not predicted reach."));
     sec3.appendChild(d3);
     panel.appendChild(sec3);
 

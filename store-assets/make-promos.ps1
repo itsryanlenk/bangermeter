@@ -107,12 +107,12 @@ BoltBox $g 70 62 96 5 8
 Txt $g "BANGERMETER" "Arial Black" 66 ([System.Drawing.FontStyle]::Regular) $BLACK 186 74
 Txt $g "SCORE ANY TWEET WITH" "Arial Black" 34 ([System.Drawing.FontStyle]::Regular) $BLACK 72 200
 Txt $g "X'S OWN ALGORITHM." "Arial Black" 34 ([System.Drawing.FontStyle]::Regular) $BLACK 72 246
-Txt $g "The open-sourced ranking formula. The last published weights." "Arial" 19 ([System.Drawing.FontStyle]::Bold) $GRAY1 72 316
+Txt $g "X's real production ranking weights. The real scorer math." "Arial" 19 ([System.Drawing.FontStyle]::Bold) $GRAY1 72 316
 Txt $g "Every factor cited to code. No folklore numbers." "Arial" 19 ([System.Drawing.FontStyle]::Bold) $GRAY1 72 344
 
 # Yellow fact chip
-NeoBox $g 72 400 464 46 $YELLOW 3 5
-Txt $g "REPLY = 27x A LIKE. IT'S IN THE CODE." "Arial" 20 ([System.Drawing.FontStyle]::Bold) $BLACK 90 411
+NeoBox $g 72 400 520 46 $YELLOW 3 5
+Txt $g "COPY-LINK = 40x A LIKE. IT'S IN THE CODE." "Arial" 20 ([System.Drawing.FontStyle]::Bold) $BLACK 90 411
 
 # Right: big tweet card + mini breakdown panel
 TweetCard $g 820 56 500 250 1.35

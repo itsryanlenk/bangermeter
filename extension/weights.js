@@ -1,197 +1,295 @@
 // Bangermeter — weight configuration (single source of truth)
 //
-// TWO STRICTLY SEPARATE LAYERS (per RESEARCH.md builder guidance):
+// TWO STRICTLY SEPARATE LAYERS:
 //   1. WEIGHT LAYER  — the published algorithm values. Never invented.
-//   2. ESTIMATOR LAYER — how we approximate P(engagement) from what a browser can see.
+//   2. ESTIMATOR LAYER — how we approximate P(action) from what a browser can see.
 //      Clearly labeled estimates; the honesty boundary lives here.
 //
 // Provenance codes:
-//   "2023-published"   — March 2023 open-source release published this exact value;
-//                        2026 research confirms it is still the only sourced number.
-//   "2025-repo"        — concrete default in the Sept 2025 re-release code (this project's repo).
-//   "2026-structural"  — mechanism confirmed in xai-org/x-algorithm (Jan/May 2026) though value redacted.
-//   "excluded"         — head exists in the repo but NO value was ever published; weight 0,
-//                        shown as unweighted signal only.
-//   "estimate"         — estimator-layer number (baseline rates / directional modifiers).
+//   "2026-published" — transcribed verbatim from xai-org/x-algorithm,
+//                      home-mixer/params/param.rs (the Aug 13, 2026 release).
+//   "2026-config"    — constant from home-mixer/params/config.rs.
+//   "2023-archived"  — 2023-era code, removed from the current release; opt-in only.
+//   "earlybird-archived" — Earlybird-era constant from twitter/the-algorithm; display context only.
+//   "2026-studies"   — external causal research, not an X parameter.
+//   "estimate"       — estimator-layer number (baseline rates / directional modifiers).
 
 var BANGERMETER_CONFIG = {
-  version: "0.7.0",
+  version: "0.9.0",
 
-  // The weight table below is the APRIL 5, 2023 snapshot (the-algorithm-ml commit
-  // b85210863f). The original March 31 table had reply=27 and max-semantics
-  // good-clicks; the same Apr 5 edit added X's own disclaimer that weights live in
-  // a Feature Switch config and are "periodically adjusted" — i.e. any static table
-  // is a dated snapshot by X's own admission (leak-hunt research, Aug 2026).
-  weightsSnapshot: "April 5, 2023 (the-algorithm-ml commit b85210863f)",
+  // ── PROVENANCE ──────────────────────────────────────────────────────────────
+  // On August 13, 2026 X published the actual production ranking weights for the
+  // first time. This supersedes the April 2023 snapshot every version of this
+  // tool used through v0.8.0.
+  //
+  // param.rs header, verbatim:
+  //   "// mirrored from config feature-switch defaults; last sync 2026-08-12T04:09:22Z"
+  //
+  // README, verbatim:
+  //   "To enable experimentation, many tunable values are read from a configuration
+  //    system rather than written into the code. To help people understand the
+  //    production defaults, we run cron scripts that set the defaults in this
+  //    repository's code to be the primary production values, for example in
+  //    home-mixer/params/param.rs."
+  //
+  // That is a materially stronger claim than the 2023 release made — these are
+  // asserted to BE the production values, not merely plausible defaults.
+  weightsSnapshot: "August 13, 2026 — xai-org/x-algorithm, home-mixer/params/param.rs (feature-switch sync 2026-08-12T04:09:22Z)",
+  weightsSourceUrl: "https://github.com/xai-org/x-algorithm/blob/main/home-mixer/params/param.rs",
+  scorerSourceUrl: "https://github.com/xai-org/x-algorithm/blob/main/home-mixer/scorers/ranking_scorer.rs",
+
+  // X's own framing of what these numbers mean (param.rs, above the weight block):
+  //   "These weights reflect a combination of how much an action is valued in
+  //    ranking and typical propensities of these actions across the X network
+  //    (e.g. negative feedback is overall rare)."
+  // i.e. report = -234 is large PARTLY because reports are rare. The weight is not
+  // a "penalty per report" — it is a coefficient on a predicted probability.
+  weightsMeaningNote: "Weights multiply a PREDICTED PROBABILITY, not a count. X states the values already fold in how rare each action typically is.",
 
   // ── WEIGHT LAYER ────────────────────────────────────────────────────────────
-  // Heavy-ranker heads (PredictedScoreFeature.scala; NaviModelScorer weighted sum).
+  // Phoenix heads. Score = Σ(weight × P(action)), ranking_scorer.rs:471-511.
+  // `observable` marks heads a browser extension can actually derive from the DOM.
   heads: {
-    fav: { weight: 0.5, provenance: "2023-published", label: "Likes" },
-    retweet: { weight: 1.0, provenance: "2023-published", label: "Reposts" },
-    reply: { weight: 13.5, provenance: "2023-published", label: "Replies" },
-    reply_engaged_by_author: {
-      weight: 75.0, provenance: "2023-published", label: "Author engages replier",
-      note: "P(you reply AND the author engages with your reply). NOT a self-reply bonus."
-    },
-    good_click_v1: { weight: 11.0, provenance: "2023-published", label: "Conversation click + engage" },
-    good_click_v2: { weight: 10.0, provenance: "2023-published", label: "Conversation click + 2min",
-      combine: "max_with_v1" },
-    good_profile_click: { weight: 12.0, provenance: "2023-published", label: "Profile click + engage" },
-    video_playback_50: { weight: 0.005, provenance: "2023-published", label: "Video 50% watch" },
-    negative_feedback_v2: { weight: -74.0, provenance: "2023-published", label: "Negative feedback" },
-    reported: { weight: -369.0, provenance: "2023-published", label: "Reports" },
-    // Never-published heads — excluded from the score, surfaced as sourced signals.
-    // Deep-dive (Aug 2026) verdict: no number above folklore grade exists for ANY of
-    // these; what IS sourced is direction, structure, and a few official statements.
-    bookmark: { weight: 0, provenance: "excluded", label: "Bookmarks",
-      note: "Never numerically published. Musk (Jan 2023): a bookmark is a 'de facto silent like' — ≈1 like, official statement, not a shipped number. Dropped from the 2026 Phoenix roster. '10×/20×' claims are folklore." },
-    share: { weight: 0, provenance: "excluded", label: "Shares",
-      note: "Weight redacted, but officially POSITIVE (xai-org README). Musk (Sep 2024): forwarding a post to friends is 'one of the strongest signals'. 2026 has three separate share heads (share / via-DM / copy-link)." },
-    share_menu_click: { weight: 0, provenance: "excluded", label: "Share menu clicks",
-      note: "Never published and no successor head exists in the 2026 roster." },
-    tweet_detail_dwell: { weight: 0, provenance: "excluded", label: "Detail dwell 15s",
-      note: "Never published. Positive by structure; fires at ≥15s on the detail page (shipped constant). The '+10 dwell' figure is folklore." },
-    profile_dwell: { weight: 0, provenance: "excluded", label: "Profile dwell 20s",
-      note: "Never published. Fires at ≥20s (shipped constant). No named head in 2026 — folded into the dwell/profile-click family." },
-    strong_negative_feedback: { weight: 0, provenance: "excluded", label: "Strong negative",
-      note: "Value never published, but shipped param bounds [-1000, 0] prove it can only be negative. Report's allowed floor is 20× deeper (-20000). 'Block -120 / mute -100' trace to a fan-site fabrication." },
-    weak_negative_feedback: { weight: 0, provenance: "excluded", label: "Weak negative",
-      note: "Same posture as strong negative: negative-only by shipped bounds [-1000, 0]; value and action-mapping never published." }
+    favorite: { weight: 0.5, param: "rust_home_mixer_favorite_weight",
+      provenance: "2026-published", label: "Likes", observable: true },
+    reply: { weight: 5.0, param: "rust_home_mixer_reply_weight",
+      provenance: "2026-published", label: "Replies", observable: true,
+      note: "Rises to 20.0 (+15.0) on an ORIGINAL post from an author you mutually follow — see bidirectionalFollowReplyBoost. Down from 13.5 in the 2023 table." },
+    retweet: { weight: 1.0, param: "rust_home_mixer_retweet_weight",
+      provenance: "2026-published", label: "Reposts", observable: true },
+    quote: { weight: 5.0, param: "rust_home_mixer_quote_weight",
+      provenance: "2026-published", label: "Quotes",
+      note: "Same weight as a reply. Quote counts are not exposed in the timeline DOM, so this is scored from the estimator only." },
+    share: { weight: 2.0, param: "rust_home_mixer_share_weight",
+      provenance: "2026-published", label: "Shares" },
+    share_via_dm: { weight: 5.0, param: "rust_home_mixer_share_via_dm_weight",
+      provenance: "2026-published", label: "Share via DM",
+      note: "Musk (Sep 2024) called forwarding posts to friends 'one of the strongest signals'. Now confirmed numerically: a DM share is worth 10 likes." },
+    share_via_copy_link: { weight: 20.0, param: "rust_home_mixer_share_via_copy_link_weight",
+      provenance: "2026-published", label: "Share via copy link",
+      note: "The single heaviest positive head — 40× a like, 4× a reply. Copying a post's link is the strongest positive action a viewer can take." },
+    follow_author: { weight: 4.0, param: "rust_home_mixer_follow_author_weight",
+      provenance: "2026-published", label: "Follow author" },
+    click: { weight: 0.4, param: "rust_home_mixer_click_weight",
+      provenance: "2026-published", label: "Post click" },
+    open_link: { weight: 0.2, param: "rust_home_mixer_open_link_weight",
+      provenance: "2026-published", label: "Open link",
+      note: "Links ARE rewarded, contradicting the long-standing 'links are punished' folklore — though at 0.2 the reward is small, and low-context link posts still lose more on likes/replies/dwell than they gain here." },
+    photo_expand: { weight: 0.05, param: "rust_home_mixer_photo_expand_weight",
+      provenance: "2026-published", label: "Photo expand" },
+    video_open: { weight: 0.05, param: "rust_home_mixer_video_open_weight",
+      provenance: "2026-published", label: "Video open" },
+    vqv: { weight: 0.05, param: "rust_home_mixer_vqv_weight",
+      provenance: "2026-published", label: "Video quality view",
+      note: "Two gates, both in candidates_util.rs::vqv_weight. (1) Duration must be STRICTLY GREATER than MinVideoDurationMs = 10,000 — a 10.000s clip earns nothing, and neither do GIFs. (2) If the VIEWER has ≥10,000 followers (MAX_FOLLOWERS_THRESHOLD), the weight is forced to 0 outright — large accounts earn no video-quality-view credit from their own feed at all." },
+    quoted_click: { weight: 0.05, param: "rust_home_mixer_quoted_click_weight",
+      provenance: "2026-published", label: "Quoted-post click" },
+    post_unexplored: { weight: 0.02, param: "rust_home_mixer_post_unexplored_weight",
+      provenance: "2026-published", label: "Post unexplored",
+      note: "In-network only (PostUnexploredWeightInNetworkOnly = true). Viewer-specific novelty — excluded from the content score." },
+    cont_dwell_time: { weight: 0.004, param: "rust_home_mixer_cont_dwell_time_weight",
+      provenance: "2026-published", label: "Dwell time",
+      continuous: true,
+      note: "CONTINUOUS head: multiplies predicted dwell in seconds, not a probability. At a few seconds of dwell this is one of the largest terms for an ordinary post." },
+
+    // Heads X ships with an explicit 0.0 — they exist, they are wired in, and they
+    // currently contribute exactly nothing. That is a finding, not an omission.
+    profile_click: { weight: 0.0, param: "rust_home_mixer_profile_click_weight",
+      provenance: "2026-published", label: "Profile click",
+      note: "ZEROED. The 2023 table paid 12.0 for a profile-click-and-engage. It is now worth nothing." },
+    dwell: { weight: 0.0, param: "rust_home_mixer_dwell_weight",
+      provenance: "2026-published", label: "Dwell (binary)",
+      note: "ZEROED. Binary dwell pays nothing; only continuous dwell TIME is paid, via cont_dwell_time." },
+    quoted_vqv: { weight: 0.0, param: "rust_home_mixer_quoted_vqv_weight",
+      provenance: "2026-published", label: "Quoted video quality view", note: "ZEROED." },
+    cont_click_dwell_time: { weight: 0.0, param: "rust_home_mixer_cont_click_dwell_time_weight",
+      provenance: "2026-published", label: "Click dwell time", continuous: true, note: "ZEROED." },
+    cont_active_secs_5m_residual_norm: { weight: 0.0, param: "rust_home_mixer_cont_active_secs_5m_residual_norm_weight",
+      provenance: "2026-published", label: "Active seconds (5m residual)", continuous: true, note: "ZEROED." },
+
+    // Negative heads.
+    not_interested: { weight: -43.2, param: "rust_home_mixer_not_interested_weight",
+      provenance: "2026-published", label: "Not interested" },
+    block_author: { weight: -31.2, param: "rust_home_mixer_block_author_weight",
+      provenance: "2026-published", label: "Block author",
+      note: "The long-circulated 'block = -120' figure was a fan-site fabrication. The real number is -31.2 — and it is the mildest of the four hard negatives." },
+    mute_author: { weight: -58.8, param: "rust_home_mixer_mute_author_weight",
+      provenance: "2026-published", label: "Mute author",
+      note: "Nearly 2× a block. Muting is the harsher signal, which is the reverse of what most people assume." },
+    report: { weight: -234.0, param: "rust_home_mixer_report_weight",
+      provenance: "2026-published", label: "Report" },
+    not_dwelled: { weight: -0.02, param: "rust_home_mixer_not_dwelled_weight",
+      provenance: "2026-published", label: "Not dwelled",
+      note: "Scrolling straight past is now a scored penalty. Tiny per impression, but it applies to the majority of impressions, so in aggregate it is the largest negative an ordinary post carries." }
   },
 
-  // Grade-A facts with no published weights — displayable as FACTS in the UI,
-  // never fed into the score (deep-dive research, Aug 2026).
-  sourcedFacts: {
-    thresholds: {
-      goodClickSeconds: 2,
-      goodProfileClickSeconds: 10,
-      detailDwellSeconds: 15,
-      profileDwellSeconds: 20,
-      convoDwellSeconds: 60,
-      goodClickV2Seconds: 120,
-      provenance: "shipped constants: signal.thrift, PredictedScoreFeature.scala, CombinedFeatures.scala"
-    },
-    grox: {
-      qualityGate: 0.4,
-      repliesIneligible: true,
-      provenance: "grox/classifiers/content/banger_initial_screen.py:129 + task_filters.py (xai-org, May 2026)"
-    },
-    negativeBounds: {
-      strongWeakFloor: -1000,
-      reportFloor: -20000,
-      provenance: "HomeGlobalParams.scala shipped FSBoundedParam bounds (Sept 2025)"
-    },
-    phoenix2026: {
-      headCount: 19,
-      notDwelledIsNegative: true,
-      offsetRule: "any net-negative post ranks below every net-positive post",
-      dmShareStatement: "Musk (Sep 2024): forwarding posts to friends is 'one of the strongest signals'",
-      provenance: "weighted_scorer.rs / ranking_scorer.rs / README (xai-org, 2026)"
-    }
+  // reply_weight_for(candidate), ranking_scorer.rs:186-193. Applies ONLY when the
+  // candidate is an original post (not a reply, not a repost) AND the author is a
+  // mutual follow. 5.0 + 15.0 = 20.0.
+  bidirectionalFollowReplyBoost: 15.0,
+  // dwell_weight_for(candidate) — same gate, but shipped at 0.0, so it is inert.
+  bidirectionalFollowDwellBoost: 0.0,
+
+  // NEGATIVE_SCORES_OFFSET, home-mixer/params/config.rs.
+  negativeScoresOffset: 0.001,
+
+  // ScoringWeights::new, ranking_scorer.rs:105-128. Note what is NOT here:
+  // the cont_* heads and the bidirectional boost are excluded from positive_sum.
+  // These sums only matter on the negative branch of offset_score, where they
+  // rescale any net-negative post into (0, offset) — below every positive post.
+  weightSumMembers: {
+    positive: ["favorite", "reply", "retweet", "photo_expand", "video_open", "click",
+      "open_link", "profile_click", "vqv", "share", "share_via_dm", "share_via_copy_link",
+      "dwell", "quote", "quoted_click", "quoted_vqv", "follow_author", "post_unexplored"],
+    negative: ["not_interested", "block_author", "mute_author", "report", "not_dwelled"]
   },
 
-  epsilon: 0.001, // NaviModelScorer.Epsilon
-
-  // Heuristic rescoring chain (HeuristicScorer.scala; confirmed surviving in 2026 as
-  // oon_scorer.rs / author_diversity_scorer.rs).
+  // Rescoring applied AFTER the weighted sum (ranking_scorer.rs:743-853).
+  // Order in production: author diversity, then the OON factor.
   rescorers: {
-    outOfNetwork: { factor: 0.75, provenance: "2025-repo", label: "Out-of-network ×0.75",
-      note: "Viewer-specific; shown as context, applied only in OON view mode." },
-    reply: { factor: 0.75, provenance: "2025-repo", label: "Reply ×0.75" },
-    authorDiversity: { decay: 0.5, floor: 0.25, provenance: "2025-repo",
-      label: "Author diversity decay", note: "Feed-mode only: (1-floor)·decay^n + floor" },
-    // Recovered from the ARCHIVED initial release commit ec83d01dca (leak-hunt, Aug 2026):
-    // the only real numeric multipliers ever in serving code. Removed in the Sept 2025
-    // re-release — applied here as an explicitly historical 2023-era factor.
-    // OFF BY DEFAULT (field regression 2026-08-05): with the score normalized against an
-    // unverified median baseline, a default-on ×4 floors every verified author near 99
-    // and erases all differentiation. The multiplier is also 2023-era code REMOVED from
-    // the Sept 2025 snapshot this tool targets — so it ships as an opt-in historical mode.
-    blueVerified: { inNetwork: 4.0, outOfNetwork: 2.0, provenance: "2023-archived-commit",
+    // OonWeightFactor. oon_applies() returns true for out-of-network posts AND —
+    // because EnableOonRescoreForInNetworkRepliesRetweets defaults true — for
+    // in-network replies and reposts. It is a boolean gate: the factor is applied
+    // exactly ONCE, never squared.
+    outOfNetwork: { factor: 0.75, param: "rust_home_mixer_oon_weight_factor",
+      provenance: "2026-published", label: "Out-of-network / reply / repost ×0.75" },
+    topicOutOfNetwork: { factor: 0.5, param: "rust_home_mixer_topic_oon_weight_factor",
+      provenance: "2026-published", label: "Topic-request OON ×0.5",
+      note: "Replaces the 0.75 factor entirely when the request carries topic IDs." },
+    newUserOutOfNetwork: { factor: 0.00001, provenance: "2026-config", inert: true,
+      label: "New-user OON ×0.00001",
+      note: "NEW_USER_OON_WEIGHT_FACTOR in config.rs. INERT at published defaults: the gate requires account age < NewUserAgeThresholdSecs AND ≥5 followed users, and that threshold ships at 0, so `age < 0s` is false for every account. The mechanism exists and would annihilate out-of-network content for new accounts if the threshold were raised." },
+    authorDiversity: { decay: 0.5, floor: 0.25,
+      param: "rust_home_mixer_author_diversity_decay",
+      floorParam: "rust_home_mixer_author_diversity_floor",
+      provenance: "2026-published", label: "Author diversity decay",
+      note: "(1 - floor) × decay^k + floor, where k is the author's rank among their own posts in the slate. EnableAuthorDiversity ships true and it is applied unconditionally in RankingScorer::score." },
+
+    // NOT part of the 2026 release. 2023-era serving code (commit ec83d01dca),
+    // removed Sept 2025. Opt-in only — see the v0.7.1 regression note.
+    blueVerified: { inNetwork: 4.0, outOfNetwork: 2.0, provenance: "2023-archived",
       enabledBySetting: "applyVerifiedBoost2023",
       label: "Verified author boost",
-      note: "BlueVerifiedAuthorInNetworkMultiplier 4.0 / OutOfNetwork 2.0 at commit ec83d01dca; removed Sept 2025." },
-    // Community Notes: scoring fully open (crhThreshold 0.40 etc.); the engagement effect
-    // of a DISPLAYED note is quantified by three independent causal studies — X's own A/B
-    // (25-34% fewer like/repost decisions), Chuai et al. Nature Comms (-61.2% subsequent
-    // reposts), Slaughter et al. PNAS (-46.1% reposts / -44.1% likes post-attach).
-    // Applied to the prospective content score only (actual counts already embed it).
+      note: "BlueVerifiedAuthorInNetworkMultiplier 4.0 / OutOfNetwork 2.0 at commit ec83d01dca; absent from the 2026 code. Default off: a default-on ×4 floors every verified author near 99." },
+    // Community Notes: the engagement effect of a DISPLAYED note, from three
+    // independent causal studies (X's own A/B, Chuai et al. Nature Comms,
+    // Slaughter et al. PNAS). Not an X ranking parameter.
     communityNote: { factor: 0.5, provenance: "2026-studies",
       label: "Community-noted ×0.5",
-      note: "Sourced suppression range ≈0.4–0.55× on go-forward engagement; midpoint applied." }
+      note: "Three causal studies put a displayed note's effect on go-forward engagement between roughly ×0.39 and ×0.75 (Chuai et al. −61.2% reposts; Slaughter et al. −46.1% reposts / −44.1% likes; X's own A/B 25–34% fewer like/repost decisions). 0.5 is a round figure chosen inside that spread — it is our pick, not a published value. Content score only." }
+  },
+
+  // Observable signals with no head in the 2026 roster at all.
+  unweightedSignals: {
+    bookmark: { label: "Bookmarks",
+      note: "There is NO bookmark head in the 2026 Phoenix roster — bookmarks are not a scored action. They survive only as a user-history feature (n_bm_share) inside the dwell-regret gate. Musk's 'de facto silent like' remark (Jan 2023) never became a shipped weight, and the '10×/20×' claims are folklore." }
+  },
+
+  // Facts worth surfacing that are not score components.
+  sourcedFacts: {
+    minVideoDurationMs: { value: 10000, param: "rust_home_mixer_min_video_duration_ms",
+      provenance: "2026-published",
+      note: "Video shorter than 10s earns no video-quality-view weight." },
+    maxPostAgeHours: { value: 48, provenance: "2026-config",
+      note: "MAX_POST_AGE in config.rs — candidates older than 48h are not retrieved." },
+    resultSize: { value: 35, provenance: "2026-config",
+      note: "RESULT_SIZE in config.rs — posts returned per For You request." },
+    valueModelMode: { value: "weighted", param: "rust_home_mixer_value_model_mode",
+      provenance: "2026-published",
+      note: "The weighted sum modelled here is the shipped default. Two alternative modes exist in code (dwell_regret_sigmoid, gated_dwell_regret) with far deeper negatives (report -60000); neither is the default." },
+    // Grok "banger" pipeline eligibility. NOTE: a `quality_score >= 0.4` gate was
+    // asserted here through v0.8.0 and has been REMOVED — no such threshold exists
+    // anywhere in the published grox pipeline, and the file it was cited to
+    // (grox/classifiers/content/banger_initial_screen.py) does not exist in the repo.
+    // What IS in the shipped code is the eligibility filter below.
+    grox: { repliesIneligible: true, privateAccountsIneligible: true,
+      provenance: "2026-published",
+      source: "grox/flows/upa/task_filter.py",
+      note: "TaskInitialBangerFilter rejects any post with `ancestors` (i.e. any reply) and any post from a protected account. Quality is carried as a boolean `isHighQuality`, not a numeric threshold." },
+    negativeOffsetRule: {
+      provenance: "ranking_scorer.rs:525-533",
+      note: "Any post whose weighted sum is net-negative is rescaled into [0, 0.000894) — negative_sum/total_sum × the 0.001 offset — so it ranks below every net-positive post regardless of how good the rest of it was." }
   },
 
   // ── ESTIMATOR LAYER ─────────────────────────────────────────────────────────
-  // Baseline P(engagement) per viewer/impression for a median tweet. These are estimates
-  // (typical public benchmark rates), NOT algorithm values. Used for the prospective
-  // content score; the retrospective engagement score derives P from actual counts/views.
+  // Baseline P(action) per impression for a median post. ESTIMATES, not X values.
+  // Calibrated so that weight × baselineP lands in a comparable band across heads,
+  // which is the balance X's own note implies ("weights reflect ... typical
+  // propensities"). Continuous heads (cont_dwell_time) are in SECONDS, not
+  // probabilities.
   baselineP: {
-    fav: 0.005,                     // ~0.5% of viewers like a median tweet
-    retweet: 0.0005,
+    favorite: 0.005,
     reply: 0.0005,
-    reply_engaged_by_author: 0.0001,
-    good_click_v1: 0.002,
-    good_click_v2: 0.0015,
-    good_profile_click: 0.001,
-    video_playback_50: 0.15,        // among viewers, when a video exists; 0 otherwise
-    negative_feedback_v2: 0.0002,
-    reported: 0.00002,
+    retweet: 0.0005,
+    quote: 0.0001,
+    share: 0.0004,
+    share_via_dm: 0.0002,
+    share_via_copy_link: 0.00005,
+    follow_author: 0.0002,
+    click: 0.010,
+    open_link: 0.002,          // only when a link is present
+    photo_expand: 0.012,       // only when an image is present
+    video_open: 0.020,         // only when video is present
+    vqv: 0.030,                // only when video ≥10s is present
+    quoted_click: 0.004,       // only when the post quotes another
+    cont_dwell_time: 3.0,      // SECONDS of predicted dwell, not a probability
+    not_dwelled: 0.55,         // most impressions are scrolled past
+    not_interested: 0.00005,
+    block_author: 0.00001,
+    mute_author: 0.00001,
+    report: 0.000005,
     provenance: "estimate"
   },
 
-  // Small-sample smoothing for the retrospective engagement score. Observed rates are
-  // shrunk toward baseline via empirical Bayes: p̂ = (count + K·p0) / (views + K).
-  // At 13 views a stray reply barely moves the needle; at 100k views the data dominates.
-  // The real ranker predicts probabilities with a model and never divides tiny counts,
-  // so this makes the estimator behave like the system it approximates.
+  // Small-sample smoothing for the retrospective engagement score:
+  //   p̂ = (count + K·p0) / (views + K)
   engagementShrinkage: { pseudoViews: 2000, provenance: "estimate" },
 
-  // Directional content modifiers — multiply specific baseline Ps when a feature is
-  // detected. Small magnitudes on purpose: research explicitly refutes the folklore
-  // numbers (link −30–50%, hashtags −40%), so these are labeled mild/directional.
+  // Directional content modifiers — multiply specific baseline Ps when a feature
+  // is detected. `enables` marks a head that is scored ONLY when the feature is
+  // present.
   contentModifiers: [
-    { id: "question", label: "Asks a question", applies: "reply,reply_engaged_by_author",
+    { id: "question", label: "Asks a question", applies: "reply,quote",
       factor: 1.4, provenance: "estimate",
-      why: "Questions raise expected reply rate; reply is the heaviest observable positive head (13.5)." },
+      why: "Questions raise expected reply rate. Reply is 5.0 — ten times a like — and quote matches it at 5.0." },
     { id: "conversation_length", label: "Substantive text (≥100 chars)",
-      applies: "good_click_v1,good_click_v2", factor: 1.3, provenance: "estimate",
-      why: "Longer posts create conversation-click and dwell opportunities (good-click heads)." },
-    { id: "thread_starter", label: "Thread starter", applies: "good_click_v1,good_click_v2",
+      applies: "cont_dwell_time", factor: 1.35, provenance: "estimate",
+      alsoApplies: { not_dwelled: 0.8 },
+      why: "Longer posts hold attention. Dwell time is paid continuously (0.004/second) and not-dwelling is penalised (−0.02), so length moves the largest pair of terms an ordinary post has." },
+    { id: "thread_starter", label: "Thread starter", applies: "click,quote",
       factor: 1.3, provenance: "estimate",
-      why: "Threads drive detail-page clicks and ≥2min sessions." },
-    { id: "media_image", label: "Has image", applies: "fav", factor: 1.1,
-      provenance: "estimate", why: "Images raise like rates mildly; photo_expand head was never weighted." },
-    { id: "has_video", label: "Has video", applies: "video_playback_50", factor: 1.0,
-      enables: true, provenance: "2023-published",
-      why: "Enables the video_playback_50 head (weight 0.005 — tiny; '10× video boost' is refuted folklore)." },
-    { id: "external_link", label: "External link", applies: "good_click_v1,good_click_v2",
-      factor: 0.75, provenance: "2026-structural",
-      why: "No head rewards link clicks — attention leaves the scoring loop (link suppression is via head omission, not an explicit penalty; ppc.land Jan 2026)." },
-    { id: "link_no_context", label: "Bare link (little text)", applies: "fav,reply",
-      factor: 0.85, provenance: "estimate",
-      why: "Mild directional penalty for low-context link posts. The '−30–50% link penalty' figure is unsourced." },
-    { id: "many_hashtags", label: "3+ hashtags", applies: "fav,retweet,reply",
+      why: "Threads drive post clicks (0.4) and give people something to quote (5.0)." },
+    { id: "media_image", label: "Has image", applies: "favorite", factor: 1.1,
+      provenance: "estimate", why: "Images raise like rates mildly and enable the photo-expand head (0.05)." },
+    { id: "has_video", label: "Has video", applies: "", factor: 1.0,
+      enables: "video_open,vqv", provenance: "2026-published",
+      why: "Enables video_open (0.05), and video-quality-view (0.05) when the clip qualifies: vqv needs duration STRICTLY over 10 seconds, so GIFs and short clips earn none of it. A second gate we cannot see — the viewer having under 10,000 followers — can zero it as well. The '10× video boost' remains folklore." },
+    { id: "external_link", label: "External link", applies: "", factor: 1.0,
+      enables: "open_link", provenance: "2026-published",
+      why: "The 2026 release pays 0.2 for opening a link — links are NOT structurally unrewarded, which retires the old 'link penalty by head omission' reading. 0.2 is small, but it is positive." },
+    { id: "link_no_context", label: "Bare link (little text)",
+      applies: "favorite,reply,cont_dwell_time", factor: 0.85, provenance: "estimate",
+      alsoApplies: { not_dwelled: 1.2 },
+      why: "A link with no context earns less on every attention head than the 0.2 open-link weight pays back. The '−30–50% link penalty' figure remains unsourced; this is a mild directional estimate." },
+    { id: "many_hashtags", label: "3+ hashtags", applies: "favorite,retweet,reply",
       factor: 0.9, provenance: "estimate",
-      why: "Earlybird HAS_MULTIPLE_HASHTAGS_OR_TRENDS penalty exists in code; magnitude never published. Mild directional." },
-    { id: "engagement_bait", label: "Engagement-bait phrasing", applies: "negative_feedback_v2",
-      factor: 3.0, provenance: "estimate",
-      why: "'Like if / RT if / follow me' phrasing invites negative feedback; Grok-era bait enforcement (Jul 2026: 3 strikes = demonetization) makes this riskier." },
-    { id: "all_caps_shout", label: "Mostly ALL-CAPS", applies: "negative_feedback_v2",
+      why: "Earlybird's HAS_MULTIPLE_HASHTAGS_OR_TRENDS penalty exists in code; magnitude never published. Mild directional." },
+    { id: "engagement_bait", label: "Engagement-bait phrasing",
+      applies: "not_interested,mute_author", factor: 3.0, provenance: "estimate",
+      why: "'Like if / RT if / follow me' phrasing invites the not-interested (−43.2) and mute (−58.8) heads, and a net-negative post is rescaled below every positive post." },
+    { id: "all_caps_shout", label: "Mostly ALL-CAPS", applies: "not_interested",
       factor: 1.5, provenance: "estimate", why: "Shouting correlates with 'show less' feedback." }
   ],
 
-  // Age decay (earlybird AgeDecay; display context only — not applied to the 0-100 score)
-  ageDecay: { slope: 0.003, halflifeMinutes: 360, base: 0.6, provenance: "2025-repo" },
+  // Age decay (earlybird AgeDecay; display context only — not applied to the score)
+  ageDecay: { slope: 0.003, halflifeMinutes: 360, base: 0.6, provenance: "earlybird-archived" },
 
-  // Display normalization: score 50 = the baseline median tweet; sqrt curve compresses
-  // outliers; capped 0–100.
+  // Display normalization: 50 = the baseline median post; sqrt compresses outliers.
   display: { midpoint: 50, curve: 0.5 },
 
-  // Contextual notes surfaced in the panel when relevant (not score components)
   contextNotes: {
     premium: "Verified/Premium authors see ~10× median impressions empirically (Buffer 18.8M-post study) — real, but not a term in the published formula.",
-    phoenix: "Since ~Nov 2025 production ranking is Phoenix (Grok transformer). This score reflects the last fully-published pre-Phoenix fundamentals; the weighted-sum skeleton is confirmed to survive in 2026 production."
+    mutualFollow: "Replies to an original post from someone you mutually follow are weighted 20.0 instead of 5.0. This is viewer-specific: the same post scores differently for a mutual than for a stranger."
   }
 };
 
@@ -199,6 +297,23 @@ var BANGERMETER_DEFAULT_SETTINGS = {
   showBadges: true,
   scoreDrafts: true,
   assumeOutOfNetwork: false,
+  assumeMutualFollow: false,
   applyVerifiedBoost2023: false,
   theme: "auto"
 };
+
+// Derived weight sums, built exactly as ScoringWeights::new does.
+(function (C) {
+  function sum(names) {
+    return names.reduce(function (acc, n) { return acc + C.heads[n].weight; }, 0);
+  }
+  var positive = sum(C.weightSumMembers.positive);
+  var negative = -sum(C.weightSumMembers.negative);
+  C.weightSums = {
+    positive: positive,
+    negative: negative,
+    total: positive + negative,
+    positiveMembers: C.weightSumMembers.positive,
+    negativeMembers: C.weightSumMembers.negative
+  };
+})(BANGERMETER_CONFIG);

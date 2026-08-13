@@ -52,8 +52,8 @@ Txt $g "Real published weights." "Arial" 15 ([System.Drawing.FontStyle]::Bold) $
 Txt $g "Every factor cited to code." "Arial" 15 ([System.Drawing.FontStyle]::Bold) $GRAY1 48 354
 Txt $g "Zero data collected." "Arial" 15 ([System.Drawing.FontStyle]::Bold) $GRAY1 48 378
 
-NeoBox $g 48 690 296 42 $YELLOW 3 5
-Txt $g "REPLY = 27x A LIKE." "Arial" 19 ([System.Drawing.FontStyle]::Bold) $BLACK 66 700
+NeoBox $g 48 690 330 42 $YELLOW 3 5
+Txt $g "COPY-LINK = 40x A LIKE." "Arial" 19 ([System.Drawing.FontStyle]::Bold) $BLACK 66 700
 
 # Screenshot at native size with neo frame
 $sx = 383; $sy = 57

@@ -132,6 +132,12 @@
     .neg { color: var(--ts-red); }
     .pos { color: var(--ts-green); }
     .zero { color: #999; }
+    td.prov.obs { color: var(--ts-green); }
+    td.prov.est { opacity: .65; }
+    td.prov.zero { color: #999; }
+    .snapshot {
+      margin: 0 0 8px; font-size: 10.5px; line-height: 1.45; color: var(--ts-ink); opacity: .85;
+    }
     footer {
       padding: 4px 14px 12px;
       font-size: 10.5px;
@@ -147,8 +153,8 @@
     </span>
     <h1>Bangermeter</h1>
   </header>
-  <div class="sub">Scores tweets with the pre-Phoenix X algorithm fundamentals
-    (open-source repo formulas + last published weights, validated against 2026 research).</div>
+  <div class="sub">Scores posts with X's published For You ranking weights and the real
+    scorer arithmetic (xai-org/x-algorithm, Aug 13 2026).</div>
 
   <section>
     <h2>Settings</h2>
@@ -165,7 +171,11 @@
       <input type="checkbox" id="assumeOutOfNetwork">
     </div>
     <div class="setting">
-      <label for="applyVerifiedBoost2023" title="Simulate the 2023-era verified boost (×4 in-network / ×2 out-of-network, archived commit ec83d01dca). Removed from X's code Sept 2025 — off by default because it floors every verified author near the top of the scale.">2023 verified boost (×4/×2, historical)</label>
+      <label for="assumeMutualFollow" title="Score as if the viewer mutually follows the author. X pays 20.0 instead of 5.0 for a reply in that case (BidirectionalFollowReplyWeightBoost = 15.0) — but only on original posts, never on replies or reposts.">Assume mutual follow (reply 5.0 → 20.0)</label>
+      <input type="checkbox" id="assumeMutualFollow">
+    </div>
+    <div class="setting">
+      <label for="applyVerifiedBoost2023" title="Simulate the 2023-era verified boost (×4 in-network / ×2 out-of-network, archived commit ec83d01dca). No such multiplier exists in the Aug 2026 release — off by default because it floors every verified author near the top of the scale.">2023 verified boost (×4/×2, historical)</label>
       <input type="checkbox" id="applyVerifiedBoost2023">
     </div>
     <div class="setting">
@@ -180,14 +190,11 @@
 
   <section>
     <h2>Active weight set</h2>
+    <p id="weightSnapshot" class="snapshot"></p>
     <table id="weightTable"></table>
   </section>
 
-  <footer>
-    Weighted-sum formula per NaviModelScorer.scala; the same score skeleton is confirmed in
-    X's 2026 production code (xai-org/x-algorithm). Weights are the Mar 2023 published values —
-    the only sourced set; never-published heads are excluded. Relative score, not predicted reach.
-  </footer>
+  <footer id="footerNote"></footer>
 
   <script src="weights.js"></script>
   <script src="popup.js"></script>
