@@ -1,5 +1,7 @@
 # Bangermeter ⚡
 
+![Bangermeter — score any tweet with X's own algorithm](store-assets/promo-marquee-1400x560.png)
+
 **Score any post with X's own published ranking weights.**
 
 A Chrome extension that scores posts on x.com using the real For You weights and the real
@@ -23,6 +25,14 @@ compose draft meter to the viewport so X's scrolling compose dialog can no longe
 3. Click **Load unpacked** → select the `extension/` folder
 4. Browse x.com — every timeline post gets a ⚡ badge; click it for the full breakdown.
    The compose box gets a live draft meter as you type.
+
+## What it looks like
+
+![The breakdown panel open on a live post](store-assets/screenshot-1280x800.png)
+
+Every post gets a badge. Click it for the breakdown: which signals fired, what each
+reply and repost is worth, the rescoring factors that applied, and a "Show the math"
+expander with the full weight × probability table.
 
 ## What the scores mean
 
@@ -101,6 +111,13 @@ what the published weights actually say.
 | `extension/fixture.html` | X-DOM fixture harness for the content script |
 | `extension/fixture-compose.html` | Compose-meter visibility harness — asserts the draft meter survives X's scrolling, overflow-hidden compose dialog (9 assertions) |
 | `extension/bangermeter.user.js` | Single-file Tampermonkey build (generated — see `store-assets/make-userscript.ps1`) |
+| `store-assets/weights-export.js` | Emits the weight values the store art needs, straight from `weights.js` |
+| `store-assets/make-*.ps1` | Generators for the userscript, the upload package, and the promo art |
+
+Nothing numeric is typed into the store art. `make-promos.ps1` and `make-screenshot.ps1`
+read their weights and ratios from `extension/weights.js` through `weights-export.js`, so a
+tile cannot keep publishing a value after the code has moved on — which is exactly what
+happened when those numbers were hardcoded.
 
 ## Verification status
 
