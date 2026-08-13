@@ -1,5 +1,16 @@
 # Bangermeter — Chrome Web Store promo tile generator (neo-brutalist brand)
+#
+# Every WEIGHT and every derived ratio on these tiles comes from
+# extension/weights.js via store-assets/weights-export.js. Nothing numeric is
+# typed into this file: the tiles ship on the store, and a hardcoded number here
+# is a number that keeps being published after the code has moved on.
+$ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Drawing
+
+$root = Split-Path -Parent $PSScriptRoot
+$W = & node (Join-Path $PSScriptRoot "weights-export.js") | ConvertFrom-Json
+if (-not $W -or -not $W.rows) { throw "weights-export.js produced no data - cannot build tiles" }
+Write-Host "weights loaded from extension/weights.js (v$($W.version)): $($W.rows.Count) rows"
 
 $BLACK  = [System.Drawing.ColorTranslator]::FromHtml("#000000")
 $WHITE  = [System.Drawing.ColorTranslator]::FromHtml("#FFFFFF")
@@ -110,9 +121,9 @@ Txt $g "X'S OWN ALGORITHM." "Arial Black" 34 ([System.Drawing.FontStyle]::Regula
 Txt $g "X's real production ranking weights. The real scorer math." "Arial" 19 ([System.Drawing.FontStyle]::Bold) $GRAY1 72 316
 Txt $g "Every factor cited to code. No folklore numbers." "Arial" 19 ([System.Drawing.FontStyle]::Bold) $GRAY1 72 344
 
-# Yellow fact chip
+# Yellow fact chip — caption derived from weights.js, never typed here
 NeoBox $g 72 400 520 46 $YELLOW 3 5
-Txt $g "COPY-LINK = 40x A LIKE. IT'S IN THE CODE." "Arial" 20 ([System.Drawing.FontStyle]::Bold) $BLACK 90 411
+Txt $g $W.facts.chipCaption "Arial" 20 ([System.Drawing.FontStyle]::Bold) $BLACK 90 411
 
 # Right: big tweet card + mini breakdown panel
 TweetCard $g 820 56 500 250 1.35
@@ -126,22 +137,22 @@ $pen.Dispose()
 BoltBox $g 832 346 26 2 0
 Txt $g "BANGERMETER" "Arial Black" 17 ([System.Drawing.FontStyle]::Regular) $WHITE 868 350
 
-# contribution rows: label + colored bar
-$rows = @(
-  @("REPLIES", 13.5, 300, $GREEN),
-  @("PROFILE CLICKS", 12.0, 268, $GREEN),
-  @("LIKES", 0.5, 60, $GREEN),
-  @("REPORTS", -369, 200, $RED)
-)
+# Contribution rows: labels and bar lengths both come from weights.js. The old
+# hardcoded rows silently kept shipping the 2023 table (replies 13.5, profile
+# clicks 12.0, reports -369) long after the code had moved on — hence this.
+$MAX_BAR = 300
+$MIN_BAR = 26
 $ry = 392
-foreach ($r in $rows) {
-  Txt $g $r[0] "Arial" 13 ([System.Drawing.FontStyle]::Bold) $BLACK 836 $ry
-  $g.FillRectangle((B $r[3]), 960, $ry, $r[2], 14)
+foreach ($r in $W.rows) {
+  $barW = [int][Math]::Max($MIN_BAR, [Math]::Round($r.barFraction * $MAX_BAR))
+  $color = if ($r.weight -lt 0) { $RED } else { $GREEN }
+  Txt $g $r.label "Arial" 13 ([System.Drawing.FontStyle]::Bold) $BLACK 836 $ry
+  $g.FillRectangle((B $color), 960, $ry, $barW, 14)
   $penB = New-Object System.Drawing.Pen($BLACK, 2)
-  $g.DrawRectangle($penB, 960, $ry, $r[2], 14)
+  $g.DrawRectangle($penB, 960, $ry, $barW, 14)
   $penB.Dispose()
-  $wtxt = if ($r[1] -lt 0) { [string]$r[1] } else { "x" + $r[1] }
-  Txt $g $wtxt "Arial" 12 ([System.Drawing.FontStyle]::Bold) $GRAY1 (966 + $r[2]) ($ry + 1)
+  $wtxt = if ($r.weight -lt 0) { [string]$r.weight } else { "x" + $r.weight }
+  Txt $g $wtxt "Arial" 12 ([System.Drawing.FontStyle]::Bold) $GRAY1 (966 + $barW) ($ry + 1)
   $ry += 26
 }
 

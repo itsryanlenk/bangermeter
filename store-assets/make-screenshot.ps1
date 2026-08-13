@@ -1,5 +1,12 @@
 # Bangermeter — compose clipboard screenshot onto a 1280x800 store canvas
+#
+# Caption numbers come from extension/weights.js via weights-export.js, never
+# typed here — a hardcoded ratio on a store asset outlives the code that made it true.
+$ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Drawing
+
+$W = & node (Join-Path $PSScriptRoot "weights-export.js") | ConvertFrom-Json
+if (-not $W -or -not $W.facts) { throw "weights-export.js produced no data - cannot build the screenshot" }
 
 $BLACK  = [System.Drawing.ColorTranslator]::FromHtml("#000000")
 $CREAM  = [System.Drawing.ColorTranslator]::FromHtml("#F5F0E6")
@@ -52,8 +59,13 @@ Txt $g "Real published weights." "Arial" 15 ([System.Drawing.FontStyle]::Bold) $
 Txt $g "Every factor cited to code." "Arial" 15 ([System.Drawing.FontStyle]::Bold) $GRAY1 48 354
 Txt $g "Zero data collected." "Arial" 15 ([System.Drawing.FontStyle]::Bold) $GRAY1 48 378
 
-NeoBox $g 48 690 330 42 $YELLOW 3 5
-Txt $g "COPY-LINK = 40x A LIKE." "Arial" 19 ([System.Drawing.FontStyle]::Bold) $BLACK 66 700
+# Caption comes from extension/weights.js; the chip is sized to the measured
+# text so a longer caption can never overflow the box.
+$capFont = New-Object System.Drawing.Font("Arial", 19, [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
+$capW = [int]$g.MeasureString($W.facts.shortChipCaption, $capFont).Width
+$capFont.Dispose()
+NeoBox $g 48 690 ($capW + 36) 42 $YELLOW 3 5
+Txt $g $W.facts.shortChipCaption "Arial" 19 ([System.Drawing.FontStyle]::Bold) $BLACK 66 700
 
 # Screenshot at native size with neo frame, centred in the space right of the brand
 # column so a differently-sized capture still composes correctly.

@@ -15,7 +15,7 @@
 //   "estimate"       — estimator-layer number (baseline rates / directional modifiers).
 
 var BANGERMETER_CONFIG = {
-  version: "0.9.0",
+  version: "0.9.1",
 
   // ── PROVENANCE ──────────────────────────────────────────────────────────────
   // On August 13, 2026 X published the actual production ranking weights for the
