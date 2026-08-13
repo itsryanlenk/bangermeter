@@ -46,8 +46,14 @@ console.log(JSON.stringify({
     copyLinkVsLike,
     replyVsLike,
     mutualReplyWeight: H.reply.weight + C.bidirectionalFollowReplyBoost,
-    chipCaption: "COPY-LINK = " + copyLinkVsLike + "x A LIKE. IT'S IN THE CODE.",
-    shortChipCaption: "COPY-LINK = " + copyLinkVsLike + "x A LIKE.",
+    // Captions state a coefficient, never a ratio. Dividing two weights cancels
+    // the propensities that made the big coefficients big — X's own comment says
+    // the values already fold in how rare each action is — so "copy-link = 40x a
+    // like" is the same shape of claim as the "reply = 27x" folklore this tool
+    // exists to kill. Ratios are only sound beside a measured count sharing a
+    // denominator, which no store asset has.
+    chipCaption: "EVERY WEIGHT IS A COEFFICIENT, NOT A POINT TOTAL.",
+    shortChipCaption: "SCROLLING PAST YOU IS A SCORED PENALTY.",
     smallTileCaption: "SCORE ANY TWEET. X'S OWN ALGORITHM."
   }
 }, null, 2));

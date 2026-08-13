@@ -249,7 +249,9 @@
     // Engagement (retrospective) score
     // ================================================================
     section("Engagement score");
-    var base = C.baselineP;
+    // The engagement score's reference is the MEASURED timeline rate, not the
+    // content model's prior. A post hitting the measured median must land on 50.
+    var base = C.observedRates;
     var views = 100000;
     var eng = E.engagementScore({
       counts: {
@@ -260,7 +262,11 @@
       },
       isReply: false
     }, {});
-    check("baseline-rate post = 50", eng.score === 50, eng.score);
+    check("measured-median post = 50", eng.score === 50, eng.score);
+    check("observedRates are flagged as measured, with a sample on record",
+      base.provenance === "measured" && base.n > 0 && typeof base.sample === "string");
+    check("observedRates are NOT the content model's priors",
+      base.favorite !== C.baselineP.favorite, "both " + base.favorite);
 
     // reply is still 10x a like (5.0 vs 0.5), down from 27x in the 2023 table
     var replyHeavy = E.engagementScore({ counts: { likes: 100, retweets: 0, replies: 400, views: 100000 } }, {});
@@ -277,8 +283,16 @@
     check("tiny sample flagged lowSample", buh.lowSample === true && buh.smoothingNote !== null);
     var freshReply = E.engagementScore({ counts: { likes: 0, retweets: 0, replies: 0, views: 6 }, isReply: true }, {});
     check("no-data reply sits near median x0.75", freshReply.score >= 38 && freshReply.score <= 48, freshReply.score);
+    // Pre-calibration this asserted ===100, which was itself the bug: against the
+    // guessed baseline, 18% of real feed posts pinned at the cap and the top of
+    // the scale stopped discriminating. Against measured rates this post is a
+    // strong performer, not a maxed-out one.
     var viral = E.engagementScore({ counts: { likes: 2000, retweets: 300, replies: 500, views: 100000 } }, {});
-    check("large-sample viral still reaches 100", viral.score === 100 && viral.lowSample === false, viral.score);
+    check("large-sample strong post scores high without pinning",
+      viral.score >= 75 && viral.score < 100 && viral.lowSample === false, viral.score);
+    // The cap is still reachable — it just takes a genuinely extreme post now.
+    var monster = E.engagementScore({ counts: { likes: 40000, retweets: 9000, replies: 12000, views: 200000 } }, {});
+    check("the 100 cap is still reachable", monster.score === 100, monster.score);
 
     // Bookmarks: observable, but there is NO bookmark head in 2026 at all.
     var bm = E.engagementScore({ counts: { likes: 10, retweets: 1, replies: 1, bookmarks: 40, views: 5000 } }, {});

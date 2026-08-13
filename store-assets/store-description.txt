@@ -20,9 +20,10 @@ WHAT YOU GET
 
 SOME OF WHAT THE WEIGHTS SAY
 
-• Copying a post's link is the strongest thing a reader can do — worth 40 likes.
-• A reply is worth 10 likes. From someone you mutually follow, 20.
-• Sharing to DMs is worth 10 likes. Nothing in the visible counts shows you it happened.
+• Copying a post's link carries 20, the heaviest positive coefficient X publishes. It is also
+  one of the rarest actions a reader takes, which is part of why the number is so large.
+• A reply carries 5. From someone you mutually follow, on an original post, 20.
+• Sharing to DMs carries 5, and nothing in the visible counts shows you it happened.
 • Profile clicks are worth nothing. That head used to pay, and X zeroed it.
 • Muting hurts nearly twice as much as blocking.
 • Scrolling straight past is a scored penalty.

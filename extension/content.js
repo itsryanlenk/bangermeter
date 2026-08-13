@@ -471,7 +471,8 @@
     if (result.engagement.available) {
       sectionScoreRow(sec2, "Earned engagement", result.engagement.score, null);
       subtitle(sec2, "How the algorithm values what this post actually earned, from " +
-        result.engagement.views.toLocaleString() + " views. 50 = typical rates.");
+        result.engagement.views.toLocaleString() + " views. 50 = the median rate measured " +
+        "across " + BANGERMETER_CONFIG.observedRates.n + " real timeline posts.");
 
       var counts = result.features.counts || {};
       [
@@ -555,13 +556,12 @@
     var F = BANGERMETER_CONFIG.sourcedFacts;
     var d4 = mathDetails("What X's published weights actually say");
     [
-      "▲ No single action is worth more than copying a post's link — " + H.share_via_copy_link.weight +
-        " per share, which is " + (H.share_via_copy_link.weight / H.favorite.weight) + " likes or " +
-        (H.share_via_copy_link.weight / H.reply.weight) + " replies. It is also rare, so it decides " +
-        "far fewer posts than likes do.",
-      "▲ Sharing to DMs pays " + H.share_via_dm.weight + " — the same as a reply. The share menu " +
-        "itself pays " + H.share.weight + ". Musk called DM-forwarding “one of the strongest " +
-        "signals”; this is the second tier, a quarter of a copy-link share.",
+      "▲ Copying a post's link carries " + H.share_via_copy_link.weight + ", the heaviest positive " +
+        "coefficient X publishes. It is also one of the rarest things a reader does — which is " +
+        "part of why the number is that large.",
+      "▲ Sharing to DMs carries " + H.share_via_dm.weight + ", the same coefficient as a reply. " +
+        "The share menu itself carries " + H.share.weight + ". Musk called DM-forwarding “one of " +
+        "the strongest signals”; the 2026 file finally puts a number on it.",
       "▲ A reply from someone you mutually follow is worth " +
         (H.reply.weight + BANGERMETER_CONFIG.bidirectionalFollowReplyBoost) + ", not " +
         H.reply.weight + " — but only on original posts, never on replies or reposts.",

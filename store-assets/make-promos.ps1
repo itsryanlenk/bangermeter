@@ -121,8 +121,12 @@ Txt $g "X'S OWN ALGORITHM." "Arial Black" 34 ([System.Drawing.FontStyle]::Regula
 Txt $g "X's real production ranking weights. The real scorer math." "Arial" 19 ([System.Drawing.FontStyle]::Bold) $GRAY1 72 316
 Txt $g "Every factor cited to code. No folklore numbers." "Arial" 19 ([System.Drawing.FontStyle]::Bold) $GRAY1 72 344
 
-# Yellow fact chip — caption derived from weights.js, never typed here
-NeoBox $g 72 400 520 46 $YELLOW 3 5
+# Yellow fact chip — caption derived from weights.js, never typed here. The box
+# is sized to the measured string so a longer caption cannot overflow it.
+$capFont = New-Object System.Drawing.Font("Arial", 20, [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
+$capW = [int]$g.MeasureString($W.facts.chipCaption, $capFont).Width
+$capFont.Dispose()
+NeoBox $g 72 400 ($capW + 36) 46 $YELLOW 3 5
 Txt $g $W.facts.chipCaption "Arial" 20 ([System.Drawing.FontStyle]::Bold) $BLACK 90 411
 
 # Right: big tweet card + mini breakdown panel

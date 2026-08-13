@@ -1,4 +1,4 @@
-// Bangermeter — weight configuration (single source of truth)
+﻿// Bangermeter — weight configuration (single source of truth)
 //
 // TWO STRICTLY SEPARATE LAYERS:
 //   1. WEIGHT LAYER  — the published algorithm values. Never invented.
@@ -15,7 +15,7 @@
 //   "estimate"       — estimator-layer number (baseline rates / directional modifiers).
 
 var BANGERMETER_CONFIG = {
-  version: "0.9.1",
+  version: "0.9.2",
 
   // ── PROVENANCE ──────────────────────────────────────────────────────────────
   // On August 13, 2026 X published the actual production ranking weights for the
@@ -64,10 +64,10 @@ var BANGERMETER_CONFIG = {
       provenance: "2026-published", label: "Shares" },
     share_via_dm: { weight: 5.0, param: "rust_home_mixer_share_via_dm_weight",
       provenance: "2026-published", label: "Share via DM",
-      note: "Per impression this is worth 10× a like and matches a reply exactly. Musk (Sep 2024) called forwarding posts to friends 'one of the strongest signals'; 5.0 puts it in the second tier, a quarter of a copy-link share — consistent with that remark, but a vague quote is not something a number can confirm." },
+      note: "Musk (Sep 2024) called forwarding posts to friends 'one of the strongest signals'. The 2026 file puts a number on it: 5.0, the same coefficient as a reply and a quarter of a copy-link share. Not observable from the timeline, so this head is scored from a baseline estimate." },
     share_via_copy_link: { weight: 20.0, param: "rust_home_mixer_share_via_copy_link_weight",
       provenance: "2026-published", label: "Share via copy link",
-      note: "The heaviest positive weight in the table: per impression it is worth 40× a like and 4× a reply, so no single action a viewer takes is worth more. That is a claim about value per event, not about volume — copy-link shares are rare, so they move far fewer posts than likes do. Bangermeter cannot observe them at all and scores this head from a baseline estimate." },
+      note: "The heaviest positive coefficient X publishes, at 20.0. Copy-link shares are also among the rarest things a reader does, and X's own comment says the weights already fold in how rare each action is — so this number is large partly BECAUSE the action is rare, and dividing it by the like weight would cancel exactly that. Bangermeter cannot observe copy-link shares at all; this head is scored from a baseline estimate." },
     follow_author: { weight: 4.0, param: "rust_home_mixer_follow_author_weight",
       provenance: "2026-published", label: "Follow author" },
     click: { weight: 0.4, param: "rust_home_mixer_click_weight",
@@ -211,12 +211,53 @@ var BANGERMETER_CONFIG = {
       note: "Any post whose weighted sum is net-negative is rescaled into [0, 0.000894) — negative_sum/total_sum × the 0.001 offset — so it ranks below every net-positive post regardless of how good the rest of it was." }
   },
 
-  // ── ESTIMATOR LAYER ─────────────────────────────────────────────────────────
-  // Baseline P(action) per impression for a median post. ESTIMATES, not X values.
-  // Calibrated so that weight × baselineP lands in a comparable band across heads,
+  // ── MEASURED RATES (retrospective score only) ───────────────────────────────
+  // What a real timeline actually does, per impression — the reference the
+  // ENGAGEMENT score normalises against.
+  //
+  // Sample: 158 posts scraped from a logged-in timeline on 2026-08-13 (141 For
+  // You, 17 Following), per-post MEDIAN rate. Raw sample and method live in
+  // `calibration/`; rerun `node calibration/calibrate.js` to re-derive.
+  //
+  // Per-post median rather than pooled (total events ÷ total views): the score
+  // compares one post against a reference POST, and pooled answers a different
+  // question that a handful of viral posts dominate.
+  //
+  // These replaced guesses of 0.005 / 0.0005 / 0.0005, which were low by 2.5×,
+  // 2.7× and 1.4×. Under those, the median feed post scored 67 on a scale whose
+  // midpoint is documented as 50, and 18% of posts pinned at the 100 cap.
+  //
+  // Limits: one account, one session, one day, 97% verified authors. Engagement
+  // rate falls as reach rises (Spearman −0.37 against views in this sample), so
+  // a low-reach feed reads higher — the Following slice ran ~2× For You. These
+  // are calibrated to For You, where the extension is mostly used. They are NOT
+  // population constants for X and should not be quoted as such.
+  observedRates: {
+    favorite: 0.0123,
+    reply: 0.00135,
+    retweet: 0.0007,
+    provenance: "measured",
+    sample: "calibration/feed-sample-2026-08-13.csv",
+    n: 141,
+    feed: "forYou",
+    collected: "2026-08-13"
+  },
+
+  // ── ESTIMATOR LAYER (prospective score only) ────────────────────────────────
+  // Model priors for a post carrying NO notable content signals — the starting
+  // point the contentModifiers multiply.
+  //
+  // Deliberately NOT the measured rates above. A measured median is the rate of
+  // a typical post *including* whatever signals it happens to carry; using it as
+  // the signal-free base double-counts the average signal and flattens the
+  // score's ability to separate a strong post from a weak one. These two numbers
+  // answer different questions and must not be merged.
+  //
+  // Calibrated so weight × baselineP lands in a comparable band across heads,
   // which is the balance X's own note implies ("weights reflect ... typical
-  // propensities"). Continuous heads (cont_dwell_time) are in SECONDS, not
-  // probabilities.
+  // propensities"). Estimates, all of them.
+  //
+  // Continuous heads (cont_dwell_time) are in SECONDS, not probabilities.
   baselineP: {
     favorite: 0.005,
     reply: 0.0005,

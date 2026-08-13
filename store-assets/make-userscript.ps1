@@ -1,4 +1,4 @@
-# Rebuilds extension/bangermeter.user.js from the extension sources.
+﻿# Rebuilds extension/bangermeter.user.js from the extension sources.
 # Single-file Tampermonkey build: styles.css (injected) + weights.js + scoring.js + content.js.
 #
 # PowerShell 5.1 gotchas this script deliberately works around:
@@ -15,7 +15,7 @@ $manifest = Get-Content (Join-Path $ext "manifest.json") -Raw -Encoding UTF8 | C
 $extVersion = $manifest.version
 
 # Userscript versioning is independent of the extension's; bump the minor in step.
-$userVersion = "1.7.1"
+$userVersion = "1.7.2"
 
 function Read-Src($name) {
     return (Get-Content (Join-Path $ext $name) -Raw -Encoding UTF8)

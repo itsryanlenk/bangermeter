@@ -208,7 +208,11 @@ var BangermeterEngine = (function () {
       return clamp((c + K * p0) / (views + K), 0, 1);
     }
 
-    var B = C.baselineP;
+    // Measured timeline rates, NOT the content model's priors. This score asks
+    // how a post's real rates compare to a real typical post, so its reference
+    // has to be measured; contentScore's question is different and uses
+    // baselineP. Merging the two flattens the content score — see weights.js.
+    var B = C.observedRates;
     var replyW = replyWeightFor(mutualCtx(features, settings));
 
     var result = weightedScore({
