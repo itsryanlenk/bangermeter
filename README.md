@@ -10,8 +10,11 @@ math. Full source-traced findings: [RESEARCH.md](RESEARCH.md).
 > **August 13, 2026.** X published the production weights for the For You timeline. Until
 > that morning the only weights anyone had were a March/April 2023 snapshot, and about a
 > third of the ranking heads had never been given a number at all. Bangermeter v0.9.0
-> replaces the entire weight layer with the published set. Everything below describes the
+> replaced the entire weight layer with the published set. Everything below describes the
 > new one.
+
+**Current release: v0.9.1** — v0.9.0 brought in the published weights; v0.9.1 pins the
+compose draft meter to the viewport so X's scrolling compose dialog can no longer clip it.
 
 ## Install
 

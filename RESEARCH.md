@@ -81,32 +81,35 @@
 > published values* — several of those numbers have since changed (reply 13.5 → 5.0,
 > report −369 → −234, profile-click 12.0 → 0.0).
 
-| Element | Verdict | Note |
-|---|---|---|
-| fav 0.5 | **supported** | Head persists in 2026 roster; 0.5 is the anchor value |
-| retweet 1.0 | **supported** | "20×" folklore contradicts published 2× ratio |
-| reply 13.5 | **supported** | "27×" claims are recycled arithmetic |
-| reply_engaged_by_author 75.0 | **changed by Phoenix** | Dropped as named head in 2026. Kept for pre-Phoenix fidelity. NOT a self-reply bonus — it rewards the author engaging with repliers |
-| good_click_v1 11.0 / v2 10.0 | **changed by Phoenix** | Composites replaced by plain click/dwell heads in 2026; kept with max() combine pre-Phoenix |
-| good_profile_click 12.0 | **supported** | profile_click persists in 2026 |
-| video_playback_50 0.005 | **supported** | Socialinsider ~850k-post data consistent with tiny weight; "10× video boost" refuted |
-| tweet_detail_dwell / profile_dwell | **unknown** | Never published; excluded (0) |
-| bookmark | **changed by Phoenix** | Never published AND dropped from 2026 roster; excluded (0) |
-| share / share_menu_click | **unknown** | Persist in 2026 (share_via_dm etc.) but weights redacted; excluded (0) |
-| negative_feedback_v2 −74.0 | **supported** | Granularized in 2026 (not_interested/block/mute) but −74 is the last sourced value |
-| report −369.0 | **supported** | Head persists in 2026 |
-| strong/weak negative feedback | **unknown** | Never published; excluded (0) |
-| Out-of-network ×0.75 | **supported** | Mechanism survives as oon_scorer.rs (value redacted there) |
-| Reply candidate ×0.75 | **supported** | For pre-Phoenix. (Reply *ranking* was overhauled Mar–Apr 2026) |
-| Author diversity decay 0.5 / floor 0.25 | **supported** | Strongest survivor — identical form in author_diversity_scorer.rs |
-| Feedback fatigue ×0.2 floor, 140d | **supported** | FeedbackFatigueScorer.scala:38-39; viewer-specific, unobservable from a browser |
-| Control AI ×20 / ×0.05 | **supported** | Viewer-specific; omitted |
-| Grok slop decay (off, 1.0 in 2025 code) | **changed by Phoenix** | Dormant 2025 hook became production Grox classifiers May 2026 |
-| MTL normalization | **supported** | Monotonic; safe to omit for relative ranking |
-| Heartbeat optimizer | **supported (off)** | Reveals production weights were per-user-bucket and time-varying → any static set is approximate |
-| Earlybird link handling | **resolved Aug 2026** | No explicit penalty ever existed. The "suppression via head omission" reading was ALSO wrong: `open_link` pays 0.2. Links are rewarded, just weakly |
-| Earlybird multiple-hashtags penalty | **changed by Phoenix** | Exists in code, magnitude never published; "−40%" is folklore. Direction (3+) plausible |
-| Earlybird offensive/text-quality | **changed by Phoenix** | Retired in production ("eliminated every single hand-engineered feature"); safety now via Grox |
+The **Now** column carries the published Aug 13 2026 value, so no row needs the banner
+above to be read correctly.
+
+| Element (2023) | Verdict at the time | Now (Aug 13 2026) | Note |
+|---|---|---|---|
+| fav 0.5 | **supported** | **0.5 — unchanged** | Head persists; still the anchor value |
+| retweet 1.0 | **supported** | **1.0 — unchanged** | "20×" folklore contradicts the published 2× ratio |
+| reply 13.5 | **supported** | **5.0** (20.0 from a mutual follow) | "27×" claims were recycled arithmetic; the real ratio is 10× |
+| reply_engaged_by_author 75.0 | **changed by Phoenix** | **head removed** | NOT a self-reply bonus — it rewarded the author engaging with repliers |
+| good_click_v1 11.0 / v2 10.0 | **changed by Phoenix** | **heads removed** → `click` 0.4 | Composites replaced by a plain click head |
+| good_profile_click 12.0 | **supported** | **`profile_click` 0.0** | Zeroed. The clearest reversal in the release |
+| video_playback_50 0.005 | **supported** | **head removed** → `video_open` 0.05 + `vqv` 0.05 | Not a rename: 2026 splits video into an open and a quality-view head, and vqv is gated on duration >10s and on the viewer having <10k followers. "10× video boost" still refuted |
+| tweet_detail_dwell / profile_dwell | **unknown** | **`dwell` 0.0**, `cont_dwell_time` 0.004/s | Threshold dwell heads gone; dwell is paid continuously instead |
+| bookmark | **changed by Phoenix** | **no head exists** | Confirmed: not a scored action in 2026 |
+| share / share_menu_click | **unknown** | **`share` 2.0 · `share_via_dm` 5.0 · `share_via_copy_link` 20.0** | The largest single gain in information from the release |
+| negative_feedback_v2 −74.0 | **supported** | **split** → `not_interested` −43.2 · `block_author` −31.2 · `mute_author` −58.8 | Mute is the harshest of the three |
+| report −369.0 | **supported** | **−234.0** | Still the heaviest weight in the system |
+| strong/weak negative feedback | **unknown** | **no such heads** | Replaced by the four named negatives above |
+| Out-of-network ×0.75 | **supported** | **0.75 — confirmed** | Also applied to in-network replies and reposts, exactly once |
+| Reply candidate ×0.75 | **supported** | **confirmed, but it is the SAME factor** | Not a separate reply multiplier — `oon_applies` returns true for replies, so 0.75 lands once, never squared |
+| Author diversity decay 0.5 / floor 0.25 | **supported** | **0.5 / 0.25 — confirmed** | Strongest survivor; identical functional form |
+| Feedback fatigue ×0.2 floor, 140d | **supported** | not in the release | Viewer-specific and unobservable from a browser either way |
+| Control AI ×20 / ×0.05 | **supported** | not in the release | Viewer-specific; omitted |
+| Grok slop decay (off, 1.0 in 2025 code) | **changed by Phoenix** | Grox classifiers | Dormant 2025 hook became production classifiers May 2026 |
+| MTL normalization | **supported** | n/a | Monotonic; safe to omit for relative ranking |
+| Heartbeat optimizer | **supported (off)** | superseded | Its lesson — that weights were per-user-bucket and time-varying — is why the release's cron-synced defaults matter |
+| Earlybird link handling | **resolved Aug 2026** | **`open_link` 0.2** | No explicit penalty ever existed, and the "suppression via head omission" reading was ALSO wrong. Links are rewarded, just weakly |
+| Earlybird multiple-hashtags penalty | **changed by Phoenix** | no head | Exists in Earlybird code, magnitude never published; "−40%" is folklore. Direction (3+) plausible |
+| Earlybird offensive/text-quality | **changed by Phoenix** | no head | Retired in production ("eliminated every single hand-engineered feature"); safety now via Grox |
 
 ## Deep-dive: the seven never-published heads (Aug 2026, pre-release)
 
