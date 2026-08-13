@@ -29,6 +29,13 @@
       border-top: 1px solid #e1e8ed; padding: 10px 16px; display: flex;
       justify-content: flex-end; background: #fff;
     }
+    /* Reply composer with a real toolbar below the text area — the shape that
+       exposed the chip sitting on top of the action buttons. */
+    .reply-composer { background: #fff; border: 1px solid #e1e8ed; border-radius: 12px;
+      padding: 12px 16px; max-width: 560px; margin: 40px auto; }
+    .reply-toolbar { display: flex; gap: 18px; align-items: center; margin-top: 10px;
+      padding-top: 8px; border-top: 1px solid #eee; }
+    .reply-toolbar button { border: 0; background: none; font-size: 16px; cursor: pointer; }
     .btn { background: #1d9bf0; color: #fff; border: 0; border-radius: 999px; padding: 8px 18px; font-weight: 700; }
 
     /* CASE B — inline reply composer sitting below the fold. */
@@ -39,6 +46,15 @@
 <body>
   <h3>Compose meter visibility harness</h3>
   <div id="results">running…</div>
+
+  <!-- CASE D: reply composer with real controls under the text area -->
+  <div class="reply-composer" id="replyBox">
+    <div><div data-testid="tweetTextarea_2" role="textbox" contenteditable="true"></div></div>
+    <div class="reply-toolbar" data-testid="toolBar">
+      <button id="btnImg">🖼</button><button id="btnGif">GIF</button><button id="btnPoll">📊</button>
+      <button id="btnReply" data-testid="tweetButtonInline" style="margin-left:auto">Reply</button>
+    </div>
+  </div>
 
   <!-- CASE B lives in normal flow, far down the page -->
   <div class="spacer"></div>
@@ -172,21 +188,76 @@
           !reallyVisible(meterB), rectOf(meterB));
       }
 
+      // ===== CASE D — the two bugs reported against v0.9.1 =====
+      var replyEditor = document.querySelector('[data-testid="tweetTextarea_2"]');
+      replyEditor.scrollIntoView({ block: "center" });
+      type(replyEditor, "Does the chip clear itself, and does it stay off the buttons?");
+      var meterD = meterFor(replyEditor);
+      check("reply: meter exists", !!meterD);
+
+      if (meterD) {
+        // BUG 1 — the chip sat on the toolbar because it was anchored to the
+        // editor's bottom edge, which is ABOVE the buttons.
+        var mr = meterD.getBoundingClientRect();
+        var controls = [...document.querySelectorAll("#replyBox .reply-toolbar button")];
+        var hit = controls.filter(function (b) {
+          var br = b.getBoundingClientRect();
+          return !(mr.right < br.left || mr.left > br.right || mr.bottom < br.top || mr.top > br.bottom);
+        });
+        check("reply: meter does not cover any composer control",
+          hit.length === 0, hit.map(function (b) { return b.id; }).join(",") || "clear");
+
+        var boxR = document.getElementById("replyBox").getBoundingClientRect();
+        check("reply: meter sits above the composer, not over it",
+          mr.bottom <= boxR.top + 1,
+          "meter bottom " + Math.round(mr.bottom) + " vs composer top " + Math.round(boxR.top));
+
+        // BUG 2 — posting replaces the editor element. Nothing fires input,
+        // scroll or resize, so the orphaned chip used to stay on screen. Only
+        // the extension's own scan sweep can clear it; assert that it does,
+        // after the 350ms scan debounce has had time to run.
+        var parent = replyEditor.parentElement;
+        parent.removeChild(replyEditor);
+        var fresh = document.createElement("div");
+        fresh.setAttribute("data-testid", "tweetTextarea_2");
+        fresh.setAttribute("role", "textbox");
+        fresh.setAttribute("contenteditable", "true");
+        parent.appendChild(fresh);   // this mutation is what wakes the scan loop
+        window.__postSentMeter = meterD;
+      }
+
       // CASE C — scroll the composer into view; the meter must follow it.
       // Repositioning is rAF-batched, so let a frame pass before asserting.
       inlineEditor.scrollIntoView({ block: "center" });
       window.dispatchEvent(new Event("scroll"));
 
       function finish() {
+        // The sent-post chip must be off screen: detached, or hidden with no
+        // text behind it. Either is a pass; still visible is the reported bug.
+        var pm = window.__postSentMeter;
+        if (pm) {
+          check("post sent: chip no longer shows a stale score",
+            !pm.isConnected || !reallyVisible(pm),
+            pm.isConnected ? ("still in DOM, visible=" + reallyVisible(pm)) : "detached");
+        }
+
         if (meterB) {
           check("inline: meter tracks its editor after scrolling",
             reallyVisible(meterB), rectOf(meterB));
+          // Anchored to the composer, left-aligned with it, and adjacent to it —
+          // above by preference (v0.9.3: below is where the controls live), or
+          // below when there is no room up top. Not floating loose either way.
           var er = inlineEditor.getBoundingClientRect();
           var br = meterB.getBoundingClientRect();
-          check("inline: meter is anchored below its editor",
-            Math.abs(br.left - er.left) < 40 && br.top >= er.bottom - 2 && br.bottom <= innerHeight,
-            "editor " + Math.round(er.left) + "/" + Math.round(er.bottom) +
-            " meter " + Math.round(br.left) + "/" + Math.round(br.top));
+          var box = inlineEditor.closest(".inline-compose").getBoundingClientRect();
+          var adjacentAbove = Math.abs(br.bottom - box.top) < 24;
+          var adjacentBelow = Math.abs(br.top - box.bottom) < 24;
+          check("inline: meter is anchored to its composer, clear of the controls",
+            Math.abs(br.left - er.left) < 40 && (adjacentAbove || adjacentBelow) &&
+            br.top >= 0 && br.bottom <= innerHeight,
+            "composer " + Math.round(box.top) + "-" + Math.round(box.bottom) +
+            "  meter " + Math.round(br.top) + "-" + Math.round(br.bottom) +
+            (adjacentAbove ? " (above)" : adjacentBelow ? " (below)" : " (DETACHED)"));
         }
 
         var sum = document.createElement("div");
@@ -195,7 +266,9 @@
         out.appendChild(sum);
         document.title = (fail ? "FAIL " : "PASS ") + document.title;
       }
-      requestAnimationFrame(function () { requestAnimationFrame(finish); });
+      // The scan loop debounces at 350ms, so give the sweep time to run before
+      // asserting on the sent-post chip.
+      setTimeout(finish, 700);
     }, 300);
   </script>
 </body>

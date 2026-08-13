@@ -684,27 +684,62 @@
   // Live meters, so scroll/resize can reposition them and drop dead ones.
   var meters = [];
 
-  // Place the meter just below its editor, flipping above and clamping to the
-  // viewport when there is no room. Hidden entirely when the editor is not on
-  // screen — if you cannot see the composer you are not typing in it.
+  // The full composer, not just the text area. The editor's bottom edge sits
+  // ABOVE the toolbar and the Post button, so anchoring to it and adding a gap
+  // lands the chip directly on those controls. Walk up to the block that also
+  // contains the toolbar and use the union.
+  function composerRect(editor) {
+    var r = editor.getBoundingClientRect();
+    var node = editor;
+    for (var i = 0; i < 6 && node.parentElement; i++) {
+      node = node.parentElement;
+      if (node.querySelector('[data-testid="toolBar"], [data-testid^="tweetButton"]')) {
+        var b = node.getBoundingClientRect();
+        if (b.width > 0 && b.height > 0) {
+          return { top: Math.min(r.top, b.top), bottom: Math.max(r.bottom, b.bottom),
+                   left: Math.min(r.left, b.left), right: Math.max(r.right, b.right) };
+        }
+        break;
+      }
+    }
+    return { top: r.top, bottom: r.bottom, left: r.left, right: r.right };
+  }
+
+  // Place the chip ABOVE the composer by default. Below is where every control
+  // lives — toolbar, Post button, and in a reply the action row of the post
+  // being replied to — so below is only a fallback when there is no room above.
   function positionMeter(entry) {
     var editor = entry.editor, meter = entry.meter;
+
+    // Gone from the DOM: drop it.
     if (!editor.isConnected) { meter.remove(); return false; }
+
+    // Emptied without an input event — which is exactly what X does when a post
+    // is sent. Nothing fires, so without this the chip lingers showing the score
+    // of a post that is already gone.
+    if ((editor.innerText || "").trim() === "") {
+      meter.classList.add("bangermeter-hidden");
+      return true;
+    }
     if (meter.classList.contains("bangermeter-hidden")) return true;
 
-    var r = editor.getBoundingClientRect();
+    var r = composerRect(editor);
     var vw = window.innerWidth, vh = window.innerHeight;
-    if (r.width === 0 && r.height === 0) { meter.style.visibility = "hidden"; return true; }
+    if (r.bottom - r.top === 0 && r.right - r.left === 0) {
+      meter.style.visibility = "hidden";
+      return true;
+    }
 
     // Always write a position, even when about to hide: a fixed element with no
     // top/left falls back to its static position, which for a body child is
     // somewhere down the document.
     var mw = meter.offsetWidth || 260;
     var mh = meter.offsetHeight || 30;
-    var top = r.bottom + 8;
-    if (top + mh > vh - 8) top = r.top - mh - 8;      // flip above
-    top = Math.max(8, Math.min(top, vh - mh - 8));    // clamp into the viewport
-    var left = Math.max(8, Math.min(r.left, vw - mw - 8));
+    var GAP = 8;
+    var top = r.top - mh - GAP;                        // above the whole composer
+    if (top < GAP) top = r.bottom + GAP;               // no room up there — go below it
+    top = Math.max(GAP, Math.min(top, vh - mh - GAP)); // clamp into the viewport
+    var left = Math.max(GAP, Math.min(r.left, vw - mw - GAP));
     meter.style.top = top + "px";
     meter.style.left = left + "px";
 
@@ -821,7 +856,15 @@
     if (settings.scoreDrafts) {
       document.querySelectorAll('div[data-testid^="tweetTextarea"] [contenteditable="true"]')
         .forEach(function (editor) { updateMeter(editor); });
+    } else {
+      meters.forEach(function (e) { e.meter.remove(); });
+      meters = [];
     }
+    // Sweep every tracked meter, not just the ones with a live editor on screen.
+    // Sending a post makes X REPLACE the editor element, so the old entry is
+    // orphaned — and the loop above only visits editors that currently exist,
+    // which is why a sent post used to leave its chip on screen indefinitely.
+    repositionMeters();
   }
 
   function scheduleScan() {
