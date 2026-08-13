@@ -55,8 +55,11 @@ Txt $g "Zero data collected." "Arial" 15 ([System.Drawing.FontStyle]::Bold) $GRA
 NeoBox $g 48 690 330 42 $YELLOW 3 5
 Txt $g "COPY-LINK = 40x A LIKE." "Arial" 19 ([System.Drawing.FontStyle]::Bold) $BLACK 66 700
 
-# Screenshot at native size with neo frame
-$sx = 383; $sy = 57
+# Screenshot at native size with neo frame, centred in the space right of the brand
+# column so a differently-sized capture still composes correctly.
+$colRight = 370
+$sx = [int]($colRight + (1280 - $colRight - $shot.Width) / 2)
+$sy = [int]((800 - $shot.Height) / 2)
 $g.FillRectangle((B $BLACK), ($sx + 10), ($sy + 10), $shot.Width, $shot.Height)
 $g.DrawImage($shot, $sx, $sy, $shot.Width, $shot.Height)
 $pen = New-Object System.Drawing.Pen($BLACK, 3)

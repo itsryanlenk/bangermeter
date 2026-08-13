@@ -96,6 +96,7 @@ what the published weights actually say.
 | `extension/content.js` | Badges, breakdown panel, compose meter |
 | `extension/test.html` | Engine self-test — open in any browser (112 assertions) |
 | `extension/fixture.html` | X-DOM fixture harness for the content script |
+| `extension/fixture-compose.html` | Compose-meter visibility harness — asserts the draft meter survives X's scrolling, overflow-hidden compose dialog (9 assertions) |
 | `extension/bangermeter.user.js` | Single-file Tampermonkey build (generated — see `store-assets/make-userscript.ps1`) |
 
 ## Verification status
@@ -112,5 +113,8 @@ what the published weights actually say.
 - Content script (badges, panel, meter, virtualized lists, quote-tweet scoping): exercised
   against the DOM fixture (`fixture.html`). The fixture is an eyeball harness — it renders
   and must not throw; it carries no assertions.
-- Live x.com: last verified Aug 2026 on the v0.8.0 UI. The v0.9.0 scoring change has been
-  verified against the fixture and the unit suite, not yet re-verified in a live session.
+- Live x.com: **v0.9.0 verified in a logged-in session, Aug 13 2026.** Badge, panel and the
+  rewritten per-head copy render correctly against the live DOM, and a spot-checked post
+  (2 replies · 2 likes · 0 reposts · 126 views) scored E=66, matching the engine by hand to
+  the rounded point. Selectors target `article[data-testid="tweet"]`, the action-bar
+  `role="group"` aria-label, and `tweetTextarea_*`, each with fallbacks.

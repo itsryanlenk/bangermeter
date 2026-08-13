@@ -340,14 +340,28 @@
 
 /* ── Compose meter ─────────────────────────────────────────────────────── */
 
+/* Pinned to the viewport rather than inserted inline. X's composer lives inside
+   a scrolling, overflow-hidden dialog with a toolbar layered over the bottom of
+   it, so an inline meter gets clipped or covered as the draft grows. Fixed
+   positioning + clamping in content.js makes that structurally impossible.
+   pointer-events:none so a chip floating over the composer can never eat a
+   click meant for the text area or the Post button. */
 .bangermeter-meter {
+  position: fixed;
+  z-index: 2147483646;
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 8px 0 4px;
+  margin: 0;
+  padding: 6px 10px;
+  max-width: 560px;
+  background: var(--bm-surface);
+  border: 2px solid var(--bm-line);
+  box-shadow: 3px 3px 0 var(--bm-shadow);
   font-family: var(--ts-font-body);
   font-size: 12px;
   color: var(--bm-text);
+  pointer-events: none;
 }
 .bangermeter-meter.bangermeter-hidden { display: none; }
 .bangermeter-meter-track {

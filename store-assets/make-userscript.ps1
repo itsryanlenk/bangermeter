@@ -15,7 +15,7 @@ $manifest = Get-Content (Join-Path $ext "manifest.json") -Raw -Encoding UTF8 | C
 $extVersion = $manifest.version
 
 # Userscript versioning is independent of the extension's; bump the minor in step.
-$userVersion = "1.7.0"
+$userVersion = "1.7.1"
 
 function Read-Src($name) {
     return (Get-Content (Join-Path $ext $name) -Raw -Encoding UTF8)

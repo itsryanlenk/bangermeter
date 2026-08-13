@@ -673,23 +673,60 @@
     };
   }
 
-  function ensureMeter(editor) {
-    var host = editor.closest('div[data-testid^="tweetTextarea"]');
-    if (!host || !host.parentElement) return null;
-    var container = host.parentElement;
-    if (!container.parentElement) return null;
-    var meter = container.parentElement.querySelector(".bangermeter-meter");
-    if (meter) return meter;
+  // Live meters, so scroll/resize can reposition them and drop dead ones.
+  var meters = [];
 
-    meter = el("div", "bangermeter-meter");
+  // Place the meter just below its editor, flipping above and clamping to the
+  // viewport when there is no room. Hidden entirely when the editor is not on
+  // screen — if you cannot see the composer you are not typing in it.
+  function positionMeter(entry) {
+    var editor = entry.editor, meter = entry.meter;
+    if (!editor.isConnected) { meter.remove(); return false; }
+    if (meter.classList.contains("bangermeter-hidden")) return true;
+
+    var r = editor.getBoundingClientRect();
+    var vw = window.innerWidth, vh = window.innerHeight;
+    if (r.width === 0 && r.height === 0) { meter.style.visibility = "hidden"; return true; }
+
+    // Always write a position, even when about to hide: a fixed element with no
+    // top/left falls back to its static position, which for a body child is
+    // somewhere down the document.
+    var mw = meter.offsetWidth || 260;
+    var mh = meter.offsetHeight || 30;
+    var top = r.bottom + 8;
+    if (top + mh > vh - 8) top = r.top - mh - 8;      // flip above
+    top = Math.max(8, Math.min(top, vh - mh - 8));    // clamp into the viewport
+    var left = Math.max(8, Math.min(r.left, vw - mw - 8));
+    meter.style.top = top + "px";
+    meter.style.left = left + "px";
+
+    // No visible composer, no chip.
+    meter.style.visibility = (r.bottom < 0 || r.top > vh) ? "hidden" : "";
+    return true;
+  }
+
+  function repositionMeters() {
+    meters = meters.filter(positionMeter);
+  }
+
+  function ensureMeter(editor) {
+    for (var i = 0; i < meters.length; i++) {
+      if (meters[i].editor === editor) return meters[i].meter;
+    }
+    var meter = el("div", "bangermeter-meter");
     meter.setAttribute("role", "img");
+    var host = editor.closest('div[data-testid^="tweetTextarea"]');
+    var testid = editor.getAttribute("data-testid") || (host && host.getAttribute("data-testid"));
+    if (testid) meter.setAttribute("data-bm-for", testid);
     var bar = el("div", "bangermeter-meter-track");
     bar.setAttribute("aria-hidden", "true");
     bar.appendChild(el("div", "bangermeter-meter-fill"));
     meter.appendChild(bar);
     meter.appendChild(el("span", "bangermeter-meter-score", ""));
     meter.appendChild(el("span", "bangermeter-meter-hints", ""));
-    container.insertAdjacentElement("afterend", meter);
+    // Pinned to <body> so no ancestor of the composer can clip or cover it.
+    document.body.appendChild(meter);
+    meters.push({ editor: editor, meter: meter });
     return meter;
   }
 
@@ -702,6 +739,10 @@
     if (text.trim().length === 0) { meter.classList.add("bangermeter-hidden"); return; }
     meter.classList.remove("bangermeter-hidden");
     applyTheme(meter);
+    // Match the composer's own width so the chip reads as part of it.
+    var hostRect = (editor.closest('div[data-testid^="tweetTextarea"]') || editor)
+      .getBoundingClientRect();
+    if (hostRect.width > 120) meter.style.maxWidth = Math.round(hostRect.width) + "px";
 
     var result = BangermeterEngine.contentScore(draftFeatures(editor, text), settings);
     meter.setAttribute("aria-label", "Bangermeter draft score " + result.score + " out of 100");
@@ -724,6 +765,8 @@
         hintsEl.appendChild(el("span", bad ? "bangermeter-down" : "bangermeter-up",
           (bad ? "▼ " : "▲ ") + m.label));
       });
+
+    repositionMeters();
   }
 
   document.addEventListener("input", function (ev) {
@@ -731,6 +774,20 @@
       ev.target.closest('div[data-testid^="tweetTextarea"] [contenteditable="true"], [data-testid^="tweetTextarea"][contenteditable="true"]');
     if (editor) updateMeter(editor);
   }, true);
+
+  // The composer moves under the meter constantly: the dialog body scrolls as
+  // the draft grows, the timeline scrolls behind it, and the window resizes.
+  // capture:true so scrolls inside X's own overflow containers are seen too.
+  var reposTimer = null;
+  function scheduleReposition() {
+    if (reposTimer) return;
+    reposTimer = requestAnimationFrame(function () {
+      reposTimer = null;
+      repositionMeters();
+    });
+  }
+  window.addEventListener("scroll", scheduleReposition, { capture: true, passive: true });
+  window.addEventListener("resize", scheduleReposition, { passive: true });
 
   // ── scanning loop ─────────────────────────────────────────────────────────
 

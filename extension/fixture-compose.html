@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Bangermeter — compose meter visibility harness</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: #f7f9f9; margin: 0; padding: 16px; }
+    h3 { margin: 0 0 10px; }
+    #results { font-family: Consolas, monospace; font-size: 13px; margin-bottom: 14px; }
+    .pass { color: #00794d; }
+    .fail { color: #c8102e; font-weight: bold; }
+    [contenteditable] { min-height: 48px; outline: none; font-size: 17px; border: 1px dashed #cbd5dc; }
+
+    /* CASE A — X's compose MODAL. A fixed-height dialog whose body scrolls.
+       Anything appended after the editor container lands inside the clipped
+       region, so once the draft is a few lines long the meter is simply not
+       on screen. This is the shape the bug was reported against. */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 10;
+      display: flex; align-items: flex-start; justify-content: center; padding-top: 40px;
+    }
+    .modal {
+      background: #fff; border-radius: 16px; width: 600px; max-height: 320px;
+      display: flex; flex-direction: column; overflow: hidden;   /* the clipper */
+    }
+    .modal-body { overflow-y: auto; padding: 12px 16px; flex: 1; }
+    .modal-toolbar {
+      border-top: 1px solid #e1e8ed; padding: 10px 16px; display: flex;
+      justify-content: flex-end; background: #fff;
+    }
+    .btn { background: #1d9bf0; color: #fff; border: 0; border-radius: 999px; padding: 8px 18px; font-weight: 700; }
+
+    /* CASE B — inline reply composer sitting below the fold. */
+    .spacer { height: 1200px; }
+    .inline-compose { background: #fff; border: 1px solid #e1e8ed; border-radius: 12px; padding: 12px 16px; max-width: 560px; }
+  </style>
+</head>
+<body>
+  <h3>Compose meter visibility harness</h3>
+  <div id="results">running…</div>
+
+  <!-- CASE B lives in normal flow, far down the page -->
+  <div class="spacer"></div>
+  <div class="inline-compose">
+    <div><div data-testid="tweetTextarea_1" role="textbox" contenteditable="true"></div></div>
+    <div data-testid="toolBar"></div>
+  </div>
+  <div class="spacer"></div>
+
+  <!-- CASE A: the modal -->
+  <div class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-body">
+        <div><div data-testid="tweetTextarea_0" role="textbox" contenteditable="true"></div></div>
+      </div>
+      <div class="modal-toolbar"><button class="btn">Post</button></div>
+    </div>
+  </div>
+
+  <script>
+    // chrome.storage shim so content.js runs outside the extension context.
+    window.chrome = window.chrome || { storage: { sync: {
+      get: function (d, cb) { cb(d); }, set: function () {} },
+      onChanged: { addListener: function () {} } } };
+  </script>
+  <script src="weights.js"></script>
+  <script src="scoring.js"></script>
+  <script src="content.js"></script>
+  <script>
+    var out = document.getElementById("results");
+    var pass = 0, fail = 0;
+    function check(name, cond, detail) {
+      var d = document.createElement("div");
+      d.className = cond ? "pass" : "fail";
+      d.textContent = (cond ? "PASS  " : "FAIL  ") + name + (detail ? "  [" + detail + "]" : "");
+      out.appendChild(d);
+      cond ? pass++ : fail++;
+    }
+
+    // On screen AND not covered by anything — i.e. not scrolled out of an
+    // overflow container and not hidden behind a dialog or toolbar.
+    // The meter ships with pointer-events:none (so it can't eat clicks meant
+    // for the composer), which would make a naive hit test always miss it, so
+    // the test re-enables hit-testing just for the probe.
+    function reallyVisible(elm) {
+      var r = elm.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) return false;
+      var cs = getComputedStyle(elm);
+      if (cs.display === "none" || cs.visibility === "hidden") return false;
+      if (r.bottom <= 0 || r.top >= innerHeight) return false;
+      if (r.right <= 0 || r.left >= innerWidth) return false;
+      var prev = elm.style.pointerEvents;
+      elm.style.pointerEvents = "auto";
+      var x = Math.min(Math.max(r.left + 8, 1), innerWidth - 1);
+      var y = Math.min(Math.max(r.top + r.height / 2, 1), innerHeight - 1);
+      var hit = document.elementFromPoint(x, y);
+      elm.style.pointerEvents = prev;
+      return !!(hit && (hit === elm || elm.contains(hit)));
+    }
+
+    function type(editor, text) {
+      editor.innerText = text;
+      editor.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+
+    var LONG = "What is the single most useful thing you learned this year? " +
+      "I have been keeping a list since January and the entries that actually " +
+      "changed how I work are almost never the ones I expected at the time. " +
+      "Genuinely curious what is on yours.";
+
+    // Find the meter belonging to a given editor, wherever the implementation
+    // chose to put it — inline next to the editor, or pinned to <body>.
+    function meterFor(editor) {
+      var id = editor.getAttribute("data-testid");
+      var all = [].slice.call(document.querySelectorAll(".bangermeter-meter"));
+      var owned = all.filter(function (m) { return m.getAttribute("data-bm-for") === id; });
+      if (owned.length) return owned[0];
+      // inline fallback: the meter that shares an ancestor with this editor
+      var scope = editor.closest(".modal-body, .inline-compose");
+      return scope ? scope.querySelector(".bangermeter-meter") : null;
+    }
+
+    function rectOf(m) { return JSON.stringify(m.getBoundingClientRect().toJSON()); }
+
+    setTimeout(function () {
+      out.textContent = "";
+
+      var modalEditor = document.querySelector('[data-testid="tweetTextarea_0"]');
+      var inlineEditor = document.querySelector('[data-testid="tweetTextarea_1"]');
+
+      // CASE A — modal. Type a long draft, then do what the browser does while
+      // you type: keep the caret in view by scrolling the modal body to the end.
+      type(modalEditor, LONG + " " + LONG);
+      var body = document.querySelector(".modal-body");
+      body.scrollTop = body.scrollHeight;
+      var meterA = meterFor(modalEditor);
+      check("modal: meter exists", !!meterA);
+      if (meterA) {
+        check("modal: meter stays visible once the draft overflows the dialog",
+          reallyVisible(meterA), rectOf(meterA));
+      }
+
+      // The chip must never intercept a click meant for the composer or the
+      // Post button — it floats over them now.
+      if (meterA) {
+        var mr = meterA.getBoundingClientRect();
+        var under = document.elementFromPoint(mr.left + 8, mr.top + mr.height / 2);
+        check("modal: meter does not swallow clicks", under !== meterA && !meterA.contains(under),
+          under ? (under.className || under.tagName) : "null");
+      }
+
+      // Empty draft hides it again, while its editor is still on screen.
+      type(modalEditor, "");
+      check("modal: empty draft hides the meter", !meterA || !reallyVisible(meterA));
+
+      // Tear the modal down before the inline cases — otherwise the fixture's
+      // own backdrop covers them and we'd be testing the harness, not the code.
+      document.querySelector(".modal-backdrop").remove();
+
+      // CASE B — inline composer sitting far below the fold. Its editor is off
+      // screen, so the meter should be too: a floating chip with no visible
+      // composer is worse than no chip.
+      window.scrollTo(0, 0);
+      type(inlineEditor, LONG);
+      var meterB = meterFor(inlineEditor);
+      check("inline: meter exists", !!meterB && meterB !== meterA);
+      check("inline: editor really is off screen",
+        inlineEditor.getBoundingClientRect().top > innerHeight);
+      if (meterB) {
+        check("inline: meter hides while its editor is off screen",
+          !reallyVisible(meterB), rectOf(meterB));
+      }
+
+      // CASE C — scroll the composer into view; the meter must follow it.
+      // Repositioning is rAF-batched, so let a frame pass before asserting.
+      inlineEditor.scrollIntoView({ block: "center" });
+      window.dispatchEvent(new Event("scroll"));
+
+      function finish() {
+        if (meterB) {
+          check("inline: meter tracks its editor after scrolling",
+            reallyVisible(meterB), rectOf(meterB));
+          var er = inlineEditor.getBoundingClientRect();
+          var br = meterB.getBoundingClientRect();
+          check("inline: meter is anchored below its editor",
+            Math.abs(br.left - er.left) < 40 && br.top >= er.bottom - 2 && br.bottom <= innerHeight,
+            "editor " + Math.round(er.left) + "/" + Math.round(er.bottom) +
+            " meter " + Math.round(br.left) + "/" + Math.round(br.top));
+        }
+
+        var sum = document.createElement("div");
+        sum.className = fail ? "fail" : "pass";
+        sum.textContent = pass + " passed, " + fail + " failed";
+        out.appendChild(sum);
+        document.title = (fail ? "FAIL " : "PASS ") + document.title;
+      }
+      requestAnimationFrame(function () { requestAnimationFrame(finish); });
+    }, 300);
+  </script>
+</body>
+</html>
