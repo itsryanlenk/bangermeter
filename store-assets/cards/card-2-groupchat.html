@@ -1,0 +1,54 @@
+<link rel="stylesheet" href="card-base.css">
+<style>
+  h1 { font-size: 82px; max-width: 15ch; margin-bottom: 26px; }
+  .body { display: grid; grid-template-columns: 1.15fr 1fr; gap: 46px; align-items: start; }
+  .paths { display: flex; flex-direction: column; gap: 16px; margin-top: 8px; }
+  .path {
+    display: flex; align-items: center; gap: 16px;
+    border: 4px solid var(--ink); box-shadow: 6px 6px 0 var(--ink);
+    background: var(--card); padding: 16px 20px;
+  }
+  .path .tag {
+    font-family: var(--display); font-size: 17px; text-transform: uppercase;
+    padding: 5px 12px; border: 3px solid var(--ink); flex: none; letter-spacing: .03em;
+  }
+  .path.yes .tag { background: var(--go); }
+  .path.no  .tag { background: var(--stop); }
+  .path .txt { font-size: 21px; line-height: 1.35; }
+  .path .txt small { display: block; font-size: 16px; color: var(--quiet); margin-top: 3px; }
+</style>
+
+<div class="top">
+  <span class="bolt"><svg viewBox="0 0 24 24" fill="#000"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg></span>
+  <span class="brand">Bangermeter</span>
+  <span class="src">xai-org/x-algorithm · Aug 14 2026</span>
+</div>
+
+<h1>Sending your own link does nothing</h1>
+
+<div class="body">
+  <div class="paths">
+    <div class="path yes">
+      <span class="tag">Counts</span>
+      <span class="txt">They saw it in the Home Timeline
+        <small>every weight in the model applies</small></span>
+    </div>
+    <div class="path no">
+      <span class="tag">Zero</span>
+      <span class="txt">They opened a link you sent them
+        <small>no ranking impact whatsoever</small></span>
+    </div>
+  </div>
+  <div>
+    <div class="quote">
+      "For an account to count in the algorithm's recommendation system, it must take place on a post <b>served in Home Timeline</b>.<br><br>
+      <b>Directly navigating to a post</b> (i.e., coordinating via groupchat) <b>has no ranking impact</b>."
+    </div>
+    <div class="attrib">— home-mixer/scorers/ranking_scorer.rs, added 14 Aug 2026</div>
+  </div>
+</div>
+
+<div class="foot">
+  <span class="chip">Copy-link pays the reader, not you</span>
+  <span>The 20.0 coefficient is for a viewer copying it in-feed — not the visits after</span>
+</div>

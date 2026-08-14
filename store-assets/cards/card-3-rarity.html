@@ -1,0 +1,50 @@
+<link rel="stylesheet" href="card-base.css">
+<style>
+  h1 { font-size: 76px; max-width: 16ch; margin-bottom: 22px; }
+  .body { display: grid; grid-template-columns: 1fr 1fr; gap: 46px; align-items: start; }
+  .bars { display: flex; flex-direction: column; gap: 20px; margin-top: 6px; }
+  .row { display: flex; align-items: center; gap: 16px; }
+  .row .lbl { font-family: var(--display); font-size: 19px; text-transform: uppercase; width: 128px; flex: none; }
+  .bar { height: 40px; border: 4px solid var(--ink); box-shadow: 5px 5px 0 var(--ink); }
+  .row.like .bar { width: 430px; background: var(--go); }
+  .row.rep  .bar { width: 6px; background: var(--stop); }
+  .row .val { font-family: var(--mono); font-size: 18px; color: var(--quiet); }
+  .note { margin-top: 30px; font-size: 22px; line-height: 1.45; max-width: 34ch; }
+  .note b { background: var(--volt); padding: 0 5px; }
+</style>
+
+<div class="top">
+  <span class="bolt"><svg viewBox="0 0 24 24" fill="#000"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg></span>
+  <span class="brand">Bangermeter</span>
+  <span class="src">xai-org/x-algorithm · Aug 14 2026</span>
+</div>
+
+<h1>Report is &minus;234 because nobody reports</h1>
+
+<div class="body">
+  <div>
+    <div class="bars">
+      <div class="row like">
+        <span class="lbl">Like</span><span class="bar"></span><span class="val">baseline P</span>
+      </div>
+      <div class="row rep">
+        <span class="lbl">Report</span><span class="bar"></span><span class="val">1000&times; rarer</span>
+      </div>
+    </div>
+    <div class="note">
+      A big coefficient on a rare action is <b>not a big penalty</b>. It is the only way a rare prediction moves the ranking at all.
+    </div>
+  </div>
+  <div>
+    <div class="quote">
+      "The baseline probability of a Report is <b>more than 1000x lower</b> than a Like, so it's weighted more <b>to allow the prediction to affect the final ranking at all</b>."<br><br>
+      Mass reporting? Predictions are <b>personalised</b> — brigading mostly shifts what gets shown to people like the brigaders.
+    </div>
+    <div class="attrib">— home-mixer/params/param.rs, added 14 Aug 2026</div>
+  </div>
+</div>
+
+<div class="foot">
+  <span class="chip">Rarity is baked into the number</span>
+  <span>Which is exactly why you can't divide one weight by another</span>
+</div>

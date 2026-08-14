@@ -1,0 +1,53 @@
+<link rel="stylesheet" href="card-base.css">
+<style>
+  /* line-through rather than a positioned bar: the headline wraps to three
+     lines and a single bar only crosses the middle one. */
+  .strike {
+    display: inline-block;
+    font-family: var(--display); font-size: 74px; line-height: 1.14;
+    text-transform: uppercase; letter-spacing: -.02em;
+    text-decoration: line-through;
+    text-decoration-color: var(--stop);
+    text-decoration-thickness: 9px;
+    text-decoration-skip-ink: none;
+  }
+  .verdict {
+    display: inline-block; background: var(--stop); border: 4px solid var(--ink);
+    box-shadow: 6px 6px 0 var(--ink); padding: 8px 20px;
+    font-family: var(--display); font-size: 30px; text-transform: uppercase; letter-spacing: .03em;
+    margin: 26px 0 32px;
+  }
+  .body { display: grid; grid-template-columns: 1.05fr 1fr; gap: 46px; align-items: start; }
+  .math { font-family: var(--mono); font-size: 20px; color: var(--quiet); margin-top: 18px; line-height: 1.7; }
+  .math b { color: var(--ink); }
+</style>
+
+<div class="top">
+  <span class="bolt"><svg viewBox="0 0 24 24" fill="#000"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg></span>
+  <span class="brand">Bangermeter</span>
+  <span class="src">xai-org/x-algorithm · Aug 14 2026</span>
+</div>
+
+<div class="body">
+  <div>
+    <span class="strike">"One report<br>cancels<br>468 likes"</span>
+    <div class="verdict">X says: incorrect</div>
+    <div class="math">
+      468 = <b>234.0 ÷ 0.5</b><br>
+      the report weight over the like weight.<br>
+      Dividing two coefficients is not a<br>conversion rate. It never was.
+    </div>
+  </div>
+  <div>
+    <div class="quote">
+      "Each weight multiplies the <b>*predicted* probability</b> of that action — the weights <b>do not multiply raw engagement counts</b>.<br><br>
+      One common misinterpretation is that you can read these weight ratios as count equivalences… <b>this is incorrect</b>."
+    </div>
+    <div class="attrib">— home-mixer/params/param.rs, added 14 Aug 2026</div>
+  </div>
+</div>
+
+<div class="foot">
+  <span class="chip">Multiply before you rank</span>
+  <span>Every weight cited to source · github.com/itsryanlenk/bangermeter</span>
+</div>

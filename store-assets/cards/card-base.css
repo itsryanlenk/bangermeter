@@ -1,0 +1,56 @@
+/* Bangermeter social cards — neo-brutalist brand system.
+   1600x900 (16:9, X-optimal). Rendered to PNG by make-cards.ps1. */
+:root {
+  --ink: #000000;
+  --paper: #F5F0E6;
+  --card: #FFFFFF;
+  --volt: #FFEB3B;
+  --go: #4CAF50;
+  --stop: #FF5252;
+  --quiet: #55504A;
+  --display: 'Archivo Black', 'Arial Black', Impact, sans-serif;
+  --body: 'Space Grotesk', Arial, Helvetica, sans-serif;
+  --mono: 'IBM Plex Mono', Consolas, 'Courier New', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1600px; height: 900px; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--body);
+  padding: 60px 64px;
+  display: flex;
+  flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+}
+.top { display: flex; align-items: center; gap: 16px; margin-bottom: 40px; }
+.bolt {
+  width: 54px; height: 54px; flex: none; background: var(--volt);
+  border: 4px solid var(--ink); box-shadow: 5px 5px 0 var(--ink);
+  display: flex; align-items: center; justify-content: center;
+}
+.bolt svg { width: 30px; height: 30px; display: block; }
+.brand { font-family: var(--display); font-size: 26px; letter-spacing: .04em; text-transform: uppercase; }
+.src { margin-left: auto; font-family: var(--mono); font-size: 16px; color: var(--quiet); }
+
+h1 { font-family: var(--display); font-weight: 400; text-transform: uppercase; line-height: 1.0; letter-spacing: -.015em; }
+.sub { font-size: 26px; line-height: 1.42; max-width: 30ch; }
+
+.quote {
+  background: var(--ink); color: var(--paper);
+  border: 4px solid var(--ink); box-shadow: 8px 8px 0 rgba(0,0,0,.3);
+  padding: 26px 30px; font-family: var(--mono); font-size: 21px; line-height: 1.6;
+}
+.quote b { color: var(--volt); font-weight: 700; }
+.attrib { font-family: var(--mono); font-size: 15px; color: var(--quiet); margin-top: 14px; }
+
+.foot {
+  margin-top: auto; display: flex; align-items: center; gap: 14px;
+  font-family: var(--mono); font-size: 16px; color: var(--quiet);
+  border-top: 4px solid var(--ink); padding-top: 18px;
+}
+.foot .chip {
+  background: var(--volt); border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--ink);
+  padding: 4px 12px; font-family: var(--display); font-size: 15px; color: var(--ink);
+  text-transform: uppercase; letter-spacing: .04em;
+}
