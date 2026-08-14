@@ -19,6 +19,46 @@
 > values. "Block −120 / mute −100" is really −31.2 / −58.8. "Reply = 27× a like" is really
 > 10×. "Bookmark 20×" describes a head that does not exist.
 
+## Update — August 14, 2026: X documents the misreading
+
+One day after publishing the weights, X added an explanatory comment block to both
+[`param.rs`](https://github.com/xai-org/x-algorithm/blob/main/home-mixer/params/param.rs) and
+[`ranking_scorer.rs`](https://github.com/xai-org/x-algorithm/blob/main/home-mixer/scorers/ranking_scorer.rs),
+stating that its purpose is so "LLMs or people reading it are more likely to understand it
+correctly." Verbatim:
+
+> "Each weight multiplies the *predicted* probability of that action (P(favorite),
+> P(repost), …) or a continuous value e.g. watch time -- the weights do not multiply raw
+> engagement counts. One common misinterpretation is that you can read these weight ratios
+> as count equivalences, e.g. the incorrect statement that **'one report cancels 468
+> likes'** -- this is incorrect because the weights apply to the predicted probabilities
+> rather than raw counts."
+
+**468 is 234.0 ÷ 0.5** — the exact division this project refused to publish on Aug 13, when
+the adversarial review killed "a copy-link is worth 40 likes" for the same reason. The
+ratio-as-value reading is now wrong by X's own documentation rather than only by our
+argument. **All 26 weights were re-verified against this update and none changed.**
+
+Three further facts came with it, all now carried in `weights.js` under `sourcedFacts`:
+
+- **Why the negatives are so large.** "The baseline probability of a Report is more than
+  1000x lower than a Like, so it's weighted more to allow the prediction to affect the
+  final ranking at all." The big coefficients are big *because* the actions are rare —
+  which is exactly what makes dividing them by the like weight meaningless. (Our estimator
+  independently assumed a 1000× ratio: `favorite` 0.005 against `report` 0.000005.)
+- **Engagement only counts from the Home Timeline.** "Directly navigating to a post (i.e.,
+  coordinating via groupchat) has no ranking impact." Sending your own link round a group
+  chat does nothing for reach. Note the interaction with the heaviest head: `share_via_copy_link`
+  pays for a *viewer copying the link in-feed*, not for the visits that follow.
+- **Brigading is structurally weak.** Predictions are per-viewer and personalised, so mass
+  reporting mainly shifts what gets recommended to users similar to the reporters, rather
+  than moving the post for everyone.
+
+And a new hard filter: **`Brazil2026ElectionFilter`** removes posts from **670 accounts**
+reported to Brazil's Electoral Court for the 2026 election, unless the viewer follows the
+account. It is compiled in rather than feature-switched — IDs obfuscated, usernames left in
+source for transparency — and runs *before* scoring, so no weight can offset it.
+
 ## What the release settled
 
 | Question this doc left open | Answer, Aug 13 2026 |

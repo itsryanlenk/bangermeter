@@ -15,7 +15,7 @@
 //   "estimate"       — estimator-layer number (baseline rates / directional modifiers).
 
 var BANGERMETER_CONFIG = {
-  version: "0.9.3",
+  version: "0.9.4",
 
   // ── PROVENANCE ──────────────────────────────────────────────────────────────
   // On August 13, 2026 X published the actual production ranking weights for the
@@ -34,17 +34,29 @@ var BANGERMETER_CONFIG = {
   //
   // That is a materially stronger claim than the 2023 release made — these are
   // asserted to BE the production values, not merely plausible defaults.
-  weightsSnapshot: "August 13, 2026 — xai-org/x-algorithm, home-mixer/params/param.rs (feature-switch sync 2026-08-12T04:09:22Z)",
+  weightsSnapshot: "August 14, 2026 — xai-org/x-algorithm, home-mixer/params/param.rs (all 26 values re-verified unchanged against the Aug 14 update)",
   weightsSourceUrl: "https://github.com/xai-org/x-algorithm/blob/main/home-mixer/params/param.rs",
   scorerSourceUrl: "https://github.com/xai-org/x-algorithm/blob/main/home-mixer/scorers/ranking_scorer.rs",
 
-  // X's own framing of what these numbers mean (param.rs, above the weight block):
-  //   "These weights reflect a combination of how much an action is valued in
-  //    ranking and typical propensities of these actions across the X network
-  //    (e.g. negative feedback is overall rare)."
-  // i.e. report = -234 is large PARTLY because reports are rare. The weight is not
-  // a "penalty per report" — it is a coefficient on a predicted probability.
-  weightsMeaningNote: "Weights multiply a PREDICTED PROBABILITY, not a count. X states the values already fold in how rare each action typically is.",
+  // X's own framing of what these numbers mean. On Aug 14 2026 they added an
+  // explicit comment block to param.rs and ranking_scorer.rs, verbatim:
+  //
+  //   "Each weight multiplies the *predicted* probability of that action
+  //    (P(favorite), P(repost), …) or a continuous value e.g. watch time -- the
+  //    weights do not multiply raw engagement counts. One common
+  //    misinterpretation is that you can read these weight ratios as count
+  //    equivalences, e.g. the incorrect statement that 'one report cancels 468
+  //    likes' -- this is incorrect because the weights apply to the predicted
+  //    probabilities rather than raw counts."
+  //
+  //   "And the baseline probability of a Report is more than 1000x lower than a
+  //    Like, so it's weighted more to allow the prediction to affect the final
+  //    ranking at all."
+  //
+  // 468 is 234.0 / 0.5 — the exact division this tool refused to publish. The
+  // ratio-as-value reading is now wrong by X's own documentation, not just by
+  // our reasoning.
+  weightsMeaningNote: "Weights multiply a PREDICTED PROBABILITY, not a count. X's own code comment calls the ratio reading — 'one report cancels 468 likes' — incorrect, and says a Report's baseline probability is over 1000x lower than a Like's, which is why its coefficient is large.",
 
   // ── WEIGHT LAYER ────────────────────────────────────────────────────────────
   // Phoenix heads. Score = Σ(weight × P(action)), ranking_scorer.rs:471-511.
@@ -208,7 +220,21 @@ var BANGERMETER_CONFIG = {
       note: "TaskInitialBangerFilter rejects any post with `ancestors` (i.e. any reply) and any post from a protected account. Quality is carried as a boolean `isHighQuality`, not a numeric threshold." },
     negativeOffsetRule: {
       provenance: "ranking_scorer.rs:525-533",
-      note: "Any post whose weighted sum is net-negative is rescaled into [0, 0.000894) — negative_sum/total_sum × the 0.001 offset — so it ranks below every net-positive post regardless of how good the rest of it was." }
+      note: "Any post whose weighted sum is net-negative is rescaled into [0, 0.000894) — negative_sum/total_sum × the 0.001 offset — so it ranks below every net-positive post regardless of how good the rest of it was." },
+
+    // ── Published by X on Aug 14 2026 ─────────────────────────────────────
+    reportBaselineRatio: { value: 1000, provenance: "2026-published",
+      note: "X: 'the baseline probability of a Report is more than 1000x lower than a Like, so it's weighted more to allow the prediction to affect the final ranking at all.' The large negative coefficients are large BECAUSE the actions are rare — which is precisely why dividing one by the like weight produces a meaningless number." },
+
+    homeTimelineOnly: { provenance: "2026-published",
+      note: "Engagement only counts toward ranking if it happened on a post served in the Home Timeline. X: 'Directly navigating to a post (i.e., coordinating via groupchat) has no ranking impact.' Sending your own link round a group chat does nothing for reach — the copy-link coefficient pays for a VIEWER copying it in-feed, not for the visits that follow." },
+
+    brigadingResistance: { provenance: "2026-published",
+      note: "Mass block/report campaigns do not straightforwardly suppress reach. X gives two reasons: the model predicts an individual viewer's likelihood of the action rather than summing weights over counts, and recommendations are personalised — so reports from bad actors mainly affect what gets recommended to users similar to those bad actors, rather than moving the post for everyone." },
+
+    brazil2026ElectionFilter: { accounts: 670, provenance: "2026-published",
+      param: "home-mixer/filters/brazil_2026_election_filter.rs",
+      note: "For You removes posts from 670 accounts reported to Brazil's Electoral Court for the 2026 election, unless the viewer follows the account. Compiled in rather than feature-switched — IDs obfuscated, usernames left in source for transparency. A hard filter that runs before scoring, so no weight can offset it." }
   },
 
   // ── MEASURED RATES (retrospective score only) ───────────────────────────────

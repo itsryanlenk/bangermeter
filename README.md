@@ -62,9 +62,21 @@ what the published weights actually say.
   −234.0. Profile clicks, binary dwell and quoted-vqv ship at **0.0** — X zeroed them, and
   the tool shows that rather than hiding it.
 - **Weights multiply predicted probabilities, not counts.** A report does not cost 234
-  points; −234 is the coefficient on *how likely a viewer is to report the post*. X's own
-  comment above the table says the values already fold in how rare each action typically
-  is. Any tool or thread that reads these as per-action point totals is wrong.
+  points; −234 is the coefficient on *how likely a viewer is to report the post*. On Aug 14
+  2026 X made this explicit in the code: reading the ratios as count equivalences — their
+  example is *"one report cancels 468 likes"* — is **"incorrect."** They also gave the
+  reason the negatives are so large: a Report's baseline probability is **over 1000× lower
+  than a Like's**, so it needs a bigger coefficient to affect ranking at all.
+- **Engagement only counts from the Home Timeline.** Opening a link someone sent you has no
+  ranking impact, so passing your own post round a group chat does nothing for reach. The
+  copy-link coefficient pays for a viewer copying it *in-feed*, not for the visits after.
+- **Brigading is structurally weak.** Predictions are per-viewer and personalised, so mass
+  block/report campaigns mostly shift what gets recommended to users similar to the
+  brigaders rather than burying the post for everyone.
+- **Hard filters sit outside scoring.** `Brazil2026ElectionFilter` removes 670 accounts
+  reported to Brazil's Electoral Court from For You unless you follow them. It runs before
+  ranking, so no weight offsets it — a reminder that the weighted sum is not the whole
+  system.
 - **The honest boundary.** The weights are X's. The probabilities are ours. X predicts them
   with Phoenix, a transformer we don't have; Bangermeter derives three of them from real
   counts (likes, replies, reposts) and estimates the rest from content signals. Every

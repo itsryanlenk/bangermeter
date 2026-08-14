@@ -582,7 +582,19 @@
       "▼ Any post whose weighted sum goes net-negative is rescaled below every positive post, " +
         "no matter what else it earned.",
       "· Grok's “banger” pipeline only ever looks at original posts — replies and " +
-        "protected accounts are filtered out before it runs."
+        "protected accounts are filtered out before it runs.",
+      "· Engagement only counts if the post reached the reader through their Home Timeline. " +
+        "Opening a link someone sent has no ranking impact — so passing your own post round " +
+        "a group chat does nothing for reach.",
+      "· A Report's baseline probability is over 1,000× lower than a Like's. That is WHY its " +
+        "coefficient is " + H.report.weight + ", and why dividing it by the like weight gives " +
+        "a number that means nothing.",
+      "· Mass block/report campaigns don't straightforwardly bury a post. Predictions are " +
+        "per-viewer and personalised, so brigading mostly shifts what gets recommended to " +
+        "people like the brigaders.",
+      "· Brazil's 2026 election: For You hard-filters " +
+        F.brazil2026ElectionFilter.accounts + " accounts reported to the Electoral Court, " +
+        "unless you follow them. It runs before scoring, so no weight offsets it."
     ].forEach(function (line) {
       var mark = line.charAt(0);
       var row = el("div", "bangermeter-mod");

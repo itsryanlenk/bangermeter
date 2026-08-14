@@ -70,6 +70,22 @@
     check("every head is provenance 2026-published",
       Object.keys(H).every(function (k) { return H[k].provenance === "2026-published"; }));
     check("no bookmark head exists in the 2026 roster", H.bookmark === undefined);
+
+    // ── Facts X published on Aug 14 2026 ──────────────────────────────
+    // The weights themselves did not move; these are the clarifications
+    // that came with them, and the tool must carry them.
+    var SF = C.sourcedFacts;
+    check("report/like baseline-probability ratio is on record",
+      SF.reportBaselineRatio && SF.reportBaselineRatio.value === 1000);
+    check("home-timeline-only rule is recorded",
+      !!SF.homeTimelineOnly && /no ranking impact/i.test(SF.homeTimelineOnly.note));
+    check("brigading-resistance explanation is recorded",
+      !!SF.brigadingResistance && /personalised/i.test(SF.brigadingResistance.note));
+    check("Brazil 2026 election filter recorded with its account count",
+      SF.brazil2026ElectionFilter && SF.brazil2026ElectionFilter.accounts === 670);
+    // The ratio reading X calls incorrect must not reappear as a claim.
+    check("the ratio-as-value reading is named as incorrect, not repeated",
+      /incorrect/i.test(C.weightsMeaningNote) && /468/.test(C.weightsMeaningNote));
     check("no 2023-era heads survive",
       H.good_click_v1 === undefined && H.good_profile_click === undefined &&
       H.reply_engaged_by_author === undefined && H.negative_feedback_v2 === undefined &&
