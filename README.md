@@ -15,9 +15,6 @@ math. Full source-traced findings: [RESEARCH.md](RESEARCH.md).
 > replaced the entire weight layer with the published set. Everything below describes the
 > new one.
 
-**Current release: v0.9.1** — v0.9.0 brought in the published weights; v0.9.1 pins the
-compose draft meter to the viewport so X's scrolling compose dialog can no longer clip it.
-
 ## Install
 
 1. Open `chrome://extensions`
@@ -133,8 +130,8 @@ happened when those numbers were hardcoded.
 - Content script (badges, panel, meter, virtualized lists, quote-tweet scoping): exercised
   against the DOM fixture (`fixture.html`). The fixture is an eyeball harness — it renders
   and must not throw; it carries no assertions.
-- Live x.com: **v0.9.0 verified in a logged-in session, Aug 13 2026.** Badge, panel and the
-  rewritten per-head copy render correctly against the live DOM, and a spot-checked post
-  (2 replies · 2 likes · 0 reposts · 126 views) scored E=66, matching the engine by hand to
-  the rounded point. Selectors target `article[data-testid="tweet"]`, the action-bar
-  `role="group"` aria-label, and `tweetTextarea_*`, each with fallbacks.
+- Live x.com: verified in a logged-in session, Aug 2026. Badge, panel and per-head copy
+  render correctly against the live DOM, and a spot-checked post matched the engine's
+  arithmetic to the rounded point. Live use is also what surfaced the two compose-meter
+  defects the fixture had not modelled. Selectors target `article[data-testid="tweet"]`,
+  the action-bar `role="group"` aria-label, and `tweetTextarea_*`, each with fallbacks.

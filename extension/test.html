@@ -13,7 +13,7 @@
   </style>
 </head>
 <body>
-  <h1>Bangermeter engine self-test (v0.9.0 — 2026-08-13 Phoenix weights)</h1>
+  <h1 id="title">Bangermeter engine self-test</h1>
   <div id="out"></div>
   <script src="weights.js"></script>
   <script src="scoring.js"></script>
@@ -34,6 +34,10 @@
     var E = BangermeterEngine;
     var C = BANGERMETER_CONFIG;
     var H = C.heads;
+    // Read the version from config rather than typing it into the heading —
+    // a hand-written version in prose is a number that drifts every release.
+    document.getElementById("title").textContent =
+      "Bangermeter engine self-test — v" + C.version + " (" + C.weightsSnapshot.split(" — ")[0] + " weights)";
 
     // ================================================================
     // WEIGHT LAYER — verbatim against xai-org/x-algorithm

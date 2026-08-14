@@ -1,4 +1,10 @@
 # Bangermeter — build the Chrome Web Store upload package (runtime files only)
+$ErrorActionPreference = "Stop"
+
+# Nothing ships until every version claim in the repo agrees with the manifest.
+& node (Join-Path $PSScriptRoot "check-versions.js")
+if ($LASTEXITCODE -ne 0) { throw "version check failed - not packaging" }
+
 $ext = "D:\Twitter Tweet Scan\extension"
 $distDir = "D:\Twitter Tweet Scan\dist"
 New-Item -ItemType Directory -Force $distDir | Out-Null

@@ -1,4 +1,4 @@
-﻿// Bangermeter — weight configuration (single source of truth)
+// Bangermeter — weight configuration (single source of truth)
 //
 // TWO STRICTLY SEPARATE LAYERS:
 //   1. WEIGHT LAYER  — the published algorithm values. Never invented.

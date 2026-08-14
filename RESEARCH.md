@@ -189,7 +189,7 @@ inventions ("block −75", "−1000×"). None cites a code path.
 
 ## The weight set Bangermeter uses (extension/weights.js)
 
-**Current, as of v0.9.0** — the published production set, transcribed verbatim from
+**Current** — the published production set, transcribed verbatim from
 `home-mixer/params/param.rs`:
 
 favorite 0.5 · reply 5.0 (**20.0** with the +15.0 bidirectional-follow boost on original

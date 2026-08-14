@@ -1,4 +1,4 @@
-﻿# Rebuilds extension/bangermeter.user.js from the extension sources.
+# Rebuilds extension/bangermeter.user.js from the extension sources.
 # Single-file Tampermonkey build: styles.css (injected) + weights.js + scoring.js + content.js.
 #
 # PowerShell 5.1 gotchas this script deliberately works around:
