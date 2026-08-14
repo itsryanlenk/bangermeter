@@ -8,6 +8,12 @@ HANDOFF.md
 WEBSITE-BRIEF.md
 WEBSITE-CHANGES-*.md
 
+# Per-account archives pulled for analysis. These identify a specific person's
+# posts and must never land in a public repo, so the pattern is blanket rather
+# than per-file — a future `git add -A` cannot sweep one in by accident.
+calibration/*.tsv
+calibration/*-archive*.csv
+
 # Build artifacts
 dist/
 
