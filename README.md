@@ -73,7 +73,7 @@ what the published weights actually say.
 - **Brigading is structurally weak.** Predictions are per-viewer and personalised, so mass
   block/report campaigns mostly shift what gets recommended to users similar to the
   brigaders rather than burying the post for everyone.
-- **Hard filters sit outside scoring.** `Brazil2026ElectionFilter` removes 670 accounts
+- **Hard filters sit outside scoring.** `Brazil2026ElectionFilter` removes 665 accounts
   reported to Brazil's Electoral Court from For You unless you follow them. It runs before
   ranking, so no weight offsets it — a reminder that the weighted sum is not the whole
   system.
@@ -116,7 +116,7 @@ what the published weights actually say.
 | `extension/weights.js` | Single source of truth: weight layer + estimator layer, all provenance-tagged |
 | `extension/scoring.js` | Pure scoring engine (direct port of `ranking_scorer.rs`) |
 | `extension/content.js` | Badges, breakdown panel, compose meter |
-| `extension/test.html` | Engine self-test — open in any browser (112 assertions) |
+| `extension/test.html` | Engine self-test — open in any browser (120 assertions) |
 | `extension/fixture.html` | X-DOM fixture harness for the content script |
 | `extension/fixture-compose.html` | Compose-meter visibility harness — asserts the draft meter survives X's scrolling, overflow-hidden compose dialog (9 assertions) |
 | `extension/bangermeter.user.js` | Single-file Tampermonkey build (generated — see `store-assets/make-userscript.ps1`) |
@@ -130,7 +130,7 @@ happened when those numbers were hardcoded.
 
 ## Verification status
 
-- Engine math: **112/112 self-tests pass** (`test.html`). Every one of the 26 published
+- Engine math: **120/120 self-tests pass** (`test.html`). Every one of the 26 published
   weights and its feature-switch parameter name is asserted against `param.rs`
   individually, so a silent transcription error fails the suite rather than shipping.
 - Adversarially reviewed at v0.9.0 by three independent passes — weight transcription,

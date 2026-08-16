@@ -82,7 +82,7 @@
     check("brigading-resistance explanation is recorded",
       !!SF.brigadingResistance && /personalised/i.test(SF.brigadingResistance.note));
     check("Brazil 2026 election filter recorded with its account count",
-      SF.brazil2026ElectionFilter && SF.brazil2026ElectionFilter.accounts === 670);
+      SF.brazil2026ElectionFilter && SF.brazil2026ElectionFilter.accounts === 665);
     // The ratio reading X calls incorrect must not reappear as a claim.
     check("the ratio-as-value reading is named as incorrect, not repeated",
       /incorrect/i.test(C.weightsMeaningNote) && /468/.test(C.weightsMeaningNote));

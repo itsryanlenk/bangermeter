@@ -56,7 +56,7 @@ Everything runs locally in your browser. The source is public and reviewable.
 
 OPEN SOURCE
 
-MIT licensed, with the full research record and 112 automated tests that check every published weight against X's source individually.
+MIT licensed, with the full research record and 120 automated tests that check every published weight against X's source individually.
 
 github.com/itsryanlenk/bangermeter
 

@@ -54,7 +54,7 @@ Three further facts came with it, all now carried in `weights.js` under `sourced
   reporting mainly shifts what gets recommended to users similar to the reporters, rather
   than moving the post for everyone.
 
-And a new hard filter: **`Brazil2026ElectionFilter`** removes posts from **670 accounts**
+And a new hard filter: **`Brazil2026ElectionFilter`** removes posts from **665 accounts**
 reported to Brazil's Electoral Court for the 2026 election, unless the viewer follows the
 account. It is compiled in rather than feature-switched — IDs obfuscated, usernames left in
 source for transparency — and runs *before* scoring, so no weight can offset it.

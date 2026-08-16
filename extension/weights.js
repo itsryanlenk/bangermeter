@@ -232,9 +232,9 @@ var BANGERMETER_CONFIG = {
     brigadingResistance: { provenance: "2026-published",
       note: "Mass block/report campaigns do not straightforwardly suppress reach. X gives two reasons: the model predicts an individual viewer's likelihood of the action rather than summing weights over counts, and recommendations are personalised — so reports from bad actors mainly affect what gets recommended to users similar to those bad actors, rather than moving the post for everyone." },
 
-    brazil2026ElectionFilter: { accounts: 670, provenance: "2026-published",
+    brazil2026ElectionFilter: { accounts: 665, provenance: "2026-published",
       param: "home-mixer/filters/brazil_2026_election_filter.rs",
-      note: "For You removes posts from 670 accounts reported to Brazil's Electoral Court for the 2026 election, unless the viewer follows the account. Compiled in rather than feature-switched — IDs obfuscated, usernames left in source for transparency. A hard filter that runs before scoring, so no weight can offset it." }
+      note: "For You removes posts from 665 accounts reported to Brazil's Electoral Court for the 2026 election, unless the viewer follows the account. Compiled in rather than feature-switched — IDs obfuscated, usernames left in source for transparency. A hard filter that runs before scoring, so no weight can offset it." }
   },
 
   // ── MEASURED RATES (retrospective score only) ───────────────────────────────

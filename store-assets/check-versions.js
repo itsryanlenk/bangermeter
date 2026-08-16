@@ -65,6 +65,35 @@ for (const file of ["README.md", "RESEARCH.md", "SECURITY.md", "store-assets/sto
   });
 }
 
+// 4. Test counts quoted in prose. 96 `check(` calls produce 120 assertions at
+// runtime because some run inside loops, so nobody can eyeball the real number
+// — which is how README shipped "112" against a 120-assertion suite. Run the
+// suite and compare.
+try {
+  const { execFileSync } = require("child_process");
+  const real = parseInt(execFileSync(process.execPath,
+    [path.join(root, "extension", "run-tests.js"), "--count"], { encoding: "utf8" }).trim(), 10);
+  if (!Number.isFinite(real)) throw new Error("runner did not return a count");
+
+  const CLAIM = /(\d{2,4})\s*(?:assertions|self-tests|automated tests)|(\d{2,4})\s*\/\s*\1\s*self-tests/gi;
+  for (const file of ["README.md", "RESEARCH.md", "store-assets/store-description.txt"]) {
+    let text;
+    try { text = read(file); } catch { continue; }
+    text.split(/\r?\n/).forEach((line, i) => {
+      for (const m of line.matchAll(CLAIM)) {
+        const n = parseInt(m[1] || m[2], 10);
+        // "up from 33" style historical comparisons are legitimate; only flag a
+        // number presented as the CURRENT count.
+        if (n !== real && !/up from|was |previously/i.test(line)) {
+          problems.push(`${file}:${i + 1} quotes ${n} tests, the suite has ${real}\n    ${line.trim()}`);
+        }
+      }
+    });
+  }
+} catch (e) {
+  problems.push("could not verify test counts: " + e.message);
+}
+
 if (problems.length) {
   console.error("version check FAILED\n");
   problems.forEach(p => console.error("  - " + p));
