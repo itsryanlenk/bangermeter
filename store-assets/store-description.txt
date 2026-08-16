@@ -61,4 +61,17 @@ MIT licensed, with the full research record and 112 automated tests that check e
 github.com/itsryanlenk/bangermeter
 
 
+WHAT'S NEW IN 0.9.4
+
+• Scores are now calibrated against real data. The reference rates were measured from 158 real timeline posts instead of estimated. If you used an earlier version, expect your engagement scores to read roughly 15 points lower — the old scale put a typical post at 67 when it should have been 50. Nothing broke; the midpoint moved to where it belongs.
+
+• Updated for X's August 14 clarifications. X added comments to the ranking code confirming that weights multiply a predicted probability, not a count, and explaining that Report carries a large coefficient because reports are over 1000x rarer than likes — not because it's a bigger punishment. All 26 weights re-verified against the update; none changed.
+
+• Two facts worth knowing, now in the breakdown panel: engagement only counts toward ranking if the post reached the reader through their Home Timeline (sending your own link to a group chat does nothing), and mass report campaigns don't straightforwardly bury a post, because predictions are personalised per viewer.
+
+• The draft meter in the compose box no longer covers the Post button, and clears itself once you've posted.
+
+• 120 automated tests, up from 33. Every published weight is checked against X's source individually.
+
+
 Bangermeter is an independent open-source project. It is not affiliated with, endorsed by, or sponsored by X Corp or xAI.
