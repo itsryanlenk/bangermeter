@@ -120,7 +120,7 @@ what the published weights actually say.
 | `extension/fixture.html` | X-DOM fixture harness for the content script |
 | `extension/fixture-compose.html` | Compose-meter visibility harness — asserts the draft meter survives X's scrolling, overflow-hidden compose dialog (9 assertions) |
 | `extension/bangermeter.user.js` | Single-file Tampermonkey build (generated — see `store-assets/make-userscript.ps1`) |
-| `skills/audience-readout/` | Claude skill: collect one account's real posts, score them, and write a read-out. Carries the analytical rules (rates not counts, confound checks) and the privacy rule — never commit an archive |
+| `skills/audience-readout/` | Claude skill: collect one account's real posts, score them, and write a read-out. Carries the analytical rules (rates not counts, confound checks) and the privacy rule — never commit an archive. Copy to `~/.claude/skills/` to install — see its SKILL.md |
 | `store-assets/weights-export.js` | Emits the weight values the store art needs, straight from `weights.js` |
 | `store-assets/make-*.ps1` | Generators for the userscript, the upload package, and the promo art |
 

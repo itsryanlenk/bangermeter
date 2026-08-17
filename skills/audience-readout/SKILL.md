@@ -14,6 +14,26 @@ description: >-
 Turn one account's real post history into a short list of things to keep doing
 and things to stop.
 
+## Install
+
+This lives in the repo at `skills/audience-readout/` so it is browsable, but
+Claude Code discovers skills from `.claude/skills/` (this project) or
+`~/.claude/skills/` (everywhere). Copy it to whichever you want:
+
+```bash
+mkdir -p ~/.claude/skills && cp -r skills/audience-readout ~/.claude/skills/
+```
+
+```powershell
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.claude\skills" | Out-Null
+Copy-Item -Recurse -Force "skills\audience-readout" "$env:USERPROFILE\.claude\skills\"
+```
+
+`scripts/analyze.js` finds Bangermeter's engine by walking up from its own
+location, so it keeps working from either place when run inside a clone. Run
+from anywhere else and it degrades to rates only, which is fine — it says so in
+its header line.
+
 The value is **not** the scraping. It is refusing to let a pattern become advice
 until it survives a confound check, and saying plainly which findings are strong
 and which are six posts and a hunch.
