@@ -7,7 +7,7 @@ content script that runs entirely in your browser on x.com / twitter.com.
 
 | Version | Supported |
 |---------|-----------|
-| 0.5.x   | ✅        |
+| 0.9.x   | ✅        |
 | < 0.5   | ❌        |
 
 ## Scope
