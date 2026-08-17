@@ -79,21 +79,57 @@
   };
 
   const sleep = ms => new Promise(r => setTimeout(r, ms));
+  // Jittered, not fixed. A perfectly regular 750ms cadence held for hundreds of
+  // scrolls is the most machine-looking thing this script could do, and it costs
+  // nothing to vary it.
+  const jitter = (base, spread) => sleep(base + Math.random() * spread);
+
+  // Per-session budget. The point is to make a run end on its own rather than
+  // relying on someone watching it. Raise deliberately, not reflexively.
+  window.__AR_BUDGET = window.__AR_BUDGET || { posts: 250, minutes: 12 };
 
   // Collects TWICE per scroll position. X renders after the scroll settles, so a
   // single collect right after scrollBy misses most of what appears — this is
   // the usual reason a sweep appears to stall at a low count.
-  window.__arSweep = async function (rounds = 20, stallLimit = 5) {
-    let stall = 0;
-    for (let i = 0; i < rounds && stall < stallLimit; i++) {
+  //
+  // Stops on: budget reached, stall limit, or the first sign of throttling.
+  window.__arSweep = async function (rounds = 20, stallLimit = 3) {
+    const startedAt = Date.now();
+    const startCount = window.__ar.seen.size;
+    let stall = 0, reason = "rounds";
+
+    for (let i = 0; i < rounds; i++) {
+      if (window.__ar.seen.size >= window.__AR_BUDGET.posts) { reason = "post budget"; break; }
+      if (Date.now() - startedAt > window.__AR_BUDGET.minutes * 60000) { reason = "time budget"; break; }
+
       const before = window.__ar.seen.size;
-      window.scrollBy(0, window.innerHeight * 0.75);
-      await sleep(750); window.__arCollect();
-      await sleep(650); window.__arCollect();
+      window.scrollBy(0, window.innerHeight * (0.7 + Math.random() * 0.15));
+      await jitter(700, 500); window.__arCollect();
+      await jitter(600, 500); window.__arCollect();
+
+      // A spinner that will not clear is the platform asking us to slow down.
+      // Back off once; if it is still spinning, end the session.
+      if (document.querySelector('[role="progressbar"]')) {
+        await jitter(2500, 1500);
+        if (document.querySelector('[role="progressbar"]')) { reason = "throttled"; break; }
+      }
+
       stall = window.__ar.seen.size === before ? stall + 1 : 0;
+      if (stall >= stallLimit) { reason = "stalled"; break; }
     }
+
     window.__arSave();
-    return { total: window.__ar.seen.size, stalled: stall >= stallLimit };
+    const out = {
+      collected: window.__ar.seen.size - startCount,
+      total: window.__ar.seen.size,
+      stoppedBecause: reason,
+      elapsedMin: +((Date.now() - startedAt) / 60000).toFixed(1)
+    };
+    if (reason === "throttled" || reason === "post budget" || reason === "time budget") {
+      console.log("Session over (" + reason + "). Sample is saved — reload later and " +
+                  "__arLoad() picks up where this left off.");
+    }
+    return out;
   };
 
   window.__arSave = () => {

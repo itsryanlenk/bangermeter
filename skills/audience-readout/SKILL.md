@@ -50,9 +50,16 @@ already gitignored for this reason. If a sample must be shared, coarsen it first
 **2. Read-only. No interactions.** Scroll and parse. Never like, follow, repost,
 reply, or DM from an automated session. The account belongs to a person.
 
-**3. Back off when throttled.** Rate limiting is the platform asking you to
-stop. Two throttle events is the signal to finish with what you have, not to
-push through. Say so in the deliverable rather than quietly collecting less.
+**3. Back off when throttled, and prefer several small sessions to one long
+one.** Rate limiting is the platform asking you to stop. `__arSweep` enforces
+this rather than trusting you to notice: it stops on the first unclearing
+spinner, on a per-session budget (250 posts / 12 minutes by default), and it
+jitters every delay so the cadence is not machine-regular.
+
+A sample gathered over four short sessions is worth exactly as much as one
+gathered in a single long sitting, and looks far less like automation. The
+collector persists to `localStorage` specifically so this is easy — see
+**Collecting across sessions** below.
 
 **4. Everything is a rate.** Raw counts mostly measure how much reach a post
 happened to get — which is the thing you are trying to explain. Divide by views,
@@ -89,6 +96,40 @@ The cap is on **pagination depth per query**, not on history. Walk weekly or
 fortnightly windows. Prefer several narrow windows spread across the period over
 one wide window — a wide window returns only its most recent slice, which is a
 biased sample of itself. Say "stratified across N windows", never "all posts".
+
+### 1b. Collecting across sessions
+
+The sample lives in `localStorage`, so a run can be spread over days without
+losing anything. This is the recommended shape, not a fallback.
+
+```js
+// every session, first thing:
+__arLoad();            // restores everything collected so far
+__arStats();           // n, date range, median rate — see what you still need
+
+// then one budgeted sweep, and stop:
+await __arSweep();     // ends on budget, stall, or throttle — reports which
+
+// when the sample is big enough:
+__arExport("sample.tsv");
+```
+
+Between sessions, leave real time — hours, not minutes — and vary what you do.
+Different day, different window, different entry point (profile one session,
+a date-bounded search the next).
+
+**Aim for coverage, not volume.** Four sessions of ~60 posts spread across
+different weeks beats one session of 240 from a single window, because the
+stratification is what makes the sample defensible. Note in the deliverable how
+many sessions and windows it came from.
+
+To widen the budget deliberately for one run:
+
+```js
+__AR_BUDGET = { posts: 400, minutes: 20 };
+```
+
+Raise it because the sample needs it, not because a sweep ended early.
 
 ### 2. Export and analyse
 
@@ -136,6 +177,8 @@ Follow `references/readout-template.md`. Non-negotiables:
 
 | Symptom | Cause | Fix |
 |---|---|---|
+| Sweep ends at "post budget" / "time budget" | Working as designed | Save, come back later, `__arLoad()` |
+| Sweep ends at "throttled" | Spinner would not clear | Stop for the day. Do not retry immediately |
 | Sweep stalls at 5–15 posts | Collecting before the render settles | Collect twice per scroll, 700ms apart |
 | Search returns the same posts repeatedly | Not deduping by post ID | `__arCollect` dedupes; do not bypass it |
 | Profile stops loading, no spinner, not at bottom | Pagination depth cap | Switch to date-bounded search windows |
