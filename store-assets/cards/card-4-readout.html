@@ -1,0 +1,98 @@
+<link rel="stylesheet" href="card-base.css">
+<style>
+  h1 { font-size: 66px; max-width: 20ch; margin-bottom: 8px; }
+  .lede { font-size: 24px; color: var(--quiet); margin-bottom: 34px; max-width: 62ch; }
+
+  .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; align-items: stretch; }
+  .step {
+    background: var(--card); border: 4px solid var(--ink); box-shadow: 6px 6px 0 var(--ink);
+    padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .step .n {
+    font-family: var(--display); font-size: 15px; letter-spacing: .06em;
+    background: var(--ink); color: var(--volt); padding: 4px 10px; align-self: flex-start;
+  }
+  .step h2 {
+    font-family: var(--display); font-size: 21px; text-transform: uppercase;
+    line-height: 1.1; letter-spacing: -.01em;
+  }
+  .step p { font-size: 16px; line-height: 1.4; color: var(--quiet); }
+  .step .rule {
+    margin-top: auto; padding-top: 12px; border-top: 3px solid var(--ink);
+    font-size: 15px; font-weight: 700; line-height: 1.35;
+  }
+  .step.hot { background: var(--volt); }
+  .step.hot p { color: #3d3a34; }
+
+  .install {
+    margin-top: 30px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+  }
+  .install .label {
+    font-family: var(--display); font-size: 15px; text-transform: uppercase;
+    letter-spacing: .06em; flex: none;
+  }
+  .install code {
+    font-family: var(--mono); font-size: 19px;
+    background: var(--ink); color: var(--paper);
+    padding: 12px 18px; box-shadow: 5px 5px 0 rgba(0,0,0,.28);
+  }
+  .install code b { color: var(--volt); font-weight: 400; }
+  .install .repo { font-family: var(--mono); font-size: 17px; color: var(--quiet); }
+
+  .foot { align-items: flex-start; gap: 18px; }
+  .risk {
+    font-family: var(--body); font-size: 16px; font-weight: 700; line-height: 1.4;
+    border: 3px solid var(--ink); background: var(--card); padding: 8px 14px;
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+</style>
+
+<div class="top">
+  <span class="bolt"><svg viewBox="0 0 24 24" fill="#000"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg></span>
+  <span class="brand">Bangermeter</span>
+  <span class="src">new: audience-readout skill</span>
+</div>
+
+<h1>Point it at your own posts</h1>
+<div class="lede">It reads your real archive and tells you what to keep doing and what to stop — with the arithmetic shown.</div>
+
+<div class="flow">
+  <div class="step">
+    <span class="n">01</span>
+    <h2>Collect</h2>
+    <p>Reads your posts from your own logged-in browser. Read-only — it never likes, follows or posts.</p>
+    <div class="rule">Session-bounded and jittered. Stops itself.</div>
+  </div>
+
+  <div class="step hot">
+    <span class="n">02</span>
+    <h2>Rate, not count</h2>
+    <p>Every figure is divided by views. Raw counts mostly measure the reach you're trying to explain.</p>
+    <div class="rule">Per-post medians, never pooled totals.</div>
+  </div>
+
+  <div class="step">
+    <span class="n">03</span>
+    <h2>Kill the confound</h2>
+    <p>Every contrast is re-run inside each month. If it only shows up in the pooled data, it was timing.</p>
+    <div class="rule">Not a finding until it survives.</div>
+  </div>
+
+  <div class="step">
+    <span class="n">04</span>
+    <h2>Read-out</h2>
+    <p>Findings with a "so what" on each, a do/don't page, and a section naming what's still weak.</p>
+    <div class="rule">n&lt;10 is marked directional, not fact.</div>
+  </div>
+</div>
+
+<div class="install">
+  <span class="label">Install</span>
+  <code>cp -r skills/audience-readout <b>~/.claude/skills/</b></code>
+  <span class="repo">github.com/itsryanlenk/bangermeter</span>
+</div>
+
+<div class="foot">
+  <span class="chip">Free · MIT · open source</span>
+  <span class="risk">Use at your own risk — X has not published how it tracks browsing behaviour.</span>
+</div>
