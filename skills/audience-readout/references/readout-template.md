@@ -79,7 +79,7 @@ The clearest negative contrast, with the confound check stated:
 - **Quote their actual posts.** Three real examples beat any description of a
   pattern. Pick them from the BEST 6 in the analyzer output.
 - **Never say "the algorithm hates you."** X's own code notes that predictions
-  are per-viewer and personalised; brigading and blanket suppression are not how
+  are per-viewer and personalized; brigading and blanket suppression are not how
   it works, and the phrase reads as folklore.
 - **Do not soften the confidence section.** It is the part that makes the rest
   believable. A read-out with no weak findings looks like one that wasn't

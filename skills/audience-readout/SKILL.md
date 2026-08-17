@@ -131,7 +131,7 @@ __AR_BUDGET = { posts: 400, minutes: 20 };
 
 Raise it because the sample needs it, not because a sweep ended early.
 
-### 2. Export and analyse
+### 2. Export and analyze
 
 `__arExport()` downloads a TSV. Then:
 

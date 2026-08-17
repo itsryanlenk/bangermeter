@@ -15,7 +15,7 @@ vm.runInContext(fs.readFileSync(path.join(ext, "weights.js"), "utf8"), ctx, { fi
 const C = ctx.BANGERMETER_CONFIG, H = C.heads;
 
 // Rows chosen for the marquee's mini breakdown: the heaviest positive, the two
-// people actually recognise, and the heaviest negative.
+// people actually recognize, and the heaviest negative.
 const ROWS = ["share_via_copy_link", "reply", "favorite", "report"];
 const LABELS = {
   share_via_copy_link: "COPY LINK",

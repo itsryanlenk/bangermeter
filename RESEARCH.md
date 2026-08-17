@@ -50,7 +50,7 @@ Three further facts came with it, all now carried in `weights.js` under `sourced
   coordinating via groupchat) has no ranking impact." Sending your own link round a group
   chat does nothing for reach. Note the interaction with the heaviest head: `share_via_copy_link`
   pays for a *viewer copying the link in-feed*, not for the visits that follow.
-- **Brigading is structurally weak.** Predictions are per-viewer and personalised, so mass
+- **Brigading is structurally weak.** Predictions are per-viewer and personalized, so mass
   reporting mainly shifts what gets recommended to users similar to the reporters, rather
   than moving the post for everyone.
 
@@ -188,7 +188,7 @@ inventions ("block −75", "−1000×"). None cites a code path.
 
 **Genuinely new grade-A facts this pass surfaced:**
 
-- **The 2026 head roster** — catalogued here as 19 heads; the Aug 2026 release shows **26**,
+- **The 2026 head roster** — cataloged here as 19 heads; the Aug 2026 release shows **26**,
   adding `video_open`, `open_link`, `quoted_vqv`, `post_unexplored`, `cont_click_dwell_time`,
   `cont_active_secs_5m_residual_norm` and `not_dwelled` to the list below:
   favorite, reply, retweet, photo_expand, click, profile_click, vqv, share, share_via_dm,
@@ -319,7 +319,7 @@ Paris prosecutor's seizure (Feb 2026 raid, criminal probe) — so the watchlist 
 involuntary disclosure is an EC non-compliance decision on the recommender proceeding and
 any French trial record.
 
-**But the hunt recovered real, previously-uncatalogued grade-A material:**
+**But the hunt recovered real, previously-uncataloged grade-A material:**
 
 - **There are TWO sourced weight snapshots, not one.** The original March 31, 2023 README
   of the-algorithm-ml had **reply = 27** (not 13.5) and scored the good-click pair as

@@ -208,7 +208,7 @@ var BANGERMETER_CONFIG = {
       note: "RESULT_SIZE in config.rs — posts returned per For You request." },
     valueModelMode: { value: "weighted", param: "rust_home_mixer_value_model_mode",
       provenance: "2026-published",
-      note: "The weighted sum modelled here is the shipped default. Two alternative modes exist in code (dwell_regret_sigmoid, gated_dwell_regret) with far deeper negatives (report -60000); neither is the default." },
+      note: "The weighted sum modeled here is the shipped default. Two alternative modes exist in code (dwell_regret_sigmoid, gated_dwell_regret) with far deeper negatives (report -60000); neither is the default." },
     // Grok "banger" pipeline eligibility. NOTE: a `quality_score >= 0.4` gate was
     // asserted here through v0.8.0 and has been REMOVED — no such threshold exists
     // anywhere in the published grox pipeline, and the file it was cited to
@@ -230,7 +230,7 @@ var BANGERMETER_CONFIG = {
       note: "Engagement only counts toward ranking if it happened on a post served in the Home Timeline. X: 'Directly navigating to a post (i.e., coordinating via groupchat) has no ranking impact.' Sending your own link round a group chat does nothing for reach — the copy-link coefficient pays for a VIEWER copying it in-feed, not for the visits that follow." },
 
     brigadingResistance: { provenance: "2026-published",
-      note: "Mass block/report campaigns do not straightforwardly suppress reach. X gives two reasons: the model predicts an individual viewer's likelihood of the action rather than summing weights over counts, and recommendations are personalised — so reports from bad actors mainly affect what gets recommended to users similar to those bad actors, rather than moving the post for everyone." },
+      note: "Mass block/report campaigns do not straightforwardly suppress reach. X gives two reasons: the model predicts an individual viewer's likelihood of the action rather than summing weights over counts, and recommendations are personalized — so reports from bad actors mainly affect what gets recommended to users similar to those bad actors, rather than moving the post for everyone." },
 
     brazil2026ElectionFilter: { accounts: 665, provenance: "2026-published",
       param: "home-mixer/filters/brazil_2026_election_filter.rs",
@@ -239,7 +239,7 @@ var BANGERMETER_CONFIG = {
 
   // ── MEASURED RATES (retrospective score only) ───────────────────────────────
   // What a real timeline actually does, per impression — the reference the
-  // ENGAGEMENT score normalises against.
+  // ENGAGEMENT score normalizes against.
   //
   // Sample: 158 posts scraped from a logged-in timeline on 2026-08-13 (141 For
   // You, 17 Following), per-post MEDIAN rate. Raw sample and method live in

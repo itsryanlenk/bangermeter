@@ -70,7 +70,7 @@ what the published weights actually say.
 - **Engagement only counts from the Home Timeline.** Opening a link someone sent you has no
   ranking impact, so passing your own post round a group chat does nothing for reach. The
   copy-link coefficient pays for a viewer copying it *in-feed*, not for the visits after.
-- **Brigading is structurally weak.** Predictions are per-viewer and personalised, so mass
+- **Brigading is structurally weak.** Predictions are per-viewer and personalized, so mass
   block/report campaigns mostly shift what gets recommended to users similar to the
   brigaders rather than burying the post for everyone.
 - **Hard filters sit outside scoring.** `Brazil2026ElectionFilter` removes 665 accounts
@@ -85,7 +85,7 @@ what the published weights actually say.
 - **Gates we can see and gates we can't.** Video-quality-view needs duration strictly over
   10s, so GIFs and short clips are excluded — the extension reads the duration overlay
   where X renders one. A second vqv gate (the *viewer* having under 10,000 followers) is
-  viewer state a page script cannot read; it is disclosed, not modelled.
+  viewer state a page script cannot read; it is disclosed, not modeled.
 - **No folklore numbers.** "Bookmark 20×", "links −30–50%", "3+ hashtags −40%", "block
   −120 / mute −100" all failed source-tracing before the release — and none of them matched
   the real values when those arrived. Bookmarks turn out to have **no head at all**.
@@ -93,7 +93,7 @@ what the published weights actually say.
   multiplier (archived commit `ec83d01dca`; absent from the 2026 release) is behind a
   default-off toggle. Posts with a displayed **Community Note** get ×0.5 on the prospective
   score — that 0.5 is our round figure inside a ×0.39–0.75 range from three causal studies,
-  and is labelled as our pick, not X's.
+  and is labeled as our pick, not X's.
 - **Relative score, not predicted reach.** X says it syncs these defaults from production
   by cron, which makes them current rather than historical — but the score is still a
   relative read against a typical post, not an impression forecast.
@@ -146,5 +146,5 @@ happened when those numbers were hardcoded.
 - Live x.com: verified in a logged-in session, Aug 2026. Badge, panel and per-head copy
   render correctly against the live DOM, and a spot-checked post matched the engine's
   arithmetic to the rounded point. Live use is also what surfaced the two compose-meter
-  defects the fixture had not modelled. Selectors target `article[data-testid="tweet"]`,
+  defects the fixture had not modeled. Selectors target `article[data-testid="tweet"]`,
   the action-bar `role="group"` aria-label, and `tweetTextarea_*`, each with fallbacks.

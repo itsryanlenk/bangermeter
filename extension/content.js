@@ -590,7 +590,7 @@
         "coefficient is " + H.report.weight + ", and why dividing it by the like weight gives " +
         "a number that means nothing.",
       "· Mass block/report campaigns don't straightforwardly bury a post. Predictions are " +
-        "per-viewer and personalised, so brigading mostly shifts what gets recommended to " +
+        "per-viewer and personalized, so brigading mostly shifts what gets recommended to " +
         "people like the brigaders.",
       "· Brazil's 2026 election: For You hard-filters " +
         F.brazil2026ElectionFilter.accounts + " accounts reported to the Electoral Court, " +
@@ -618,7 +618,7 @@
       "published as current rather than historical."));
     d3.appendChild(el("div", "bangermeter-fineprint",
       "Alternative scoring modes exist in the same code (dwell-regret, with far deeper negatives). " +
-      "The shipped default is the weighted sum modelled here (value_model_mode = “" +
+      "The shipped default is the weighted sum modeled here (value_model_mode = “" +
       F.valueModelMode.value + "”). Relative score, not predicted reach."));
     sec3.appendChild(d3);
     panel.appendChild(sec3);

@@ -10,7 +10,7 @@
 //
 // Why per-post medians and not pooled (total events / total views): pooled
 // answers "what rate does a random impression see", which a handful of viral
-// posts dominate. The score normalises ONE POST against a reference post, so
+// posts dominate. The score normalizes ONE POST against a reference post, so
 // the reference has to be the typical POST, not the typical impression.
 const fs = require("fs"), path = require("path"), vm = require("vm");
 
@@ -82,9 +82,9 @@ for (const [label, s] of [["FOR YOU", forYou], ["FOLLOWING", following], ["COMBI
     "   at 100: " + String(r.score.pctPinnedAt100).padStart(3) + "%");
 }
 
-// A correctly centred scale puts the median post at 50. Report the gap.
+// A correctly centered scale puts the median post at 50. Report the gap.
 const med = q(scoreAll(forYou), .5);
-console.log("\nFor You median score is " + med + "; a centred scale would put it at 50" +
+console.log("\nFor You median score is " + med + "; a centered scale would put it at 50" +
   (med === 50 ? "." : " — off by " + (med - 50) + "."));
 console.log("Measured For You medians: favorite " + q(forYou.map(r => r.likes / r.views), .5).toFixed(5) +
   ", reply " + q(forYou.map(r => r.replies / r.views), .5).toFixed(5) +

@@ -80,7 +80,7 @@
     check("home-timeline-only rule is recorded",
       !!SF.homeTimelineOnly && /no ranking impact/i.test(SF.homeTimelineOnly.note));
     check("brigading-resistance explanation is recorded",
-      !!SF.brigadingResistance && /personalised/i.test(SF.brigadingResistance.note));
+      !!SF.brigadingResistance && /personalized/i.test(SF.brigadingResistance.note));
     check("Brazil 2026 election filter recorded with its account count",
       SF.brazil2026ElectionFilter && SF.brazil2026ElectionFilter.accounts === 665);
     // The ratio reading X calls incorrect must not reappear as a claim.

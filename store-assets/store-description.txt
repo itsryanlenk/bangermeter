@@ -35,7 +35,7 @@ HOW IT'S HONEST ABOUT WHAT IT KNOWS
 
 The weights are X's. The probabilities are estimates.
 
-X predicts how likely you are to reply, share or mute a post using a model nobody outside the company has. Bangermeter derives three of those probabilities from real counts — likes, replies and reposts — and estimates the rest from what's in the post. Every head in the popup is labelled as measured, estimated, or zeroed by X, so you always know which is which.
+X predicts how likely you are to reply, share or mute a post using a model nobody outside the company has. Bangermeter derives three of those probabilities from real counts — likes, replies and reposts — and estimates the rest from what's in the post. Every head in the popup is labeled as measured, estimated, or zeroed by X, so you always know which is which.
 
 It also matters that these weights multiply a predicted probability, not a count. A report is not a 234-point deduction; that number is the coefficient on how likely a viewer is to report you. Anything claiming these are per-action point totals has it wrong.
 
@@ -67,7 +67,7 @@ WHAT'S NEW IN 0.9.4
 
 • Updated for X's August 14 clarifications. X added comments to the ranking code confirming that weights multiply a predicted probability, not a count, and explaining that Report carries a large coefficient because reports are over 1000x rarer than likes — not because it's a bigger punishment. All 26 weights re-verified against the update; none changed.
 
-• Two facts worth knowing, now in the breakdown panel: engagement only counts toward ranking if the post reached the reader through their Home Timeline (sending your own link to a group chat does nothing), and mass report campaigns don't straightforwardly bury a post, because predictions are personalised per viewer.
+• Two facts worth knowing, now in the breakdown panel: engagement only counts toward ranking if the post reached the reader through their Home Timeline (sending your own link to a group chat does nothing), and mass report campaigns don't straightforwardly bury a post, because predictions are personalized per viewer.
 
 • The draft meter in the compose box no longer covers the Post button, and clears itself once you've posted.
 

@@ -230,7 +230,7 @@ var BANGERMETER_CONFIG = {
       note: "RESULT_SIZE in config.rs — posts returned per For You request." },
     valueModelMode: { value: "weighted", param: "rust_home_mixer_value_model_mode",
       provenance: "2026-published",
-      note: "The weighted sum modelled here is the shipped default. Two alternative modes exist in code (dwell_regret_sigmoid, gated_dwell_regret) with far deeper negatives (report -60000); neither is the default." },
+      note: "The weighted sum modeled here is the shipped default. Two alternative modes exist in code (dwell_regret_sigmoid, gated_dwell_regret) with far deeper negatives (report -60000); neither is the default." },
     // Grok "banger" pipeline eligibility. NOTE: a `quality_score >= 0.4` gate was
     // asserted here through v0.8.0 and has been REMOVED — no such threshold exists
     // anywhere in the published grox pipeline, and the file it was cited to
@@ -252,7 +252,7 @@ var BANGERMETER_CONFIG = {
       note: "Engagement only counts toward ranking if it happened on a post served in the Home Timeline. X: 'Directly navigating to a post (i.e., coordinating via groupchat) has no ranking impact.' Sending your own link round a group chat does nothing for reach — the copy-link coefficient pays for a VIEWER copying it in-feed, not for the visits that follow." },
 
     brigadingResistance: { provenance: "2026-published",
-      note: "Mass block/report campaigns do not straightforwardly suppress reach. X gives two reasons: the model predicts an individual viewer's likelihood of the action rather than summing weights over counts, and recommendations are personalised — so reports from bad actors mainly affect what gets recommended to users similar to those bad actors, rather than moving the post for everyone." },
+      note: "Mass block/report campaigns do not straightforwardly suppress reach. X gives two reasons: the model predicts an individual viewer's likelihood of the action rather than summing weights over counts, and recommendations are personalized — so reports from bad actors mainly affect what gets recommended to users similar to those bad actors, rather than moving the post for everyone." },
 
     brazil2026ElectionFilter: { accounts: 665, provenance: "2026-published",
       param: "home-mixer/filters/brazil_2026_election_filter.rs",
@@ -261,7 +261,7 @@ var BANGERMETER_CONFIG = {
 
   // ── MEASURED RATES (retrospective score only) ───────────────────────────────
   // What a real timeline actually does, per impression — the reference the
-  // ENGAGEMENT score normalises against.
+  // ENGAGEMENT score normalizes against.
   //
   // Sample: 158 posts scraped from a logged-in timeline on 2026-08-13 (141 For
   // You, 17 Following), per-post MEDIAN rate. Raw sample and method live in
@@ -416,7 +416,7 @@ var BANGERMETER_DEFAULT_SETTINGS = {
 //
 // The weights are X's. The probabilities are ours — a browser can observe counts
 // and content, not a Phoenix inference. Everything in the estimator layer is
-// labelled as such in weights.js.
+// labeled as such in weights.js.
 
 var BangermeterEngine = (function () {
   var C = BANGERMETER_CONFIG;
@@ -681,7 +681,7 @@ var BangermeterEngine = (function () {
   // Two gates in candidates_util.rs::vqv_weight — duration > MinVideoDurationMs,
   // and the VIEWER having under MAX_FOLLOWERS_THRESHOLD (10,000) followers. The
   // follower gate is viewer-state a page script cannot read, so it is disclosed
-  // rather than modelled; the duration gate is enforced where the DOM reveals it.
+  // rather than modeled; the duration gate is enforced where the DOM reveals it.
   function vqvEligible(features) {
     if (!features.hasVideo) return false;
     if (features.isGif) return false;
@@ -1396,7 +1396,7 @@ var BangermeterEngine = (function () {
         "coefficient is " + H.report.weight + ", and why dividing it by the like weight gives " +
         "a number that means nothing.",
       "· Mass block/report campaigns don't straightforwardly bury a post. Predictions are " +
-        "per-viewer and personalised, so brigading mostly shifts what gets recommended to " +
+        "per-viewer and personalized, so brigading mostly shifts what gets recommended to " +
         "people like the brigaders.",
       "· Brazil's 2026 election: For You hard-filters " +
         F.brazil2026ElectionFilter.accounts + " accounts reported to the Electoral Court, " +
@@ -1424,7 +1424,7 @@ var BangermeterEngine = (function () {
       "published as current rather than historical."));
     d3.appendChild(el("div", "bangermeter-fineprint",
       "Alternative scoring modes exist in the same code (dwell-regret, with far deeper negatives). " +
-      "The shipped default is the weighted sum modelled here (value_model_mode = “" +
+      "The shipped default is the weighted sum modeled here (value_model_mode = “" +
       F.valueModelMode.value + "”). Relative score, not predicted reach."));
     sec3.appendChild(d3);
     panel.appendChild(sec3);

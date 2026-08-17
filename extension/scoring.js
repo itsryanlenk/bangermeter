@@ -7,7 +7,7 @@
 //
 // The weights are X's. The probabilities are ours — a browser can observe counts
 // and content, not a Phoenix inference. Everything in the estimator layer is
-// labelled as such in weights.js.
+// labeled as such in weights.js.
 
 var BangermeterEngine = (function () {
   var C = BANGERMETER_CONFIG;
@@ -272,7 +272,7 @@ var BangermeterEngine = (function () {
   // Two gates in candidates_util.rs::vqv_weight — duration > MinVideoDurationMs,
   // and the VIEWER having under MAX_FOLLOWERS_THRESHOLD (10,000) followers. The
   // follower gate is viewer-state a page script cannot read, so it is disclosed
-  // rather than modelled; the duration gate is enforced where the DOM reveals it.
+  // rather than modeled; the duration gate is enforced where the DOM reveals it.
   function vqvEligible(features) {
     if (!features.hasVideo) return false;
     if (features.isGif) return false;
