@@ -13,6 +13,10 @@ WEBSITE-CHANGES-*.md
 # than per-file — a future `git add -A` cannot sweep one in by accident.
 calibration/*.tsv
 calibration/*-archive*.csv
+# Samples collected by skills/audience-readout can land anywhere.
+*-sample.tsv
+*-archive*.tsv
+audience-sample*.tsv
 
 # Build artifacts
 dist/
