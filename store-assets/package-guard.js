@@ -158,8 +158,24 @@ function verify(zipArg) {
     const b = JSON.parse(fs.readFileSync(info, "utf8"));
     const head = git("rev-parse", "HEAD");
     if (b.commit !== head) {
-      problems.push(`package was built from ${b.commit.slice(0, 7)} but HEAD is ${head.slice(0, 7)}` +
-        ` — rebuild before uploading, this is exactly how v0.9.4 shipped a stale number`);
+      // HEAD moving is not itself a problem — docs and skills commits move it
+      // constantly and ship nothing. What matters is whether anything under
+      // extension/ changed since the build. A guard that fails on every README
+      // commit is a guard people learn to skip, which is worse than no guard.
+      let shippedChanged = true;
+      try {
+        execFileSync("git", ["diff", "--quiet", b.commit, head, "--", "extension"], { cwd: root });
+        shippedChanged = false;
+      } catch { shippedChanged = true; }
+
+      if (shippedChanged) {
+        problems.push(`package was built from ${b.commit.slice(0, 7)} but extension/ has changed ` +
+          `since (HEAD is ${head.slice(0, 7)}) — rebuild before uploading, this is exactly how ` +
+          `v0.9.4 shipped a stale number`);
+      } else {
+        console.log(`  note: built at ${b.commit.slice(0, 7)}, HEAD is now ${head.slice(0, 7)}, ` +
+          `but nothing under extension/ changed between them`);
+      }
     }
   }
 
