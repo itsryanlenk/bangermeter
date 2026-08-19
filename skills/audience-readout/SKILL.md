@@ -148,7 +148,7 @@ node scripts/analyze.js sample.tsv --keep-fresh  # keep them, and say so in the 
 ```
 
 Age is measured against the **newest post in the sample**, not against the clock, so
-analysing the same file weeks later gives the same answer.
+analyzing the same file weeks later gives the same answer.
 
 **Pinned posts.** A pinned post sits at the top of a profile accruing views for months. Its
 rate is not comparable to anything. Dropped by default; `--keep-pinned` overrides.
@@ -166,6 +166,59 @@ a before/after trend across that date as if the algorithm held still.
   high-reach posts will look worse than it is. Compare within view bands.
 - **Sparse months.** The within-month confound check silently needs ≥3 posts per side. On a
   bursty account most months fail that, and the check quietly does nothing — say so.
+
+### 1d. Reading a contrast
+
+Every contrast now carries its own uncertainty. Four things travel with each ratio,
+and three of them exist to stop you reporting it.
+
+```
+  quote-tweet    with 2.02% / 1162 views (n=21)   without 3.29% / 1266 views (n=84)   ratio 0.61x
+                 90% CI 0.55-0.73x   drop top 2: 0.60x
+```
+
+- **Under n=10 on either side, no ratio is printed at all.** Not "directional", not a
+  number in italics — nothing. A two-decimal ratio on six posts reads as precision the
+  data does not have.
+- **90% CI** — a seeded bootstrap over both groups. Seeded, not random, so re-running the
+  same file gives the same interval. If it spans 1.0 the line says `INTERVAL SPANS 1.0 —
+  not a finding` and you do not report it.
+- **drop top 2** — the ratio recomputed without the two highest-rate posts on the "with"
+  side. If it moves more than half, the line says `CARRIED BY OUTLIERS` and the finding
+  was two posts.
+- **REACH-MATCHED** — the same contrast inside view bands.
+
+**The interval is about stability, not truth.** This is the trap. On the first account
+this ran against, long posts scored **0.06x with a 90% CI of 0.03-0.08** — as tight as
+this tool ever prints — and it was wrong. Rate falls as reach rises, the long posts were
+the high-reach posts, and the ratio was precisely estimating a confound. At matched reach
+the same account's short-post advantage collapsed from 2.04x to **0.97x / 0.99x / 1.00x**
+across three bands: no format effect at all, just reach.
+
+So: a tight interval earns a finding nothing on its own. Read the REACH-MATCHED line
+first. If it says `feature and reach cannot be separated here`, the pooled ratio is not
+reportable no matter how good the interval looks.
+
+**COLLINEARITY** lists feature pairs that are mostly the same posts. Three findings that
+are one finding wearing hats is the easiest way to sound three times as confident and be
+no more right — on that same account, 80% of image posts were also the long posts.
+
+### 1e. What the collector cannot see
+
+Worth stating in the write-up rather than discovering later:
+
+- **It reads the English UI.** Pinned, "Replying to" and repost detection all match
+  English aria-labels. On another display language those flags silently come back false.
+- **Stored text is capped at 240 characters.** `textLen` is the true length, so length
+  bands are fine, but anything read out of the text itself is not. The question flag is
+  computed at collection time on the full string for this reason; older archives collected
+  before that fall back to judging only posts whose text is complete, and the rest are
+  excluded from the contrast rather than counted as "no".
+- **Everything comes from the profile timeline** — no impressions breakdown, no
+  follower-vs-non-follower split, no idea what X actually showed anyone.
+- **There is no API path here.** Where X API credits exist, `get_users_posts` returns full
+  text, `public_metrics`, `note_tweet` and `referenced_tweets` — strictly better than
+  scraping, and it maps onto the same TSV. Write it outside the repo either way.
 
 ### 2. Export and analyze
 

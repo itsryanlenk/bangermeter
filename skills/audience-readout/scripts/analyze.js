@@ -65,7 +65,7 @@ const MATURITY_H = (() => {
 const dropped = { fresh: 0, pinned: 0 };
 {
   // Age is measured against the NEWEST post in the sample, not against now, so a
-  // scan analysed weeks later gives the same answer as one analysed immediately.
+  // scan analyzed weeks later gives the same answer as one analyzed immediately.
   const newest = Math.max(...rows.map(r => Date.parse(r.iso)).filter(t => !isNaN(t)));
   rows.forEach(r => {
     const t = Date.parse(r.iso);
@@ -108,7 +108,12 @@ rows.forEach(r => {
   r.tr = r.reposts / r.views;
   r.br = (r.bookmarks || 0) / r.views;
   r.text = r.text || "";
-  r.hasQ = /\?/.test(r.text);
+  // hasQ comes from the collector when present, because the stored text is
+  // truncated at 240 chars and a question mark past that point is invisible
+  // here. Without it, only judge posts whose text is complete.
+  r.hasQ = r.hasQuestion != null && r.hasQuestion !== ""
+    ? (r.hasQuestion === "1" || r.hasQuestion === 1 || r.hasQuestion === true)
+    : (r.textLen <= 240 ? /\?/.test(r.text) : null);
   r.words = r.text.split(/\s+/).filter(Boolean).length;
   r.month = (r.iso || "").slice(0, 7);
   if (E) {
@@ -170,25 +175,89 @@ console.log("\nBY LENGTH");
 });
 
 // ── feature contrasts, with the confound check ──────────────────────────────
+
+// A ratio of medians with no interval is the single most misleading thing this
+// script can print, and it printed plenty of them before this existed. Two
+// checks now travel with every contrast:
+//
+//   - a bootstrap interval, so an n=11 ratio cannot masquerade as an n=110 one
+//   - leave-out-top-2, because on a bursty account one viral post can carry a
+//     whole "finding" on its back
+//
+// The RNG is seeded, not Math.random. Re-running the same file has to give the
+// same interval, for the same reason post age is measured against the newest
+// post rather than the clock — a number that moves when you look at it again
+// is not evidence.
+function lcg(seed) {
+  let x = seed >>> 0;
+  return () => (x = (Math.imul(x, 1664525) + 1013904223) >>> 0) / 4294967296;
+}
+function bootRatio(a, b, B) {
+  B = B || 2000;
+  const rnd = lcg(a.length * 7919 + b.length * 104729 + 12345);
+  const out = [];
+  for (let i = 0; i < B; i++) {
+    const ra = [], rb = [];
+    for (let j = 0; j < a.length; j++) ra.push(a[(rnd() * a.length) | 0]);
+    for (let j = 0; j < b.length; j++) rb.push(b[(rnd() * b.length) | 0]);
+    const mb = med(rb);
+    if (mb > 0) out.push(med(ra) / mb);
+  }
+  out.sort((x, y) => x - y);
+  if (out.length < 100) return null;
+  return [out[(out.length * 0.05) | 0], out[(out.length * 0.95) | 0]];
+}
+// Drop the two most extreme posts from the "with" side and see what is left.
+function withoutTop2(a, b) {
+  if (a.length < 5) return null;
+  const trimmed = [...a].sort((x, y) => x - y).slice(0, -2);
+  const mb = med(b);
+  return mb > 0 ? med(trimmed) / mb : null;
+}
+
+// The skill says treat n under ~10 as directional. This used to say "too few"
+// only below 4, so an n=6 contrast printed a confident-looking two-decimal
+// ratio. The two numbers now agree, and the stricter one wins.
+const MIN_N = 10;
+
 const FEATURES = [
   ["quote-tweet", r => r.isQuote],
   ["image", r => r.hasImage],
   ["video", r => r.hasVideo],
-  ["question", r => r.hasQ],
+  ["question", r => r.hasQ === true, r => r.hasQ != null],
   ["short (<80)", r => r.textLen < 80],
   ["long (>220)", r => r.textLen > 220]
 ];
 
 console.log("\nFEATURE CONTRASTS — median like rate, and median views");
-FEATURES.forEach(([name, f]) => {
-  const a = rows.filter(f), b = rows.filter(r => !f(r));
-  if (a.length < 4 || b.length < 4) {
-    console.log(`  ${name.padEnd(14)} n=${a.length} — too few to call`);
+FEATURES.forEach(([name, f, elig]) => {
+  const pool = elig ? rows.filter(elig) : rows;
+  const a = pool.filter(f), b = pool.filter(r => !f(r));
+  if (a.length < MIN_N || b.length < MIN_N) {
+    console.log(`  ${name.padEnd(14)} n=${a.length} vs ${b.length} — under ${MIN_N}, no ratio printed`);
     return;
   }
-  const ra = med(a.map(r => r.lr)), rb = med(b.map(r => r.lr));
+  const la = a.map(r => r.lr), lb = b.map(r => r.lr);
+  const ra = med(la), rb = med(lb);
+  const ci = bootRatio(la, lb);
+  const t2 = withoutTop2(la, lb);
+
   console.log(`  ${name.padEnd(14)} with ${pc(ra)} / ${String(med(a.map(r => r.views))).padStart(6)} views (n=${a.length})` +
     `   without ${pc(rb)} / ${String(med(b.map(r => r.views))).padStart(6)} views (n=${b.length})   ratio ${(ra / rb).toFixed(2)}x`);
+
+  const notes = [];
+  if (ci) {
+    notes.push(`90% CI ${ci[0].toFixed(2)}–${ci[1].toFixed(2)}x`);
+    if (ci[0] < 1 && ci[1] > 1) notes.push("INTERVAL SPANS 1.0 — not a finding");
+  }
+  if (t2 != null) {
+    notes.push(`drop top 2: ${t2.toFixed(2)}x`);
+    // A ratio that moves by more than half when two posts leave was those two posts.
+    if (ra / rb > 0 && Math.abs(t2 - ra / rb) / (ra / rb) > 0.5) {
+      notes.push("CARRIED BY OUTLIERS");
+    }
+  }
+  if (notes.length) console.log(`  ${" ".repeat(14)} ${notes.join("   ")}`);
 });
 
 // A contrast is not a finding until it survives being split by month. If it only
@@ -196,17 +265,82 @@ FEATURES.forEach(([name, f]) => {
 const months = [...new Set(rows.map(r => r.month).filter(Boolean))].sort();
 if (months.length > 1) {
   console.log("\nCONFOUND CHECK — does each contrast hold WITHIN each month?");
-  FEATURES.forEach(([name, f]) => {
+  FEATURES.forEach(([name, f, elig]) => {
     const parts = [];
     months.forEach(m => {
-      const s = rows.filter(r => r.month === m);
+      const s = rows.filter(r => r.month === m && (!elig || elig(r)));
       const a = s.filter(f), b = s.filter(r => !f(r));
-      if (a.length < 3 || b.length < 3) return;
+      if (a.length < MIN_N || b.length < MIN_N) return;
       parts.push(`${m} ${(med(a.map(r => r.lr)) / med(b.map(r => r.lr))).toFixed(2)}x`);
     });
     if (parts.length) console.log(`  ${name.padEnd(14)} ${parts.join("   ")}`);
   });
   console.log("  (a ratio that flips or vanishes month to month was a timing artifact)");
+}
+
+// ── reach-matched contrast ──────────────────────────────────────────────────
+// The bootstrap interval says whether a ratio is STABLE. It says nothing about
+// whether it is REAL, and on the first account this ran against that gap was
+// nearly a wrong answer: long posts scored 0.06x with a tight 0.03–0.08
+// interval, which reads as overwhelming. At matched reach it was about 0.83x.
+// The ratio was precisely estimating a confound.
+//
+// Rate falls as reach rises for almost every account, so any feature used on
+// high-reach posts inherits a penalty that belongs to the reach, not the
+// feature. Compare inside view bands or do not compare.
+const BANDS = [[0, 5e3], [5e3, 15e3], [15e3, 60e3], [60e3, Infinity]];
+const bandName = ([lo, hi]) =>
+  (lo >= 1e3 ? lo / 1e3 + "k" : lo) + "-" + (hi === Infinity ? "+" : hi / 1e3 + "k");
+
+console.log("\nREACH-MATCHED — same contrast, inside view bands");
+console.log("  (rate falls as reach rises, so a feature used on big posts looks worse than it is)");
+FEATURES.forEach(([name, f, elig]) => {
+  const pool = elig ? rows.filter(elig) : rows;
+  const parts = [];
+  let thin = 0;
+  BANDS.forEach(band => {
+    const s2 = pool.filter(r => r.views >= band[0] && r.views < band[1]);
+    const a = s2.filter(f), b = s2.filter(r => !f(r));
+    if (a.length < 3 || b.length < 3) { if (a.length || b.length) thin++; return; }
+    const mb = med(b.map(r => r.lr));
+    if (!mb) return;
+    parts.push(`${bandName(band)} ${(med(a.map(r => r.lr)) / mb).toFixed(2)}x (n=${a.length}/${b.length})`);
+  });
+  if (parts.length) {
+    console.log(`  ${name.padEnd(14)} ${parts.join("   ")}`);
+    if (thin) console.log(`  ${" ".repeat(14)} ${thin} band(s) too thin to compare — the pooled ratio spans reaches this cannot`);
+  } else if (thin) {
+    console.log(`  ${name.padEnd(14)} no band has 3 on both sides — feature and reach cannot be separated here`);
+  }
+});
+
+// ── collinearity ────────────────────────────────────────────────────────────
+// Three findings that are one finding wearing hats is the failure mode this
+// catches. On the first account, 80% of image posts and 71% of video posts were
+// also the long posts — reporting all three would have been three times as
+// confident and no more true.
+console.log("\nCOLLINEARITY — features that are mostly the same posts");
+const overlaps = [];
+for (let i = 0; i < FEATURES.length; i++) {
+  for (let j = i + 1; j < FEATURES.length; j++) {
+    const [n1, f1] = FEATURES[i], [n2, f2] = FEATURES[j];
+    const A = rows.filter(f1), B = rows.filter(f2);
+    if (A.length < 4 || B.length < 4) continue;
+    const both = rows.filter(r => f1(r) && f2(r)).length;
+    const jac = both / (A.length + B.length - both);
+    // Either direction counts: a small feature swallowed by a big one is still
+    // not independent evidence.
+    const share = Math.max(both / A.length, both / B.length);
+    if (share >= 0.7 || jac >= 0.5) overlaps.push([n1, n2, both, A.length, B.length, share]);
+  }
+}
+if (overlaps.length) {
+  overlaps.sort((x, y) => y[5] - x[5]).forEach(([n1, n2, both, na, nb, share]) => {
+    console.log(`  ${n1} + ${n2}: ${both} posts in common (${(share * 100).toFixed(0)}% of the smaller set)`);
+  });
+  console.log("  these are not independent findings — pick the one you can defend and drop the rest");
+} else {
+  console.log("  none above threshold — the contrasts above are on reasonably distinct post sets");
 }
 
 // ── reach vs rate ───────────────────────────────────────────────────────────

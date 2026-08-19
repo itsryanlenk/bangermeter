@@ -20,6 +20,7 @@
   const WORDS = {
     reply: "replies", replies: "replies", repost: "reposts", reposts: "reposts",
     like: "likes", likes: "likes", bookmark: "bookmarks", bookmarks: "bookmarks",
+    quote: "quotes", quotes: "quotes",
     view: "views", views: "views"
   };
 
@@ -54,7 +55,8 @@
       const social = a.querySelector('[data-testid="socialContext"]');
       const st = social ? social.innerText : "";
       const head = a.innerText.slice(0, 200);
-      const quoteCard = a.querySelector('div[role="link"]');
+      const quoteCard = [...a.querySelectorAll('div[role="link"]')]
+        .find(d => d.querySelector('[data-testid="tweetText"]'));
       const txt = (a.querySelector('[data-testid="tweetText"]') || {}).innerText || "";
       const ts = Date.parse(t.getAttribute("datetime"));
 
@@ -62,15 +64,16 @@
         id, handle, iso: t.getAttribute("datetime"),
         ageMin: isNaN(ts) ? null : Math.round((Date.now() - ts) / 60000),
         views: c.views, likes: c.likes || 0, replies: c.replies || 0,
-        reposts: c.reposts || 0, bookmarks: c.bookmarks || 0,
+        reposts: c.reposts || 0, bookmarks: c.bookmarks || 0, quotes: c.quotes || 0,
         isRepost: /reposted/i.test(st),
         isPinned: /pinned/i.test(st),
         isReply: /Replying to/i.test(head) && !/reposted/i.test(st),
-        isQuote: !!(quoteCard && quoteCard.querySelector('[data-testid="tweetText"]')),
+        isQuote: !!quoteCard,
         hasImage: !!a.querySelector('[data-testid="tweetPhoto"]'),
         hasVideo: !!a.querySelector('[data-testid="videoPlayer"],[data-testid="videoComponent"],video'),
         verified: !!a.querySelector('svg[data-testid="icon-verified"]'),
         textLen: txt.length,
+        hasQuestion: /[?？]/.test(txt),
         text: txt.slice(0, 240).replace(/\s+/g, " ")
       });
       added++;
@@ -176,7 +179,8 @@
   window.__arExport = function (name) {
     const rows = [...window.__ar.seen.values()];
     const cols = ["iso", "handle", "views", "likes", "replies", "reposts", "bookmarks",
-      "isReply", "isRepost", "isQuote", "hasImage", "hasVideo", "verified", "textLen", "text"];
+      "quotes", "isReply", "isRepost", "isQuote", "hasQuestion", "hasImage", "hasVideo",
+      "verified", "textLen", "text"];
     const clean = s => String(s == null ? "" : s).replace(/[\t\r\n]+/g, " ").replace(/"/g, "'");
     const tsv = cols.join("\t") + "\n" + rows.map(r =>
       cols.map(c => typeof r[c] === "boolean" ? (r[c] ? 1 : 0) : clean(r[c])).join("\t")).join("\n");
