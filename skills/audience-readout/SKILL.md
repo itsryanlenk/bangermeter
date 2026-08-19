@@ -131,6 +131,42 @@ __AR_BUDGET = { posts: 400, minutes: 20 };
 
 Raise it because the sample needs it, not because a sweep ended early.
 
+### 1c. Cleaning — what a longer scan drags in
+
+The analyzer cleans by default and says what it dropped. Longer scans need this more,
+because they pick up more of what is not comparable.
+
+**Post maturity (the one that actually bites).** A young post is still accruing views.
+Likes arrive fast from followers; views keep coming for days. Measured mid-flight, a fresh
+post's rate reads high — about **1.4×** on the samples this was calibrated against. Posts
+under **48h** are dropped by default.
+
+```
+node scripts/analyze.js sample.tsv               # cleaned (default)
+node scripts/analyze.js sample.tsv --hours=72    # stricter cutoff
+node scripts/analyze.js sample.tsv --keep-fresh  # keep them, and say so in the write-up
+```
+
+Age is measured against the **newest post in the sample**, not against the clock, so
+analysing the same file weeks later gives the same answer.
+
+**Pinned posts.** A pinned post sits at the top of a profile accruing views for months. Its
+rate is not comparable to anything. Dropped by default; `--keep-pinned` overrides.
+
+**The 13 Aug 2026 weight change.** X published new ranking weights that day. A sample
+straddling it mixes two regimes, and the analyzer warns when both sides have ≥5 posts. It
+does not drop anything — the split is usually the point of a long scan — but do not report
+a before/after trend across that date as if the algorithm held still.
+
+**What cleaning will not fix**
+
+- **Collinear features.** If every long post also has an image, "images underperform" and
+  "long posts underperform" are one finding. Check the overlap before reporting either.
+- **Reach dilution.** Rate falls as reach rises for almost every account. A format used on
+  high-reach posts will look worse than it is. Compare within view bands.
+- **Sparse months.** The within-month confound check silently needs ≥3 posts per side. On a
+  bursty account most months fail that, and the check quietly does nothing — say so.
+
 ### 2. Export and analyze
 
 `__arExport()` downloads a TSV. Then:

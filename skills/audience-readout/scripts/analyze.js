@@ -48,6 +48,60 @@ let rows = lines.slice(1).map(l => {
 
 if (!rows.length) { console.error("no scoreable rows (need views > 0)"); process.exit(2); }
 
+// ── Cleaning ────────────────────────────────────────────────────────────────
+// Longer scans pick up posts that are not comparable to the rest. Removing them
+// is not tidiness — leaving them in silently shifts every median.
+//
+//   --keep-fresh   keep posts younger than the maturity cutoff
+//   --keep-pinned  keep pinned posts
+//   --hours=N      change the maturity cutoff (default 48)
+const KEEP_FRESH = process.argv.includes("--keep-fresh");
+const KEEP_PINNED = process.argv.includes("--keep-pinned");
+const MATURITY_H = (() => {
+  const a = process.argv.find(x => x.startsWith("--hours="));
+  return a ? Math.max(0, parseInt(a.slice(8), 10) || 0) : 48;
+})();
+
+const dropped = { fresh: 0, pinned: 0 };
+{
+  // Age is measured against the NEWEST post in the sample, not against now, so a
+  // scan analysed weeks later gives the same answer as one analysed immediately.
+  const newest = Math.max(...rows.map(r => Date.parse(r.iso)).filter(t => !isNaN(t)));
+  rows.forEach(r => {
+    const t = Date.parse(r.iso);
+    r.ageH = isNaN(t) ? Infinity : (newest - t) / 3600000;
+  });
+  const before = rows.length;
+  rows = rows.filter(r => {
+    // A young post is still accruing views. Likes arrive fast from followers and
+    // views keep coming for days, so its rate is measured mid-flight and reads
+    // high — around 1.4x on the samples this was calibrated against.
+    if (!KEEP_FRESH && r.ageH < MATURITY_H) { dropped.fresh++; return false; }
+    // A pinned post sits at the top of the profile accruing views for months.
+    if (!KEEP_PINNED && r.isPinned) { dropped.pinned++; return false; }
+    return true;
+  });
+  if (before !== rows.length) {
+    console.log(`cleaned : dropped ${dropped.fresh} posts under ${MATURITY_H}h` +
+      (dropped.pinned ? `, ${dropped.pinned} pinned` : "") +
+      `  (${rows.length} of ${before} remain)`);
+  }
+  if (!rows.length) { console.error("nothing left after cleaning — try --keep-fresh"); process.exit(2); }
+}
+
+// The published ranking weights changed on 13 Aug 2026. A sample spanning that
+// date mixes two regimes, and any before/after comparison is confounded by it.
+{
+  const CHANGE = Date.parse("2026-08-13T00:00:00Z");
+  const t = rows.map(r => Date.parse(r.iso)).filter(x => !isNaN(x));
+  const before = t.filter(x => x < CHANGE).length, after = t.length - before;
+  if (before >= 5 && after >= 5) {
+    console.log(`WARNING : sample straddles the 13 Aug 2026 weight change ` +
+      `(${before} before, ${after} after) — treat any trend across that date with care`);
+  }
+}
+
+
 rows.forEach(r => {
   r.lr = r.likes / r.views;
   r.rr = r.replies / r.views;
