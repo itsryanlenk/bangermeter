@@ -54,7 +54,7 @@ reply, or DM from an automated session. The account belongs to a person.
 one.** Rate limiting is the platform asking you to stop. `__arSweep` enforces
 this rather than trusting you to notice: it stops on the first unclearing
 spinner, on a per-session budget (250 posts / 12 minutes by default), and it
-jitters every delay so the cadence is not machine-regular.
+jitters every delay so the cadence is not machine-regular. A quiet round escalates the wait rather than quitting — a slow profile can take several seconds to serve the next batch, and giving up early is how a sweep ends at five posts.
 
 A sample gathered over four short sessions is worth exactly as much as one
 gathered in a single long sitting, and looks far less like automation. The
@@ -179,7 +179,7 @@ Follow `references/readout-template.md`. Non-negotiables:
 |---|---|---|
 | Sweep ends at "post budget" / "time budget" | Working as designed | Save, come back later, `__arLoad()` |
 | Sweep ends at "throttled" | Spinner would not clear | Stop for the day. Do not retry immediately |
-| Sweep stalls at 5–15 posts | Collecting before the render settles | Collect twice per scroll, 700ms apart |
+| Sweep stalls at 5–15 posts | Page serves slower than the sweep waits | Patience now escalates on a quiet round. If it still stalls, the page is throttled — stop |
 | Search returns the same posts repeatedly | Not deduping by post ID | `__arCollect` dedupes; do not bypass it |
 | Profile stops loading, no spinner, not at bottom | Pagination depth cap | Switch to date-bounded search windows |
 | Every post scores 100 | Account far above baseline; the score saturates | Rank by rate instead, and say the score saturated |

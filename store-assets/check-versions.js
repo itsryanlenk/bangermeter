@@ -94,6 +94,30 @@ try {
   problems.push("could not verify test counts: " + e.message);
 }
 
+// 5. Account archives. The audience-readout skill collects a real person's
+// posting history, and that must never be committed. .gitignore covers the usual
+// filenames, but a renamed file would slip straight through — so match on SHAPE.
+try {
+  const { execSync } = require("child_process");
+  const tracked = execSync("git ls-files", { cwd: root, encoding: "utf8" })
+    .trim().split(/\r?\n/).filter(Boolean);
+  const ARCHIVE_COLS = ["views", "likes", "replies", "reposts"];
+  for (const f of tracked) {
+    if (!/\.(tsv|csv)$/i.test(f)) continue;
+    let head;
+    try { head = (read(f).split(/\r?\n/)[0] || ""); } catch { continue; }
+    const cols = head.toLowerCase().split(/[\t,]/).map(c => c.trim());
+    const hits = ARCHIVE_COLS.filter(c => cols.includes(c));
+    if (hits.length >= 3 && cols.includes("text")) {
+      problems.push(f + " looks like a collected account archive (has " + hits.join(", ") +
+        " and post text). Archives identify a real person and must not be committed — " +
+        "move it outside the repo.");
+    }
+  }
+} catch (e) {
+  problems.push("could not scan for account archives: " + e.message);
+}
+
 if (problems.length) {
   console.error("version check FAILED\n");
   problems.forEach(p => console.error("  - " + p));

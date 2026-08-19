@@ -89,11 +89,15 @@
   window.__AR_BUDGET = window.__AR_BUDGET || { posts: 250, minutes: 12 };
 
   // Collects TWICE per scroll position. X renders after the scroll settles, so a
-  // single collect right after scrollBy misses most of what appears — this is
-  // the usual reason a sweep appears to stall at a low count.
+  // single collect right after scrollBy misses most of what appears.
   //
-  // Stops on: budget reached, stall limit, or the first sign of throttling.
-  window.__arSweep = async function (rounds = 20, stallLimit = 3) {
+  // Patience ESCALATES on a quiet round rather than giving up. A slow profile can
+  // take several seconds to serve the next batch, and the previous fixed 1.3s
+  // cadence with a 3-round stall limit abandoned real profiles at ~5 posts. Fast
+  // pages never reach the longer waits, so this costs nothing when it is not needed.
+  //
+  // Stops on: budget reached, genuine stall after escalating patience, or throttling.
+  window.__arSweep = async function (rounds = 24, stallLimit = 5) {
     const startedAt = Date.now();
     const startCount = window.__ar.seen.size;
     let stall = 0, reason = "rounds";
@@ -104,8 +108,8 @@
 
       const before = window.__ar.seen.size;
       window.scrollBy(0, window.innerHeight * (0.7 + Math.random() * 0.15));
-      await jitter(700, 500); window.__arCollect();
-      await jitter(600, 500); window.__arCollect();
+      await jitter(900, 600); window.__arCollect();
+      await jitter(900, 600); window.__arCollect();
 
       // A spinner that will not clear is the platform asking us to slow down.
       // Back off once; if it is still spinning, end the session.
@@ -114,7 +118,15 @@
         if (document.querySelector('[role="progressbar"]')) { reason = "throttled"; break; }
       }
 
-      stall = window.__ar.seen.size === before ? stall + 1 : 0;
+      if (window.__ar.seen.size === before) {
+        stall++;
+        // Give a slow page progressively longer to catch up before counting it out.
+        await jitter(1000 * stall, 700);
+        window.__arCollect();
+        if (window.__ar.seen.size > before) stall = 0;   // it was slow, not finished
+      } else {
+        stall = 0;
+      }
       if (stall >= stallLimit) { reason = "stalled"; break; }
     }
 
@@ -130,6 +142,7 @@
                   "__arLoad() picks up where this left off.");
     }
     return out;
+
   };
 
   window.__arSave = () => {
