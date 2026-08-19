@@ -118,6 +118,37 @@ try {
   problems.push("could not scan for account archives: " + e.message);
 }
 
+// 6. British spellings. The repo was swept to US spellings once already, and the
+// worst instance was inside a quote box: a card said "personalised" where X had
+// written "personalized", turning a precision claim into a misquote. Prose drifts
+// back one commit at a time — two more crept in during the session that added
+// this — so check it rather than remember it.
+const BRITISH = new RegExp(
+  "\\b(analys(?:e|ed|es|ing)|behaviour|optimis(?:e|ed|es|ing|ation)|" +
+  "recognis(?:e|ed|es|ing)|summaris(?:e|ed|es|ing)|personalis(?:e|ed|es|ing|ation)|" +
+  "organis(?:e|ed|es|ing|ation)|centre|colour|favourite|catalogue|whilst|honour)" +
+  "\\w*\\b", "gi");
+try {
+  const { execSync } = require("child_process");
+  const tracked = execSync("git ls-files", { cwd: root, encoding: "utf8" })
+    .trim().split(/\r?\n/).filter(Boolean)
+    .filter(f => /\.(md|txt|html|js)$/i.test(f))
+    // this file names the spellings it looks for, so it always matches itself
+    .filter(f => !/check-versions/.test(f));
+  for (const f of tracked) {
+    let text;
+    try { text = read(f); } catch { continue; }
+    text.split(/\r?\n/).forEach((line, i) => {
+      for (const m of line.matchAll(BRITISH)) {
+        problems.push(`${f}:${i + 1} uses British spelling "${m[0]}" — this repo is US English`
+          + `\n    ${line.trim().slice(0, 90)}`);
+      }
+    });
+  }
+} catch (e) {
+  problems.push("could not scan for British spellings: " + e.message);
+}
+
 if (problems.length) {
   console.error("version check FAILED\n");
   problems.forEach(p => console.error("  - " + p));
