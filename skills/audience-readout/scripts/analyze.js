@@ -48,6 +48,33 @@ let rows = lines.slice(1).map(l => {
 
 if (!rows.length) { console.error("no scoreable rows (need views > 0)"); process.exit(2); }
 
+// Replies are a different product and belong in a different sample. A reply is
+// distributed to one conversation; an original is distributed to a timeline.
+// Every rate here divides by views, so pooling the two divides by denominators
+// drawn from two different distributions and measures neither.
+//
+// Expect replies to run one to two orders of magnitude below originals on views
+// and well above them on like rate, since the few people who see a reply are
+// already in the conversation. Mixing them drags the median in both directions
+// at once, and the damage scales with how much of the sample they are — an
+// account that replies heavily can be a quarter replies or more.
+//
+// This filter is separate from the isRepost filter above, which drops posts the
+// account did not write. A reply IS the account's own writing; it is just
+// answering a different question, so it gets analyzed on its own terms.
+const INCLUDE_REPLIES = process.argv.includes("--include-replies");
+const replyCount = rows.filter(r => r.isReply).length;
+if (!INCLUDE_REPLIES && replyCount) {
+  rows = rows.filter(r => !r.isReply);
+  console.log(`replies : dropped ${replyCount} (they answer a conversation, not a timeline` +
+    ` — pass --include-replies to analyze them instead)`);
+  if (!rows.length) {
+    console.error("nothing left after dropping replies — this sample is all replies;" +
+      " rerun with --include-replies if that is what you meant to study");
+    process.exit(2);
+  }
+}
+
 // ── Cleaning ────────────────────────────────────────────────────────────────
 // Longer scans pick up posts that are not comparable to the rest. Removing them
 // is not tidiness — leaving them in silently shifts every median.
