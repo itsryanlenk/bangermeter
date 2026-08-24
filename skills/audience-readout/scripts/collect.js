@@ -32,9 +32,29 @@
     return isNaN(n) ? null : n;
   };
 
+  // Author of an article, or null. Needed in DOM order, so it is factored out.
+  function authorOf(a) {
+    const t = a.querySelector('a[href*="/status/"] time');
+    if (!t) return null;
+    const m = (t.parentElement.getAttribute("href") || "").match(/\/([^\/]+)\/status\/(\d+)/);
+    return m ? m[1] : null;
+  }
+
   window.__arCollect = function () {
     let added = 0;
-    document.querySelectorAll('article[data-testid="tweet"]').forEach(a => {
+    // Walk in DOM order and remember the previous article's author. The
+    // /with_replies tab renders CONVERSATION PAIRS — someone else's post, then
+    // the account's reply to it — and the reply carries no "Replying to" label,
+    // because the post above it is the context. Reading the label alone there
+    // files every reply as an original, which silently inverts the whole
+    // sample: one pass over that tab returned 74 originals and 1 reply for an
+    // account that almost only replies.
+    const arts = [...document.querySelectorAll('article[data-testid="tweet"]')];
+    let prevAuthor = null;
+    arts.forEach((a, idx) => {
+      const thisAuthor = authorOf(a);
+      const prior = prevAuthor;
+      prevAuthor = thisAuthor || prevAuthor;
       const t = a.querySelector('a[href*="/status/"] time');
       if (!t) return;
       const m = (t.parentElement.getAttribute("href") || "").match(/\/([^\/]+)\/status\/(\d+)/);
@@ -67,7 +87,17 @@
         reposts: c.reposts || 0, bookmarks: c.bookmarks || 0, quotes: c.quotes || 0,
         isRepost: /reposted/i.test(st),
         isPinned: /pinned/i.test(st),
-        isReply: /Replying to/i.test(head) && !/reposted/i.test(st),
+        // Two independent signals, because neither covers both tabs:
+        //   label  — "Replying to @x", present on the Posts tab and the feed
+        //   parent — the article directly above is someone else's, which is how
+        //            /with_replies marks a reply and the only signal there
+        // A first-in-DOM article has no parent to inspect, so it falls back to
+        // the label; that costs at most one row per collect pass.
+        isReply: !/reposted/i.test(st) &&
+                 (/Replying to/i.test(head) || (!!prior && prior.toLowerCase() !== handle.toLowerCase())),
+        replySignal: /Replying to/i.test(head) ? "label"
+                   : (!!prior && prior.toLowerCase() !== handle.toLowerCase()) ? "parent"
+                   : (idx === 0 ? "first-in-dom" : "none"),
         isQuote: !!quoteCard,
         hasImage: !!a.querySelector('[data-testid="tweetPhoto"]'),
         hasVideo: !!a.querySelector('[data-testid="videoPlayer"],[data-testid="videoComponent"],video'),
@@ -179,7 +209,7 @@
   window.__arExport = function (name) {
     const rows = [...window.__ar.seen.values()];
     const cols = ["iso", "handle", "views", "likes", "replies", "reposts", "bookmarks",
-      "quotes", "isReply", "isRepost", "isQuote", "hasQuestion", "hasImage", "hasVideo",
+      "quotes", "isReply", "replySignal", "isRepost", "isQuote", "hasQuestion", "hasImage", "hasVideo",
       "verified", "textLen", "text"];
     const clean = s => String(s == null ? "" : s).replace(/[\t\r\n]+/g, " ").replace(/"/g, "'");
     const tsv = cols.join("\t") + "\n" + rows.map(r =>

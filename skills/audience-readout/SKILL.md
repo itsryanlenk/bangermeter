@@ -207,6 +207,50 @@ bounds to describe the sample — use the dates actually present in it.
 account a June gap was genuinely quiet while an August gap of the same width was
 pure truncation. Never report a gap as a quiet period without probing it.
 
+### 1b-iii. The tabs render differently, and one of them lies
+
+A profile has three surfaces and they are not interchangeable.
+
+| Tab | What it holds | Reply marked by |
+|---|---|---|
+| Posts | originals and self-threads | "Replying to @x" label |
+| **with_replies** | **conversation pairs — their post, then the reply** | **nothing. the post above it is the context** |
+| Media | posts carrying an image or video | label, when present |
+
+**A reply on `/with_replies` carries no label.** X renders the parent post as its own
+article directly above, and that adjacency *is* the marker. Read only the label there
+and every reply files as an original — one pass over that tab returned **74 originals
+and 1 reply** for an account that barely posts anything but replies.
+
+`__arCollect` now reads two signals and records which one fired, in `replySignal`:
+
+- `label` — "Replying to @x" was present
+- `parent` — the article directly above belongs to somebody else
+- `first-in-dom` — nothing above it to inspect, so the label was all there was
+- `none` — neither, so it really is an original
+
+Regression tests for both layouts live in `scripts/test-collect.js`. Run them after
+touching the collector:
+
+```bash
+node skills/audience-readout/scripts/test-collect.js
+```
+
+**Which tab to collect from.** Not the obvious one:
+
+- **Posts** for originals. This is what the read-out analyzes, and the tab is clean.
+- **with_replies** only when replies are the subject. It costs roughly **double the
+  pixels per day**, because every reply drags its parent along — on one account a
+  378,000-pixel scroll bought 26 days, against about 14,600 pixels per day. It reaches
+  *less* far back than the Posts tab or search, not further.
+- **Media** is usually empty even on accounts that post images, so treat a blank Media
+  tab as "did not load", not as "no image posts".
+
+**A reply-heavy account is not a broken scrape.** An account can be 80–85% replies and
+still show a nearly empty Posts tab. That is the account's shape, not a collection
+failure, and the answer is to say so in the read-out rather than to keep hunting for
+originals that were never there.
+
 ### 1c. Cleaning — what a longer scan drags in
 
 The analyzer cleans by default and says what it dropped. Longer scans need this more,
