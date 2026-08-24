@@ -131,6 +131,82 @@ __AR_BUDGET = { posts: 400, minutes: 20 };
 
 Raise it because the sample needs it, not because a sweep ended early.
 
+### 1b-i. Collection playbook — what actually goes wrong
+
+Learned the hard way across several accounts. Every item here cost a run.
+
+**Clear before a new account.** `localStorage` is per-origin, so the previous
+account's sample is still sitting there when you open the next profile, and
+`__arLoad()` merges the two into one archive without complaint. The collector now
+warns when the restored sample's handle does not match `__AR_ONLY`, but the fix is
+yours:
+
+```js
+__arClear();               // then set the scope
+__AR_ONLY = "handle";
+```
+
+Getting this wrong does not produce an error. It produces a read-out about two
+people.
+
+**Autosave on a clock before any long run.** `__arAutosave()` flushes every six
+seconds. Flushing every N passes is not enough: a tab that navigates — a stray
+click, a notification, a link in a post — takes everything since the last flush
+with it, and takes the loaded timeline too.
+
+**Never navigate during a sweep.** Scrolling a long timeline open is expensive,
+and it is often a human doing it. Once it is open, treat the tab as read-only:
+open anything you want to look at in a different tab.
+
+**Use the detached runners for anything long.** Browser-automation eval has a
+timeout, typically 45 seconds. An `await` that outlives it kills your call while
+the page carries on, so you lose the result and cannot tell whether the sweep is
+working. `__arRunUp()` and `__arRunDown()` return immediately and publish
+progress on `window.__run`; poll it.
+
+**Prefer scrolling up.** After a timeline is loaded, going back up re-renders from
+cache — fast, no network. Going down fetches. On a very long timeline (200k+
+pixels) the renderer bogs down to roughly one pass per 45 seconds going down,
+which is slow enough to look broken.
+
+**Expect virtualization.** Only ten to twenty posts exist in the DOM at once.
+Everything scrolled past is discarded, which is why a sweep has to collect as it
+goes and cannot parse the page once at the end.
+
+### 1b-ii. Search windows truncate, and it looks like data
+
+This is the failure most likely to reach a deliverable, because it does not look
+like a failure. Search sorts newest-first and stops paginating well before it
+exhausts a date window. The older end of the window comes back empty, which reads
+as "they did not post then."
+
+**The tell: every populated day lands on a window boundary.** If windows were cut
+on the 1st, 8th, 16th and 24th and the sample only has posts on those dates, the
+middles were truncated, not quiet.
+
+Audit every window:
+
+```js
+__arWindowAudit("2026-07-15", "2026-07-23");
+// { posts, daysWithPosts, ofDays, perDay, verdict }
+```
+
+A `LIKELY TRUNCATED` verdict means split the window and rerun. On one account a
+three-day probe into a supposedly empty stretch returned fifteen posts, seven of
+them on a day previously recorded as having none.
+
+**Window width depends on posting volume, not on the calendar.** A busy account
+truncates inside three days; a quiet one survives a week. Start narrow, audit,
+widen only if the audit says the spread is complete.
+
+**`until:` is not honored strictly.** Windows return posts outside the requested
+range. Harmless, since collection dedupes by post ID, but do not use the query
+bounds to describe the sample — use the dates actually present in it.
+
+**Some gaps are real.** Both happen, and only the audit tells them apart: on one
+account a June gap was genuinely quiet while an August gap of the same width was
+pure truncation. Never report a gap as a quiet period without probing it.
+
 ### 1c. Cleaning — what a longer scan drags in
 
 The analyzer cleans by default and says what it dropped. Longer scans need this more,

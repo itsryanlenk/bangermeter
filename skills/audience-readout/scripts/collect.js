@@ -191,7 +191,106 @@
     return { rows: rows.length, bytes: tsv.length };
   };
 
+  // ── autosave on a clock, not on a pass counter ─────────────────────────────
+  // A sweep that flushes every N passes loses everything since the last flush
+  // when the tab navigates — and the tab does navigate, because a stray click
+  // or a notification is all it takes. Six seconds caps the loss at six seconds.
+  window.__arAutosave = function (ms) {
+    if (window.__arHeartbeat) clearInterval(window.__arHeartbeat);
+    window.__arHeartbeat = setInterval(() => { try { window.__arSave(); } catch (e) {} }, ms || 6000);
+    return "autosaving every " + ((ms || 6000) / 1000) + "s";
+  };
+
+  // ── detached runners ───────────────────────────────────────────────────────
+  // Browser-automation eval has a timeout (45s on CDP). An await that outlives
+  // it kills the call while the page keeps working, so you lose the return value
+  // and fly blind. These return immediately and publish progress on window.__run.
+  //
+  // UP walks already-loaded content: it is cached, needs no network, and is the
+  // right direction after a human has scrolled the timeline open.
+  // DOWN fetches new pages and is much slower — on a very long timeline the
+  // renderer bogs down to roughly one pass per 45s.
+  function runner(dir, opts) {
+    opts = opts || {};
+    window.__run = { active: true, done: false, passes: 0, dir: dir,
+                     start: window.__ar.seen.size, total: window.__ar.seen.size };
+    (async () => {
+      const s = ms => new Promise(r => setTimeout(r, ms));
+      const step = (opts.step || 0.85) * window.innerHeight * (dir === "up" ? -1 : 1);
+      let stall = 0;
+      while (window.__run.active && stall < (opts.stall || 8)) {
+        if (dir === "up" && window.scrollY <= 0) { window.__run.reason = "reached top"; break; }
+        const before = window.__ar.seen.size;
+        window.scrollBy(0, step);
+        await s(opts.wait || 450); window.__arCollect();
+        await s(opts.wait2 || 300); window.__arCollect();
+        window.__run.passes++;
+        window.__run.y = Math.round(window.scrollY);
+        window.__run.total = window.__ar.seen.size;
+        if (document.querySelector('[role="progressbar"]')) {
+          await s(2200);
+          if (document.querySelector('[role="progressbar"]')) {
+            window.__run.throttled = (window.__run.throttled || 0) + 1; await s(3000);
+          }
+        }
+        if (window.__ar.seen.size === before) {
+          stall++; await s(400 * stall); window.__arCollect();
+          if (window.__ar.seen.size > before) stall = 0;
+        } else stall = 0;
+        if (window.__ar.seen.size >= window.__AR_BUDGET.posts) { window.__run.reason = "budget"; break; }
+      }
+      window.__arSave();
+      window.__run.done = true; window.__run.active = false;
+      window.__run.got = window.__ar.seen.size - window.__run.start;
+      window.__run.reason = window.__run.reason || (stall >= (opts.stall || 8) ? "stalled" : "ended");
+    })();
+    return "running — poll window.__run";
+  }
+  window.__arRunUp = opts => runner("up", opts);
+  window.__arRunDown = opts => runner("down", opts);
+
+  // ── did this search window truncate? ───────────────────────────────────────
+  // Search sorts newest-first and stops paginating well before it exhausts a
+  // window. The tell is that everything collected clusters on the window's most
+  // recent day or two while the older end comes back empty — which reads as "he
+  // did not post then" and is wrong. Run this after every window.
+  window.__arWindowAudit = function (since, until) {
+    const inWin = [...window.__ar.seen.values()]
+      .filter(r => r.iso && r.iso >= since && r.iso < until);
+    const byDay = {};
+    inWin.forEach(r => { const k = r.iso.slice(0, 10); byDay[k] = (byDay[k] || 0) + 1; });
+    const days = Object.keys(byDay).sort();
+    const spanDays = Math.round((Date.parse(until) - Date.parse(since)) / 86400000);
+    // Everything sitting in the newest third of the window is the signature.
+    const cut = new Date(Date.parse(until) - spanDays * 86400000 / 3).toISOString().slice(0, 10);
+    const newestThird = days.filter(d => d >= cut).reduce((a, d) => a + byDay[d], 0);
+    const clustered = inWin.length > 0 && newestThird / inWin.length > 0.85 && days.length < spanDays;
+    return {
+      window: since + " → " + until, posts: inWin.length,
+      daysWithPosts: days.length, ofDays: spanDays,
+      perDay: days.map(d => d.slice(5) + ":" + byDay[d]).join(" ") || "none",
+      verdict: inWin.length === 0 ? "empty — either genuinely quiet or the filter did not apply"
+        : clustered ? "LIKELY TRUNCATED — split this window and rerun"
+        : "spread looks complete"
+    };
+  };
+
   window.__arLoad();
+
+  // Guard against mixing accounts. localStorage is per-origin, so a sample from
+  // the last account is still sitting there when you open the next one, and the
+  // two silently merge into one archive. This has nearly happened more than once.
+  (function () {
+    const handles = [...new Set([...window.__ar.seen.values()].map(r => r.handle).filter(Boolean))];
+    if (handles.length) {
+      console.log("restored", window.__ar.seen.size, "posts from localStorage —", handles.join(", "));
+      if (window.__AR_ONLY && !handles.some(h => h.toLowerCase() === window.__AR_ONLY.toLowerCase())) {
+        console.warn("RESTORED SAMPLE IS A DIFFERENT ACCOUNT than __AR_ONLY — call __arClear() " +
+                     "before collecting, or the two will merge into one archive.");
+      }
+    }
+  })();
   console.log("audience-readout collector ready — __arCollect() / __arSweep() / __arExport()");
-  console.log("restored from localStorage:", window.__ar.seen.size, "posts");
+  console.log("detached runners: __arRunUp() / __arRunDown(), progress on window.__run");
+  console.log("also: __arAutosave() before any long run, __arWindowAudit(since, until) after each search window");
 })();
