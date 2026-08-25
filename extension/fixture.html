@@ -18,7 +18,7 @@
   </style>
 </head>
 <body>
-  <h3 style="max-width:560px;margin:0 auto 12px;">Fixture harness v8 (Bangermeter) — replicates X DOM structure</h3>
+  <h3 style="max-width:560px;margin:0 auto 12px;">Fixture harness v9 (Bangermeter) — replicates X DOM structure</h3>
 
   <!-- Compose box replica -->
   <div class="compose">
@@ -120,6 +120,34 @@
       <button data-testid="reply" aria-label="0 Replies. Reply">💬</button>
       <button data-testid="retweet" aria-label="0 reposts. Repost">🔁</button>
       <button data-testid="like" aria-label="0 Likes. Like">❤</button>
+    </div>
+  </article>
+
+  <!-- 8: SECOND post by Alice (same author as #1) — opening its panel must show
+       the author-diversity cadence row: post #2 in the slate, ×0.62. -->
+  <article data-testid="tweet" id="t8">
+    <div data-testid="User-Name"><span class="name">Alice</span> <a href="/alice/status/1008"><time datetime="2026-08-02T13:40:00.000Z">1h</time></a></div>
+    <div data-testid="tweetText">Second thought of the morning: the espresso place changed their beans and I have opinions.</div>
+    <div role="group" aria-label="2 replies, 1 repost, 18 likes, 1 bookmark, 3000 views">
+      <button data-testid="reply" aria-label="2 Replies. Reply">💬 2</button>
+      <button data-testid="retweet" aria-label="1 repost. Repost">🔁 1</button>
+      <button data-testid="like" aria-label="18 Likes. Like">❤ 18</button>
+      <button data-testid="bookmark" aria-label="1 bookmark. Bookmark">🔖 1</button>
+    </div>
+  </article>
+
+  <!-- 9: UNKNOWN locale (Turkish-style labels) — the group aria-label parses to
+       nothing, so counts must come from the per-button testid fallback. Badge
+       should still show C and E scores (E from the analytics-link views). -->
+  <article data-testid="tweet" id="t9">
+    <div data-testid="User-Name"><span class="name">Yerel</span> <a href="/yerel/status/1009"><time datetime="2026-08-02T14:45:00.000Z">15dk</time></a></div>
+    <div data-testid="tweetText">Bu gönderi yerel ayarları test ediyor — sayılar yine de okunmalı.</div>
+    <div role="group" aria-label="5 yanıt, 3 yeniden gönderi, 50 beğeni, 2 yer işareti">
+      <button data-testid="reply" aria-label="5 yanıt. Yanıtla">💬 5</button>
+      <button data-testid="retweet" aria-label="3 yeniden gönderi. Yeniden gönder">🔁 3</button>
+      <button data-testid="like" aria-label="50 beğeni. Beğen">❤ 50</button>
+      <button data-testid="bookmark" aria-label="2 yer işareti. Yer işareti">🔖 2</button>
+      <a href="/yerel/status/1009/analytics" aria-label="9000 görüntülenme. Gönderi analizleri">📈</a>
     </div>
   </article>
 

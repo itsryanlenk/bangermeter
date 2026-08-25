@@ -43,52 +43,74 @@
 
   // ── tweet feature extraction ──────────────────────────────────────────────
 
-  var COUNT_WORDS = {
-    reply: "replies", replies: "replies",
-    repost: "retweets", reposts: "retweets", retweet: "retweets", retweets: "retweets",
-    like: "likes", likes: "likes",
-    bookmark: "bookmarks", bookmarks: "bookmarks",
-    view: "views", views: "views"
-  };
-
-  // "1 reply, 5 reposts, 30 likes, 2 bookmarks, 1034 views" -> counts object
-  function parseAriaCounts(label) {
-    var counts = {};
-    if (!label) return counts;
-    var re = /([\d.,]+[KMB]?)\s+([A-Za-z]+)/g, m;
-    while ((m = re.exec(label)) !== null) {
-      var key = COUNT_WORDS[m[2].toLowerCase()];
-      if (key && counts[key] == null) counts[key] = BangermeterEngine.parseCount(m[1]);
-    }
-    return counts;
+  // Locale-independent single-count extraction: the first numeric token in a
+  // label. Used only on elements whose data-testid already names the count
+  // (reply/retweet/like buttons), so the word around the number never matters.
+  function firstCountIn(label) {
+    if (!label) return null;
+    var m = label.match(/[\d.,]+\s?[KMB]?/);
+    return m ? BangermeterEngine.parseCount(m[0]) : null;
   }
 
   function extractCounts(article) {
     var counts = {};
     var group = article.querySelector('div[role="group"][aria-label]');
-    if (group) counts = parseAriaCounts(group.getAttribute("aria-label"));
+    // Word-table parse (engine, locale-aware) — one query covers all five counts.
+    if (group) counts = BangermeterEngine.parseActionBarLabel(group.getAttribute("aria-label"));
 
-    // Fallbacks per button when the group label was empty
+    // Per-button fallback when the group label was empty OR in a locale the
+    // word table does not know: data-testid is the same in every locale, so
+    // pairing it with the first numeric token needs no translation.
     [["reply", "replies"], ["retweet", "retweets"], ["like", "likes"],
      ["bookmark", "bookmarks"]].forEach(function (pair) {
       if (counts[pair[1]] != null) return;
       var btn = article.querySelector('button[data-testid="' + pair[0] + '"]');
       if (btn) {
-        var parsed = parseAriaCounts(btn.getAttribute("aria-label"));
-        if (parsed[pair[1]] != null) counts[pair[1]] = parsed[pair[1]];
+        var parsed = firstCountIn(btn.getAttribute("aria-label"));
+        if (parsed != null) counts[pair[1]] = parsed;
       }
     });
     if (counts.views == null) {
       var analytics = article.querySelector('a[href*="/analytics"]');
       if (analytics) {
-        var parsed = parseAriaCounts(analytics.getAttribute("aria-label"));
-        if (parsed.views != null) counts.views = parsed.views;
+        var parsed = firstCountIn(analytics.getAttribute("aria-label"));
+        if (parsed != null) counts.views = parsed;
       }
     }
     ["replies", "retweets", "likes", "bookmarks"].forEach(function (k) {
       if (counts[k] == null) counts[k] = 0;
     });
     return counts;
+  }
+
+  // The author's handle, from the first profile link in the header that is not
+  // inside a quoted-tweet card. Used only for the in-slate diversity count and
+  // the panel line that reports it — never persisted.
+  function authorHandleOf(article) {
+    var links = article.querySelectorAll('[data-testid="User-Name"] a[href^="/"]');
+    for (var i = 0; i < links.length; i++) {
+      var link = links[i];
+      var qc = link.closest('div[role="link"]');
+      if (qc && qc.querySelector('[data-testid="tweetText"]')) continue;
+      var m = (link.getAttribute("href") || "").match(/^\/([A-Za-z0-9_]{1,20})(?:[/?#]|$)/);
+      if (m) return m[1].toLowerCase();
+    }
+    return null;
+  }
+
+  // How many posts by the same author sit ABOVE this one among the currently
+  // rendered articles — the k in production's diversity_multiplier. The
+  // virtualized list only keeps a window of posts mounted, so this is a lower
+  // bound on the true slate rank, not an exact figure.
+  function authorSlateRank(article, handle) {
+    if (!handle) return 0;
+    var all = document.querySelectorAll('article[data-testid="tweet"]');
+    var k = 0;
+    for (var i = 0; i < all.length; i++) {
+      if (all[i] === article) break;
+      if (authorHandleOf(all[i]) === handle) k++;
+    }
+    return k;
   }
 
   function extractFeatures(article) {
@@ -143,8 +165,14 @@
     var socialContext = article.querySelector('[data-testid="socialContext"]');
     var firstDivs = article.innerText.slice(0, 200);
     var isRepost = !!(socialContext && /reposted/i.test(socialContext.innerText));
-    if (/Replying to/i.test(firstDivs) && !isRepost) {
-      isReply = true;
+    // The reply marker is its own rendered line, so test line starts — a post
+    // whose TEXT mentions "replying to" must not flag. Locale table lives in
+    // the engine (replyMarkerIn).
+    if (!isRepost) {
+      var markerLines = firstDivs.split("\n");
+      for (var ml = 0; ml < markerLines.length; ml++) {
+        if (BangermeterEngine.replyMarkerIn(markerLines[ml])) { isReply = true; break; }
+      }
     }
 
     // Does THIS post quote another? (enables the quoted-click head)
@@ -183,6 +211,7 @@
 
     return {
       tweetId: tweetId,
+      authorHandle: authorHandleOf(article),
       text: text,
       counts: extractCounts(article),
       hasVideo: hasVideo,
@@ -385,10 +414,27 @@
     });
   }
 
+  // Score history — a capped, local-only log of panel opens so a creator can
+  // see which formats score consistently higher over time. chrome.storage.local
+  // (never sync), 200 entries, and only what the entry needs: id, time, scores,
+  // views, reply flag, an 80-char snippet. No author handle, no full text.
+  function recordHistory(features, result) {
+    if (!settings.keepHistory) return;
+    try {
+      var entry = BangermeterEngine.makeHistoryEntry(features, result, Date.now());
+      chrome.storage.local.get({ bmHistory: [] }, function (data) {
+        chrome.storage.local.set({
+          bmHistory: BangermeterEngine.pushHistory(data.bmHistory || [], entry, 200)
+        });
+      });
+    } catch (e) { /* storage unavailable (fixture harness) — history is optional */ }
+  }
+
   function openPanel(article, anchor) {
     closePanel();
     var features = extractFeatures(article);
     var result = BangermeterEngine.scoreTweet(features, settings);
+    recordHistory(features, result);
 
     panel = el("div", "bangermeter-panel");
     panel.setAttribute("role", "dialog");
@@ -448,10 +494,36 @@
         "(−46% reposts / −44% likes post-attach)."));
     }
     if (result.features.isReply) {
-      var bangNote = el("div", "bangermeter-sub",
-        "Replies are also filtered out of X's Grok “banger” pipeline before it runs — " +
-        "it only ever evaluates original posts (grox/flows/upa/task_filter.py).");
-      sec1.appendChild(bangNote);
+      // Reply-specific scoring facts, all verified against the published repo.
+      // The ×0.75 rescorer row above already covers the in-feed discount.
+      var RQ = BANGERMETER_CONFIG.sourcedFacts.replyQualityGate;
+      sec1.appendChild(el("div", "bangermeter-subhead", "Reply scoring"));
+      [
+        { mark: "·", text: "Out-of-network, this reply never reaches For You at all — replies " +
+            "from unfollowed accounts are hard-filtered, not down-weighted.",
+          tip: BANGERMETER_CONFIG.sourcedFacts.oonReplyFilter.note + " (" +
+            BANGERMETER_CONFIG.sourcedFacts.oonReplyFilter.source + ")" },
+        { mark: "·", text: "No mutual-follow boost here: the +15.0 reply boost needs an " +
+            "ORIGINAL post — replies are ineligible.",
+          tip: "bidirectional_boost_eligible requires in_reply_to_tweet_id to be none " +
+            "(ranking_scorer.rs). " + BANGERMETER_CONFIG.heads.reply.note },
+        { mark: "·", text: "Replying to a " + (RQ.followerThreshold / 1000) + "K+ account? A Grok " +
+            "model scores the reply " + RQ.scoreMin + "–" + RQ.scoreMax + "; a " + RQ.scoreMin +
+            " applies the " + RQ.zeroScoreLabel + " label for " + RQ.labelTtlDays + " days.",
+          tip: RQ.note + " Signals it is shown: " + RQ.signals.join("; ") + ". (" + RQ.source + ")" },
+        { mark: "·", text: "Where this reply SORTS inside the thread is not something anyone " +
+            "outside X can score — that ranker is not open-sourced.",
+          tip: BANGERMETER_CONFIG.sourcedFacts.conversationRanker.note },
+        { mark: "·", text: "Replies are filtered out of X's Grok “banger” pipeline before it " +
+            "runs — it only ever evaluates original posts.",
+          tip: "grox/flows/upa/task_filter.py — TaskInitialBangerFilter rejects any post with ancestors." }
+      ].forEach(function (r) {
+        var rrow = el("div", "bangermeter-mod");
+        rrow.appendChild(el("span", "bangermeter-mod-dir", r.mark));
+        rrow.appendChild(el("span", "bangermeter-mod-label", r.text));
+        rrow.title = r.tip;
+        sec1.appendChild(rrow);
+      });
     }
 
     var d1 = mathDetails();
@@ -481,7 +553,9 @@
           tip: BANGERMETER_CONFIG.heads.reply.note },
         { icon: "repost", n: counts.retweets, one: "repost", many: "reposts",
           worth: "each worth 2 likes",
-          tip: "Weight 1.0 vs 0.5 for a like (param.rs, Aug 2026)" },
+          tip: "Weight 1.0 vs 0.5 for a like (param.rs, Aug 2026). A ratio of coefficients on " +
+            "same-denominator rates — meaningful inside this score, and only here. X warns that " +
+            "weight ratios are NOT count equivalences in general; see the fine print below." },
         { icon: "like", n: counts.likes, one: "like", many: "likes",
           worth: "the baseline unit",
           tip: "Weight 0.5 (param.rs, Aug 2026)" },
@@ -539,6 +613,21 @@
       fresh.title = "Earlybird age-decay sigmoid: base 0.6, halflife 360 min, slope 0.003";
       sec3.appendChild(fresh);
     }
+    // Author-diversity attenuation — the per-slate cadence cap the production
+    // rescoring chain applies unconditionally. Reported as context, not applied
+    // to the score: the multiplier is slate-relative and viewer-specific.
+    var slateK = authorSlateRank(article, features.authorHandle);
+    if (slateK >= 1) {
+      var dmul = BangermeterEngine.diversityMultiplier(slateK);
+      var drow = el("div", "bangermeter-rescorer",
+        "▼ Posting cadence: post #" + (slateK + 1) + " from this author in the loaded stretch of " +
+        "feed — production attenuates it ×" + dmul.toFixed(2) + " (author diversity)");
+      drow.title = "diversity_multiplier(k=" + slateK + ") = (1 − floor) × decay^k + floor, with " +
+        "decay 0.5 and floor 0.25 (ranking_scorer.rs; EnableAuthorDiversity ships true and it is " +
+        "applied unconditionally). Only currently rendered posts are counted, so the true rank " +
+        "can be higher. Not applied to the score above — it is slate-relative and viewer-specific.";
+      sec3.appendChild(drow);
+    }
     if (result.features.isVerified && !settings.applyVerifiedBoost2023) {
       var vNote = el("div", "bangermeter-fineprint",
         "Verified author: 2023-era code boosted verified posts ×4 in-network / ×2 out-of-network. " +
@@ -581,6 +670,9 @@
         H.block_author.weight + "). Reporting costs " + H.report.weight + ".",
       "▼ Any post whose weighted sum goes net-negative is rescaled below every positive post, " +
         "no matter what else it earned.",
+      "▼ Posting again while your last post is still in the same feed slate costs the newer " +
+        "one: the 2nd post from an author runs ×0.625, the 3rd ×0.44, decaying to a ×0.25 " +
+        "floor (author diversity — decay 0.5, floor 0.25, applied unconditionally).",
       "· Grok's “banger” pipeline only ever looks at original posts — replies and " +
         "protected accounts are filtered out before it runs.",
       "· Engagement only counts if the post reached the reader through their Home Timeline. " +
@@ -675,6 +767,41 @@
 
   // ── compose-box draft meter ───────────────────────────────────────────────
 
+  // Is this composer writing a REPLY? Locale-independent signals first, the
+  // localized marker as backup. This used to be hardcoded false, which scored
+  // every reply draft as an original — hiding the ×0.75 discount every
+  // in-network reply actually takes.
+  function composerIsReply(editor) {
+    var host = editor.closest('div[data-testid^="tweetTextarea"]') || editor;
+    var dialog = editor.closest('[role="dialog"]');
+    if (dialog) {
+      // A reply modal shows the parent post ABOVE the composer; a quote modal
+      // embeds the quoted post BELOW it. DOM order separates the two without
+      // any locale knowledge.
+      var art = dialog.querySelector('article');
+      if (art && (art.compareDocumentPosition(host) & Node.DOCUMENT_POSITION_FOLLOWING)) {
+        return true;
+      }
+      // Marker fallback for reply surfaces that render no parent article.
+      var dLines = (dialog.innerText || "").slice(0, 300).split("\n");
+      for (var i = 0; i < dLines.length; i++) {
+        if (BangermeterEngine.replyMarkerIn(dLines[i])) return true;
+      }
+      return false;
+    }
+    // The inline composer on a post's detail page is always the reply box.
+    if (/\/status\/\d+/.test(location.pathname)) return true;
+    // Inline elsewhere: look for the marker in the composer's own cell.
+    var cell = editor.closest('[data-testid="cellInnerDiv"]');
+    if (cell) {
+      var cLines = (cell.innerText || "").slice(0, 300).split("\n");
+      for (var j = 0; j < cLines.length; j++) {
+        if (BangermeterEngine.replyMarkerIn(cLines[j])) return true;
+      }
+    }
+    return false;
+  }
+
   function draftFeatures(editor, text) {
     var composeRoot = editor.closest('div[data-testid^="tweetTextarea"]');
     var scope = (composeRoot && composeRoot.parentElement && composeRoot.parentElement.parentElement) || document;
@@ -688,7 +815,7 @@
       hasImage: hasImage,
       hasExternalLink: hasExternalLink,
       hashtagCount: hashtagCount,
-      isReply: false,
+      isReply: composerIsReply(editor),
       isThreadStarter: /🧵/.test(text) || /(^|\s)1\/\d+/.test(text)
     };
   }
@@ -764,9 +891,38 @@
     meters = meters.filter(positionMeter);
   }
 
+  // Draft comparison — up to three saved variants (A/B/C) per composer, held
+  // in memory only: nothing a draft says is ever written to storage. The chip
+  // shows each saved score next to the live one so a rewrite can be judged
+  // before posting.
+  var VARIANT_CAP = 3;
+
+  function renderVariants(entry) {
+    var strip = entry.meter.querySelector(".bangermeter-compare");
+    strip.textContent = "";
+    if (!entry.variants.length) { strip.classList.add("bangermeter-hidden"); return; }
+    strip.classList.remove("bangermeter-hidden");
+    var best = Math.max.apply(null, entry.variants.map(function (v) { return v.score; }));
+    entry.variants.forEach(function (v, i) {
+      var chip = el("button", "bangermeter-variant" +
+        (v.score === best ? " bangermeter-variant-best" : ""),
+        String.fromCharCode(65 + i) + " " + v.score);
+      chip.type = "button";
+      chip.title = "“" + v.snippet + "”\nClick to remove this saved variant.";
+      chip.addEventListener("click", function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        entry.variants.splice(i, 1);
+        renderVariants(entry);
+        repositionMeters();
+      });
+      strip.appendChild(chip);
+    });
+  }
+
   function ensureMeter(editor) {
     for (var i = 0; i < meters.length; i++) {
-      if (meters[i].editor === editor) return meters[i].meter;
+      if (meters[i].editor === editor) return meters[i];
     }
     var meter = el("div", "bangermeter-meter");
     meter.setAttribute("role", "img");
@@ -779,19 +935,42 @@
     meter.appendChild(bar);
     meter.appendChild(el("span", "bangermeter-meter-score", ""));
     meter.appendChild(el("span", "bangermeter-meter-hints", ""));
+
+    var entry = { editor: editor, meter: meter, variants: [], last: null };
+    var save = el("button", "bangermeter-meter-save", "+ compare");
+    save.type = "button";
+    save.title = "Save this draft's score as a variant (up to three). Rewrite, then compare " +
+      "the saved scores side by side. Variants live in memory only and vanish with the page.";
+    save.addEventListener("click", function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      if (!entry.last) return;
+      if (entry.variants.length >= VARIANT_CAP) entry.variants.shift();
+      entry.variants.push(entry.last);
+      renderVariants(entry);
+      repositionMeters();
+    });
+    meter.appendChild(save);
+    meter.appendChild(el("span", "bangermeter-compare bangermeter-hidden", ""));
+
     // Pinned to <body> so no ancestor of the composer can clip or cover it.
     document.body.appendChild(meter);
-    meters.push({ editor: editor, meter: meter });
-    return meter;
+    meters.push(entry);
+    return entry;
   }
 
   function updateMeter(editor) {
     if (!settings.scoreDrafts) return;
-    var meter = ensureMeter(editor);
-    if (!meter) return;
+    var entry = ensureMeter(editor);
+    if (!entry) return;
+    var meter = entry.meter;
     // Read innerText once per keystroke (it forces layout) and pass it down.
     var text = editor.innerText || "";
-    if (text.trim().length === 0) { meter.classList.add("bangermeter-hidden"); return; }
+    if (text.trim().length === 0) {
+      meter.classList.add("bangermeter-hidden");
+      pastedEditors.delete(editor);   // a cleared draft starts fresh
+      return;
+    }
     meter.classList.remove("bangermeter-hidden");
     applyTheme(meter);
     // Match the composer's own width so the chip reads as part of it.
@@ -799,7 +978,12 @@
       .getBoundingClientRect();
     if (hostRect.width > 120) meter.style.maxWidth = Math.round(hostRect.width) + "px";
 
-    var result = BangermeterEngine.contentScore(draftFeatures(editor, text), settings);
+    var feats = draftFeatures(editor, text);
+    var result = BangermeterEngine.contentScore(feats, settings);
+    // A snapshot the "+ compare" button can save. Only the score and a short
+    // snippet — draft text stays out of storage entirely.
+    var snip = text.replace(/\s+/g, " ").trim();
+    entry.last = { score: result.score, snippet: snip.length > 40 ? snip.slice(0, 39) + "…" : snip };
     meter.setAttribute("aria-label", "Bangermeter draft score " + result.score + " out of 100");
     var fill = meter.querySelector(".bangermeter-meter-fill");
     fill.style.width = result.score + "%";
@@ -812,6 +996,22 @@
 
     var hintsEl = meter.querySelector(".bangermeter-meter-hints");
     hintsEl.textContent = "";
+    if (feats.isReply) {
+      var replyChip = el("span", "bangermeter-down", "▼ Reply ×0.75");
+      replyChip.title = "This draft is a reply. In-network replies take the same ×0.75 rescoring " +
+        "factor as out-of-network posts (oon_applies, ranking_scorer.rs) — already reflected in " +
+        "the score. Replies are also excluded from the mutual-follow reply boost and from Grok's " +
+        "banger pipeline.";
+      hintsEl.appendChild(replyChip);
+      if (pastedEditors.has(editor)) {
+        var pasteChip = el("span", null, "· pasted text");
+        pasteChip.title = "You pasted into this reply. X's reply-quality scorer is shown an " +
+          "is_pasted flag when scoring replies to 100K+ accounts (grox/core/lm/thread.py). What " +
+          "the withheld rubric does with it is unpublished — this chip is informational, and the " +
+          "score above does not move on it.";
+        hintsEl.appendChild(pasteChip);
+      }
+    }
     result.modifiers
       .filter(function (m) { return m.factor != null || m.id === "has_video"; })
       .forEach(function (m) {
@@ -828,6 +1028,16 @@
     var editor = ev.target && ev.target.closest &&
       ev.target.closest('div[data-testid^="tweetTextarea"] [contenteditable="true"], [data-testid^="tweetTextarea"][contenteditable="true"]');
     if (editor) updateMeter(editor);
+  }, true);
+
+  // X's reply-quality scorer is shown an is_pasted flag (grox thread renderer).
+  // The rubric's direction is withheld, so this only ever surfaces as a neutral
+  // informational chip on reply drafts — never as a score change.
+  var pastedEditors = new WeakSet();
+  document.addEventListener("paste", function (ev) {
+    var editor = ev.target && ev.target.closest &&
+      ev.target.closest('div[data-testid^="tweetTextarea"] [contenteditable="true"], [data-testid^="tweetTextarea"][contenteditable="true"]');
+    if (editor) pastedEditors.add(editor);
   }, true);
 
   // The composer moves under the meter constantly: the dialog body scrolls as

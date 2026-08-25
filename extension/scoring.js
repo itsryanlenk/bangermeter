@@ -49,6 +49,157 @@ var BangermeterEngine = (function () {
 
   function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
 
+  // ---- locale-aware DOM-string parsing --------------------------------------
+  // These parse strings the x.com DOM renders (action-bar aria-labels, reply
+  // markers). They live in the engine, not content.js, so the test suite can
+  // exercise them. Same discipline as the weight layer: a locale's strings are
+  // added only once sourced from the real x.com UI — a wrong string fails
+  // silently in the field, which is worse than falling back to the
+  // testid-based per-button path content.js keeps as backup.
+
+  // aria-label count words, per locale, lowercase. Keyed by the counts-object
+  // key each word maps to.
+  var COUNT_WORDS = {
+    en: {
+      replies: ["reply", "replies"],
+      retweets: ["repost", "reposts", "retweet", "retweets"],
+      likes: ["like", "likes"],
+      bookmarks: ["bookmark", "bookmarks"],
+      views: ["view", "views"]
+    }
+  };
+
+  // Leading marker text that identifies a post as a reply, per locale.
+  // Matched against the START of a text block (the marker is its own line in
+  // the rendered post), never as a free substring — "I like replying to
+  // people" must not flag.
+  var REPLY_MARKERS = {
+    en: ["replying to"]
+  };
+
+  // word (lowercase) -> counts key, flattened across locales once at load.
+  var WORD_TO_KEY = (function () {
+    var map = {};
+    Object.keys(COUNT_WORDS).forEach(function (loc) {
+      var words = COUNT_WORDS[loc];
+      Object.keys(words).forEach(function (key) {
+        words[key].forEach(function (w) { map[w] = key; });
+      });
+    });
+    return map;
+  })();
+
+  // "1 reply, 5 reposts, 30 likes, 2 bookmarks, 1034 views" -> counts object.
+  // Unicode-aware on the word side so non-Latin locales can join the table.
+  // First value wins per key: the group label lists each count once, and a
+  // duplicate word means we are misreading something — trusting the first
+  // occurrence keeps the failure conservative.
+  function parseActionBarLabel(label) {
+    var counts = {};
+    if (!label) return counts;
+    var re = /([\d.,]+\s?[KMB]?)\s+([\p{L}\p{M}]+)/gu, m;
+    while ((m = re.exec(label)) !== null) {
+      var key = WORD_TO_KEY[m[2].toLowerCase()];
+      if (key && counts[key] == null) counts[key] = parseCount(m[1]);
+    }
+    return counts;
+  }
+
+  // Does this text block START with a reply marker in any supported locale?
+  function replyMarkerIn(text) {
+    if (!text) return false;
+    var t = String(text).replace(/^\s+/, "").toLowerCase();
+    var locales = Object.keys(REPLY_MARKERS);
+    for (var i = 0; i < locales.length; i++) {
+      var markers = REPLY_MARKERS[locales[i]];
+      for (var j = 0; j < markers.length; j++) {
+        if (t.indexOf(markers[j]) === 0) return true;
+      }
+    }
+    return false;
+  }
+
+  // ---- score history (pure list/entry logic; storage stays in content.js) ----
+  var HISTORY_SNIPPET_CHARS = 80;
+
+  function makeHistoryEntry(features, result, now) {
+    var snippet = String(features.text || "").replace(/\s+/g, " ").trim();
+    if (snippet.length > HISTORY_SNIPPET_CHARS) {
+      snippet = snippet.slice(0, HISTORY_SNIPPET_CHARS - 1) + "…";
+    }
+    var counts = features.counts || {};
+    return {
+      id: features.tweetId || null,
+      t: now,
+      c: result.content ? result.content.score : null,
+      e: (result.engagement && result.engagement.available) ? result.engagement.score : null,
+      v: counts.views == null ? null : counts.views,
+      r: features.isReply ? 1 : 0,
+      s: snippet
+    };
+  }
+
+  // ---- Under the Hood report parsing ----------------------------------------
+  // Parses the JSON a pilot-cohort user downloads from x.com/i/under_the_hood
+  // and imports by hand (the page never renders the labels into the DOM, and a
+  // zero-network extension will not fetch them). User-supplied input, so:
+  // strict shape validation, whitelisted label characters, capped string and
+  // array sizes, and a null on anything that does not look like the report.
+  // The rendering side must only ever use textContent on these fields.
+  function parseUnderTheHoodReport(jsonText) {
+    var raw;
+    try { raw = JSON.parse(jsonText); } catch (e) { return null; }
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+    if (!Array.isArray(raw.postLabels) && !Array.isArray(raw.accountLabels)) return null;
+
+    function str(v, cap) { return typeof v === "string" ? v.slice(0, cap) : null; }
+    function num(v) { return (typeof v === "number" && isFinite(v)) ? v : null; }
+    var LABEL_RE = /^[A-Za-z0-9_]{1,64}$/;
+
+    function labelRows(arr) {
+      if (!Array.isArray(arr)) return [];
+      var rows = [];
+      for (var i = 0; i < arr.length && rows.length < 50; i++) {
+        var row = arr[i];
+        if (!row || typeof row !== "object" || Array.isArray(row)) continue;
+        var label = str(row.label, 64);
+        if (!label || !LABEL_RE.test(label)) continue;
+        rows.push({
+          label: label,
+          about: str(row.about, 400),
+          effect: str(row.effect, 400),
+          posts: num(row.posts),
+          totalPostsInMonth: num(row.totalPostsInMonth),
+          percentageOfPosts: num(row.percentageOfPosts)
+        });
+      }
+      return rows;
+    }
+
+    var period = (raw.period && typeof raw.period === "object" && !Array.isArray(raw.period)) ? {
+      startDate: str(raw.period.startDate, 40),
+      endDate: str(raw.period.endDate, 40)
+    } : null;
+
+    return {
+      generatedAt: num(raw.generatedAt),
+      postCount: num(raw.postCount),
+      period: period,
+      postLabels: labelRows(raw.postLabels),
+      accountLabels: labelRows(raw.accountLabels)
+    };
+  }
+
+  // Newest first; an entry with the same id replaces the old one (a rescored
+  // tweet is an update, not a new data point); capped ring buffer.
+  function pushHistory(list, entry, cap) {
+    var kept = (list || []).filter(function (x) {
+      return !(entry.id != null && x.id === entry.id);
+    });
+    kept.unshift(entry);
+    return kept.slice(0, cap);
+  }
+
   // ---- published weight lookups ---------------------------------------------
 
   // reply_weight_for(candidate) — ranking_scorer.rs:186-193.
@@ -381,6 +532,11 @@ var BangermeterEngine = (function () {
 
   return {
     parseCount: parseCount,
+    parseActionBarLabel: parseActionBarLabel,
+    replyMarkerIn: replyMarkerIn,
+    makeHistoryEntry: makeHistoryEntry,
+    pushHistory: pushHistory,
+    parseUnderTheHoodReport: parseUnderTheHoodReport,
     ageDecayFactor: ageDecayFactor,
     offsetScore: offsetScore,
     weightedScore: weightedScore,

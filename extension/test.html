@@ -91,6 +91,24 @@
       H.reply_engaged_by_author === undefined && H.negative_feedback_v2 === undefined &&
       H.video_playback_50 === undefined && H.reported === undefined);
 
+    // ── Reply-mode and transparency facts (verified against the repo Aug 25 2026) ──
+    check("conversation ranker recorded as UNPUBLISHED",
+      SF.conversationRanker && SF.conversationRanker.published === false);
+    check("OON reply hard-filter recorded",
+      !!SF.oonReplyFilter && /entirely/i.test(SF.oonReplyFilter.note));
+    check("reply quality gate: 100K threshold, 0-3 score, 30-day label",
+      SF.replyQualityGate.followerThreshold === 100000 && SF.replyQualityGate.scoreMax === 3 &&
+      SF.replyQualityGate.zeroScoreLabel === "RiskyHighVizReply" &&
+      SF.replyQualityGate.labelTtlDays === 30 && SF.replyQualityGate.selfRepliesExempt === true);
+    check("reply rubric marked withheld — inputs listed, no invented direction",
+      SF.replyQualityGate.rubricWithheld === true && SF.replyQualityGate.signals.length === 8);
+    check("Under the Hood: aggregates only, 18 post + 12 account labels",
+      SF.underTheHood.aggregatesOnly === true &&
+      SF.underTheHood.postLabelAllowlist.length === 18 &&
+      SF.underTheHood.accountLabelAllowlist.length === 12);
+    check("July 13 'mutuals' announcement mapped to the EXISTING boost, still 15.0",
+      /July 13/.test(H.reply.note) && C.bidirectionalFollowReplyBoost === 15.0);
+
     // ---- weight sums, exactly as ScoringWeights::new builds them ----
     // ranking_scorer.rs:105-128. cont_* terms and the bidirectional boost are
     // deliberately NOT in positive_sum.
@@ -372,6 +390,136 @@
     var fromMutual = E.contentScore(Object.assign({}, vBase, { isMutualFollow: true }), {});
     check("mutual-follow original outscores stranger", fromMutual.raw > fromStranger.raw,
       fromMutual.raw.toFixed(6) + " vs " + fromStranger.raw.toFixed(6));
+
+    // ================================================================
+    // Locale-aware action-bar parsing — moved out of content.js so it can
+    // be tested. The English words are the baseline; other locales join the
+    // table only with a sourced string (same rule as the weight layer).
+    // ================================================================
+    section("Locale-aware action-bar parsing");
+    var enLabel = E.parseActionBarLabel("1 reply, 5 reposts, 30 likes, 2 bookmarks, 1034 views");
+    check("English label parses all five counts",
+      enLabel.replies === 1 && enLabel.retweets === 5 && enLabel.likes === 30 &&
+      enLabel.bookmarks === 2 && enLabel.views === 1034, JSON.stringify(enLabel));
+    var enPlural = E.parseActionBarLabel("2 replies, 1 retweet, 1 like, 12 views");
+    check("English singular and legacy 'retweet' both map",
+      enPlural.replies === 2 && enPlural.retweets === 1 && enPlural.likes === 1 && enPlural.views === 12,
+      JSON.stringify(enPlural));
+    var enAbbrev = E.parseActionBarLabel("1.2K replies, 3.4M likes, 12 views");
+    check("abbreviated counts inside a label", enAbbrev.replies === 1200 && enAbbrev.likes === 3400000,
+      JSON.stringify(enAbbrev));
+    check("null label -> empty counts", Object.keys(E.parseActionBarLabel(null)).length === 0);
+    check("unknown-locale label -> empty counts, no crash",
+      Object.keys(E.parseActionBarLabel("3 zorbles, 5 blorps")).length === 0);
+    check("first value wins on a duplicated word",
+      E.parseActionBarLabel("3 likes, 9 likes").likes === 3);
+
+    // ================================================================
+    // Reply-marker detection — the string content.js matches to decide a
+    // post is a reply. English baseline; localized strings join with sources.
+    // ================================================================
+    section("Reply-marker detection");
+    check("English 'Replying to' detected", E.replyMarkerIn("Replying to @someone") === true);
+    check("case-insensitive", E.replyMarkerIn("replying to @someone") === true);
+    check("plain text is not a reply marker", E.replyMarkerIn("I like replying to people") === false,
+      "must anchor to line start, not substring");
+    check("empty/null text -> false", E.replyMarkerIn("") === false && E.replyMarkerIn(null) === false);
+
+    // ================================================================
+    // Reply drafts — the compose meter used to hardcode isReply:false, so a
+    // reply draft was scored as an original and never saw the x0.75 discount.
+    // ================================================================
+    section("Reply drafts");
+    var draftBase = { text: "This is a considered reply with enough substance to hold attention for a while.", hasVideo: false, hasImage: false, hasExternalLink: false, hashtagCount: 0 };
+    var draftOriginal = E.contentScore(Object.assign({}, draftBase, { isReply: false }), {});
+    var draftReply = E.contentScore(Object.assign({}, draftBase, { isReply: true }), {});
+    check("reply draft takes the x0.75 discount once",
+      approx(draftReply.raw, draftOriginal.raw * 0.75, 1e-12),
+      draftReply.raw + " vs " + (draftOriginal.raw * 0.75));
+
+    // ================================================================
+    // Score history helpers — pure list/entry logic; storage stays thin.
+    // History is local-only (chrome.storage.local) and holds a capped ring
+    // buffer of panel-opened scores.
+    // ================================================================
+    section("Score history helpers");
+    var hFeatures = { tweetId: "123", text: "A test post\nwith a newline and quite a lot of text that should get truncated because snippets are capped at eighty characters total", isReply: false, counts: { views: 5000 } };
+    var hResult = { content: { score: 61 }, engagement: { available: true, score: 47 } };
+    var entry = E.makeHistoryEntry(hFeatures, hResult, 1756100000000);
+    check("history entry carries id, time and both scores",
+      entry.id === "123" && entry.t === 1756100000000 && entry.c === 61 && entry.e === 47,
+      JSON.stringify(entry));
+    check("snippet capped at 80 chars, newlines flattened",
+      entry.s.length <= 80 && entry.s.indexOf("\n") === -1, JSON.stringify(entry.s));
+    var noEng = E.makeHistoryEntry(hFeatures, { content: { score: 61 }, engagement: { available: false } }, 1);
+    check("unavailable engagement stored as null", noEng.e === null);
+
+    var hl = [];
+    hl = E.pushHistory(hl, { id: "1", t: 1, c: 10, e: null, s: "one" }, 3);
+    hl = E.pushHistory(hl, { id: "2", t: 2, c: 20, e: null, s: "two" }, 3);
+    hl = E.pushHistory(hl, { id: "3", t: 3, c: 30, e: null, s: "three" }, 3);
+    check("newest entry first", hl[0].id === "3" && hl.length === 3, JSON.stringify(hl.map(function (x) { return x.id; })));
+    hl = E.pushHistory(hl, { id: "2", t: 4, c: 25, e: null, s: "two again" }, 3);
+    check("re-scoring a tweet updates in place, no duplicate",
+      hl.length === 3 && hl[0].id === "2" && hl[0].c === 25 &&
+      hl.filter(function (x) { return x.id === "2"; }).length === 1,
+      JSON.stringify(hl.map(function (x) { return x.id; })));
+    hl = E.pushHistory(hl, { id: "4", t: 5, c: 40, e: null, s: "four" }, 3);
+    check("cap evicts the oldest", hl.length === 3 && hl.every(function (x) { return x.id !== "1"; }),
+      JSON.stringify(hl.map(function (x) { return x.id; })));
+    var hlNoId = E.pushHistory([], { id: null, t: 1, c: 10, e: null, s: "x" }, 3);
+    hlNoId = E.pushHistory(hlNoId, { id: null, t: 2, c: 20, e: null, s: "y" }, 3);
+    check("entries without an id never dedupe", hlNoId.length === 2);
+
+    // ================================================================
+    // Under the Hood report parsing — a user-imported JSON file. Hostile
+    // input by definition: the parser must validate shape, whitelist label
+    // characters, cap sizes, and never throw.
+    // ================================================================
+    section("Under the Hood report parsing");
+    var uthGood = JSON.stringify({
+      postCount: 42, generatedAt: 1756000000,
+      period: { startDate: "2026-07-01", endDate: "2026-07-31", timezone: "UTC" },
+      postLabels: [
+        { label: "SPAM_HIGH_RECALL", about: "Suspected spam.", effect: "Post hidden from recommendations to non-followers", posts: 3, totalPostsInMonth: 42, percentageOfPosts: 7.1 }
+      ],
+      accountLabels: [
+        { label: "DoNotAmplify", about: "Account deamplified.", effect: "The account's posts are hidden from recommendations to non-followers" }
+      ],
+      notes: "ignored free text"
+    });
+    var uth = E.parseUnderTheHoodReport(uthGood);
+    check("valid report parses with counts and period",
+      uth && uth.postCount === 42 && uth.period.startDate === "2026-07-01" &&
+      uth.postLabels.length === 1 && uth.accountLabels.length === 1,
+      JSON.stringify(uth));
+    check("label row keeps label, effect, posts, percentage",
+      uth.postLabels[0].label === "SPAM_HIGH_RECALL" &&
+      uth.postLabels[0].posts === 3 && uth.postLabels[0].percentageOfPosts === 7.1 &&
+      /non-followers/.test(uth.postLabels[0].effect));
+    check("garbage JSON -> null", E.parseUnderTheHoodReport("not json {") === null);
+    check("JSON array -> null", E.parseUnderTheHoodReport("[1,2,3]") === null);
+    check("object with neither label family -> null",
+      E.parseUnderTheHoodReport('{"foo": 1}') === null);
+    var uthHostile = JSON.stringify({
+      postLabels: [
+        { label: "<img src=x onerror=alert(1)>", posts: 1 },
+        { label: "OK_LABEL", posts: "not-a-number", effect: 12345 },
+        "not an object", null
+      ]
+    });
+    var hostile = E.parseUnderTheHoodReport(uthHostile);
+    check("hostile label name rejected, malformed rows dropped",
+      hostile !== null && hostile.postLabels.length === 1 &&
+      hostile.postLabels[0].label === "OK_LABEL", JSON.stringify(hostile));
+    check("non-numeric posts and non-string effect become null",
+      hostile.postLabels[0].posts === null && hostile.postLabels[0].effect === null);
+    var longStr = new Array(3000).join("x");
+    var uthLong = E.parseUnderTheHoodReport(JSON.stringify({
+      postLabels: [{ label: "SPAM", about: longStr, effect: longStr, posts: 1 }]
+    }));
+    check("oversize strings truncated",
+      uthLong.postLabels[0].about.length <= 400 && uthLong.postLabels[0].effect.length <= 400);
 
     // ================================================================
     section("Composite");

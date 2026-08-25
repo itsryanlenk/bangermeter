@@ -392,6 +392,66 @@
   text-overflow: ellipsis;
 }
 
+/* Draft comparison. The meter itself is pointer-events:none so it can never
+   eat a click meant for the composer — the two interactive chips opt back in
+   explicitly, and stay small so the reachable surface stays small. */
+.bangermeter-meter-save {
+  pointer-events: auto;
+  flex: none;
+  font-family: var(--ts-font-body);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--ts-black);
+  background: var(--ts-yellow);
+  border: 2px solid var(--ts-black);
+  border-radius: 0;
+  padding: 1px 6px;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 var(--bm-shadow);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.bangermeter-meter-save:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--bm-shadow);
+}
+.bangermeter-meter-save:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--bm-shadow);
+}
+.bangermeter-meter-save:focus-visible {
+  outline: 3px solid var(--ts-blue);
+  outline-offset: 2px;
+}
+.bangermeter-compare {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+.bangermeter-compare.bangermeter-hidden { display: none; }
+.bangermeter-variant {
+  pointer-events: auto;
+  font-family: var(--ts-font-body);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--bm-text);
+  background: var(--bm-surface);
+  border: 2px solid var(--bm-line);
+  border-radius: 0;
+  padding: 1px 6px;
+  cursor: pointer;
+}
+.bangermeter-variant-best {
+  background: var(--ts-green);
+  color: var(--ts-black);
+  border-color: var(--ts-black);
+}
+.bangermeter-variant:focus-visible {
+  outline: 3px solid var(--ts-blue);
+  outline-offset: 2px;
+}
+
 /* ── Motion preferences ────────────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {

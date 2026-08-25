@@ -144,6 +144,89 @@
       color: var(--ts-ink);
       line-height: 1.45;
     }
+    .block-btn {
+      display: block;
+      width: 100%;
+      margin-top: 8px;
+      font-family: var(--ts-font-body);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--ts-black);
+      background: var(--ts-yellow);
+      border: 2px solid var(--ts-black);
+      border-radius: 0;
+      padding: 6px 8px;
+      cursor: pointer;
+      box-shadow: 3px 3px 0 var(--ts-black);
+    }
+    .block-btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ts-black); }
+    .block-btn:focus-visible { outline: 3px solid var(--ts-blue); outline-offset: 2px; }
+    .uth-row {
+      display: flex;
+      gap: 6px;
+      align-items: baseline;
+      padding: 4px 0;
+      border-bottom: 2px solid var(--ts-cream);
+      font-size: 11.5px;
+    }
+    .uth-row:last-child { border-bottom: none; }
+    .uth-label { flex: none; font-weight: 700; font-size: 10.5px; }
+    .uth-count { flex: none; color: var(--ts-red); font-weight: 700; }
+    .uth-effect {
+      flex: 1;
+      color: var(--ts-ink);
+      font-size: 10.5px;
+      line-height: 1.35;
+    }
+    .uth-error { color: var(--ts-red); font-size: 11px; font-weight: 700; margin-top: 6px; }
+    .uth-ok { color: var(--ts-green); font-size: 11.5px; margin-top: 6px; }
+    .mini-btn {
+      float: right;
+      font-family: var(--ts-font-body);
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--ts-black);
+      background: var(--ts-yellow);
+      border: 2px solid var(--ts-black);
+      border-radius: 0;
+      padding: 1px 6px;
+      cursor: pointer;
+    }
+    .mini-btn:focus-visible { outline: 3px solid var(--ts-blue); outline-offset: 2px; }
+    .hist-row {
+      display: flex;
+      gap: 6px;
+      align-items: baseline;
+      padding: 4px 0;
+      border-bottom: 2px solid var(--ts-cream);
+      font-size: 11.5px;
+    }
+    .hist-row:last-child { border-bottom: none; }
+    .hist-scores { flex: none; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .hist-scores .c { color: var(--ts-blue); }
+    .hist-scores .e { color: var(--ts-green); }
+    .hist-snippet {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--ts-ink);
+    }
+    .hist-snippet a { color: inherit; text-decoration: none; }
+    .hist-snippet a:hover { text-decoration: underline; }
+    .hist-when { flex: none; font-size: 10px; color: var(--ts-ink); opacity: .8; }
+    .hist-reply {
+      flex: none;
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      border: 1px solid var(--ts-ink);
+      padding: 0 3px;
+      color: var(--ts-ink);
+    }
   </style>
 </head>
 <body>
@@ -179,6 +262,10 @@
       <input type="checkbox" id="applyVerifiedBoost2023">
     </div>
     <div class="setting">
+      <label for="keepHistory" title="Log the score each time you open a breakdown panel, so you can compare formats over time. Stored only in this browser (chrome.storage.local, capped at 200 entries) — never synced, never sent anywhere.">Keep local score history</label>
+      <input type="checkbox" id="keepHistory">
+    </div>
+    <div class="setting">
       <label for="theme" title="Panel and draft-meter theme. Auto follows X's own theme (default / dim / lights out).">Panel theme</label>
       <select id="theme">
         <option value="auto">Auto (match X)</option>
@@ -186,6 +273,20 @@
         <option value="dark">Dark</option>
       </select>
     </div>
+  </section>
+
+  <section id="historySection" hidden>
+    <h2>Recent scores <button id="clearHistory" class="mini-btn" title="Delete the local score history. This cannot be undone.">Clear</button></h2>
+    <p class="snapshot">Logged when you open a breakdown panel. Local to this browser only.</p>
+    <div id="historyList"></div>
+  </section>
+
+  <section>
+    <h2>Under the Hood <button id="uthClear" class="mini-btn" hidden>Remove</button></h2>
+    <p class="snapshot" id="uthIntro"></p>
+    <div id="uthSummary"></div>
+    <input type="file" id="uthFile" accept=".json,application/json" hidden>
+    <button id="uthImport" class="block-btn">Import report JSON…</button>
   </section>
 
   <section>
@@ -197,6 +298,7 @@
   <footer id="footerNote"></footer>
 
   <script src="weights.js"></script>
+  <script src="scoring.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

@@ -15,7 +15,7 @@
 //   "estimate"       — estimator-layer number (baseline rates / directional modifiers).
 
 var BANGERMETER_CONFIG = {
-  version: "0.9.5",
+  version: "0.10.0",
 
   // ── PROVENANCE ──────────────────────────────────────────────────────────────
   // On August 13, 2026 X published the actual production ranking weights for the
@@ -34,7 +34,7 @@ var BANGERMETER_CONFIG = {
   //
   // That is a materially stronger claim than the 2023 release made — these are
   // asserted to BE the production values, not merely plausible defaults.
-  weightsSnapshot: "August 14, 2026 — xai-org/x-algorithm, home-mixer/params/param.rs (all 26 values re-verified unchanged against the Aug 14 update)",
+  weightsSnapshot: "August 25, 2026 — xai-org/x-algorithm, home-mixer/params/param.rs (all 26 values re-verified unchanged; upstream last-sync stamp still 2026-08-12T04:09:22Z, and the only param.rs changes since Aug 14 are three default-false feature flags)",
   weightsSourceUrl: "https://github.com/xai-org/x-algorithm/blob/main/home-mixer/params/param.rs",
   scorerSourceUrl: "https://github.com/xai-org/x-algorithm/blob/main/home-mixer/scorers/ranking_scorer.rs",
 
@@ -66,7 +66,7 @@ var BANGERMETER_CONFIG = {
       provenance: "2026-published", label: "Likes", observable: true },
     reply: { weight: 5.0, param: "rust_home_mixer_reply_weight",
       provenance: "2026-published", label: "Replies", observable: true,
-      note: "Rises to 20.0 (+15.0) on an ORIGINAL post from an author you mutually follow — see bidirectionalFollowReplyBoost. Down from 13.5 in the 2023 table." },
+      note: "Rises to 20.0 (+15.0) on an ORIGINAL post from an author you mutually follow — see bidirectionalFollowReplyBoost. Down from 13.5 in the 2023 table. This boost IS the 'mutuals' change Nikita Bier announced July 13, 2026 — xai-org's own docs/BIDIRECTIONAL_BOOST_CHANGE.md links his post to exactly this parameter (A/B tested at 0/5/10/15/20 from July 10, launched at 20.0 on July 13, reduced to 15.0 on July 24 2026). Press framed it as boosting mutuals' replies inside threads; the published implementation boosts original posts from mutuals in For You, and no thread ranker is in the repo." },
     retweet: { weight: 1.0, param: "rust_home_mixer_retweet_weight",
       provenance: "2026-published", label: "Reposts", observable: true },
     quote: { weight: 5.0, param: "rust_home_mixer_quote_weight",
@@ -234,7 +234,53 @@ var BANGERMETER_CONFIG = {
 
     brazil2026ElectionFilter: { accounts: 665, provenance: "2026-published",
       param: "home-mixer/filters/brazil_2026_election_filter.rs",
-      note: "For You removes posts from 665 accounts reported to Brazil's Electoral Court for the 2026 election, unless the viewer follows the account. Compiled in rather than feature-switched — IDs obfuscated, usernames left in source for transparency. A hard filter that runs before scoring, so no weight can offset it." }
+      note: "For You removes posts from 665 accounts reported to Brazil's Electoral Court for the 2026 election, unless the viewer follows the account. Compiled in rather than feature-switched — IDs obfuscated, usernames left in source for transparency. A hard filter that runs before scoring, so no weight can offset it." },
+
+    // ── Reply-specific facts (verified against the repo 2026-08-25) ───────
+    conversationRanker: { published: false, provenance: "2026-published",
+      note: "The service that ORDERS replies under a post is not in the open-source release. The repo's own README scopes it to the For You feed, and no conversation/thread-ranking module exists in the tree. Any claim about a reply's position inside a thread is unpublished territory and this tool says so rather than guessing." },
+
+    oonReplyFilter: { provenance: "2026-published",
+      source: "home-mixer/filters/oon_retweet_reply_filter.rs",
+      note: "OONRetweetReplyFilter removes replies (and reposts) from unfollowed accounts from For You candidates entirely — an out-of-network reply is not down-weighted, it is gone. Replies with a missing parent are dropped too." },
+
+    replyQualityGate: {
+      followerThreshold: 100000, scoreMin: 0, scoreMax: 3,
+      zeroScoreLabel: "RiskyHighVizReply", labelTtlDays: 30,
+      selfRepliesExempt: true, rubricWithheld: true,
+      provenance: "2026-published",
+      source: "grox/flows/reply_spam/ (plan_reply_ranking.py, task_filter.py, classifier_reply_ranking.py, task_write.py)",
+      // Signals X's own pipeline feeds the scorer (grox/core/lm/thread.py).
+      // The DIRECTION each signal moves the score is inside the withheld
+      // prompt, so they are listed as inputs, never modeled as numbers.
+      signals: ["replier follower count", "replies posted in the last 24 hours",
+        "legitimate blocks received in the last 24 hours", "risky-safety-label flag",
+        "pasted-text flag (is_pasted)", "missing-client-events flag",
+        "account country and language", "up to 10 posts of thread context"],
+      note: "Replies to a parent or thread-root author with over 100,000 followers are scored 0-3 by a Grok model (GROK_4_MINI_CRITICAL). A score of 0 applies the RiskyHighVizReply safety label for 30 days. Self-replies are exempt, and high-PageRank / grey-badge authors are exempt from the label. The scoring rubric itself is withheld by X 'to reduce gameability' — so no tool can honestly claim to reproduce it, this one included. Replies to accounts at or under the threshold go through a spam filter instead." },
+
+    // ── "Under the Hood" transparency pilot (announced Aug 13, 2026) ──────
+    underTheHood: {
+      provenance: "2026-published",
+      source: "under-the-hood/ (underTheHoodLabels.strato, under_the_hood.thrift, uth_serving.thrift)",
+      path: "x.com/i/under_the_hood",
+      eligibility: "pilot cohort: account at least 1 year old, 10+ posts in the previous month, randomized selection",
+      aggregatesOnly: true,
+      note: "A pilot report of visibility-impacting safety labels on the user's own account and posts, downloadable as JSON. The report holds MONTHLY PER-LABEL AGGREGATES — counts and percentages, no post IDs — so it can say 'N posts carried label X this month', never 'this post was deboosted'. The report is served via GraphQL and offered as a file download, not rendered into the page DOM, so a zero-network extension cannot read it automatically; Bangermeter accepts the file by user-initiated import instead, and parses it locally.",
+      // The public allowlist of label names, transcribed from
+      // underTheHoodLabels.strato. X does not claim these are the only labels
+      // that exist — they are the ones the report discloses.
+      postLabelAllowlist: ["NSFW_HIGH_RECALL", "NSFW_HIGH_PRECISION", "NSFW_TEXT",
+        "NSFW_CARD_IMAGE", "GORE_AND_VIOLENCE_HIGH_PRECISION", "SPAM_HIGH_RECALL",
+        "SPAM", "MALICIOUS_URL", "DO_NOT_AMPLIFY", "PDNA", "BOUNCE",
+        "FOR_EMERGENCY_USE_ONLY", "FOSNR_ABUSE", "FOSNR_HATEFUL_CONDUCT",
+        "FOSNR_VIOLENT_SPEECH", "FOSNR_CIVIC_INTEGRITY", "FOSNR_ABUSE_INSULTS",
+        "NSFW_ADMIN"],
+      accountLabelAllowlist: ["ReadOnly", "Compromised", "SpamHighRecall",
+        "NsfwHighRecall", "NsfwHighPrecision", "NsfwAvatarImage", "NsfwNearPerfect",
+        "NsfwBannerImage", "NsfwAdmin", "ImpersonationHighPrecision",
+        "AbusiveHighRecall", "DoNotAmplify"]
+    }
   },
 
   // ── MEASURED RATES (retrospective score only) ───────────────────────────────
@@ -366,6 +412,9 @@ var BANGERMETER_DEFAULT_SETTINGS = {
   assumeOutOfNetwork: false,
   assumeMutualFollow: false,
   applyVerifiedBoost2023: false,
+  // Local-only score log (chrome.storage.local, capped at 200 entries) written
+  // when a breakdown panel is opened. Never synced, never transmitted.
+  keepHistory: true,
   theme: "auto"
 };
 
