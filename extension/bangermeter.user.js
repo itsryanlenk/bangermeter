@@ -422,7 +422,7 @@ var BANGERMETER_CONFIG = {
       why: "Earlybird's HAS_MULTIPLE_HASHTAGS_OR_TRENDS penalty exists in code; magnitude never published. Mild directional." },
     { id: "engagement_bait", label: "Engagement-bait phrasing",
       applies: "not_interested,mute_author", factor: 3.0, provenance: "estimate",
-      why: "'Like if / RT if / follow me' phrasing invites the not-interested (−43.2) and mute (−58.8) heads, and a net-negative post is rescaled below every positive post." },
+      why: "'Like if / RT if / follow me' phrasing — and its Hinglish equivalents, 'comment karo agar', '1 likho agar', 'sach batao' — invites the not-interested (−43.2) and mute (−58.8) heads, and a net-negative post is rescaled below every positive post. Detection covers imperative calls to action only: the rhetorical-question genre ('Kya …?', 'X ya Y?') is deliberately not claimed, because no pattern separates it from a sincere question. Hinglish patterns supplied by a native speaker, Aug 2026; Devanagari-script equivalents are not yet sourced and are not guessed at." },
     { id: "all_caps_shout", label: "Mostly ALL-CAPS", applies: "not_interested",
       factor: 1.5, provenance: "estimate", why: "Shouting correlates with 'show less' feedback." }
   ],
@@ -1050,14 +1050,44 @@ var BangermeterEngine = (function () {
   }
 
   // ---- prospective: content score ------------------------------------------
+
+  // Engagement-bait phrasing. Scope is deliberately the IMPERATIVE CTA family
+  // — "do X if you Y", "tell me honestly", "change my mind" — because that is
+  // the phrasing that invites the not-interested and mute heads, and because
+  // it can be matched without guessing at intent.
+  //
+  // NOT detected, on purpose: the rhetorical-question / forced-binary genre
+  // ("Kya sach mein …?", "X ya Y?"). It is real and common, but it cannot be
+  // told apart from a sincere question by pattern. The structural rule
+  // proposed for it — short + question mark + an absolutist word like
+  // most/always/never/sabse — was tested against 228 real posts from an
+  // account whose rates we know: it fired on exactly one, and that one was a
+  // top-quartile post, while missing both "Like if you agree!" and "Comment
+  // karo agar tum bhi single ho" outright. A detector that flags good posts
+  // and misses bait is worse than none, so this stays out.
+  var BAIT_PATTERNS = [
+    // English
+    "like if", "rt if", "retweet if", "repost if", "follow me", "follow for",
+    "drop a", "comment below", "tag someone", "tag a friend", "change my mind",
+    // Hinglish (Latin script), supplied by a native speaker 2026-08-25.
+    // "karo agar" is the load-bearing one: it covers comment/like/RT/share
+    // karo agar, which is how the CTA is actually written.
+    "karo agar", "likho agar", "comment karo", "follow karo", "tag karo",
+    "sach batao", "sach bataiye", "honestly batao", "honestly batana"
+  ];
+  var BAIT_RE = new RegExp("\\b(" + BAIT_PATTERNS.map(escapeRe).join("|") + ")\\b", "i");
+
   function analyzeText(text) {
     var t = text || "";
+    // Case detection is Latin-only by nature: Devanagari and other caseless
+    // scripts have no capitals to count, so this simply never fires there —
+    // no false positives, and no detection either.
     var letters = t.replace(/[^A-Za-z]/g, "");
     var caps = t.replace(/[^A-Z]/g, "");
     return {
       length: t.length,
       hasQuestion: /\?/.test(t),
-      isBait: /\b(like if|rt if|retweet if|repost if|follow me|follow for|drop a|comment below|tag someone|tag a friend)\b/i.test(t),
+      isBait: BAIT_RE.test(t),
       mostlyCaps: letters.length >= 12 && caps.length / letters.length > 0.7
     };
   }

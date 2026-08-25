@@ -400,7 +400,7 @@ var BANGERMETER_CONFIG = {
       why: "Earlybird's HAS_MULTIPLE_HASHTAGS_OR_TRENDS penalty exists in code; magnitude never published. Mild directional." },
     { id: "engagement_bait", label: "Engagement-bait phrasing",
       applies: "not_interested,mute_author", factor: 3.0, provenance: "estimate",
-      why: "'Like if / RT if / follow me' phrasing invites the not-interested (−43.2) and mute (−58.8) heads, and a net-negative post is rescaled below every positive post." },
+      why: "'Like if / RT if / follow me' phrasing — and its Hinglish equivalents, 'comment karo agar', '1 likho agar', 'sach batao' — invites the not-interested (−43.2) and mute (−58.8) heads, and a net-negative post is rescaled below every positive post. Detection covers imperative calls to action only: the rhetorical-question genre ('Kya …?', 'X ya Y?') is deliberately not claimed, because no pattern separates it from a sincere question. Hinglish patterns supplied by a native speaker, Aug 2026; Devanagari-script equivalents are not yet sourced and are not guessed at." },
     { id: "all_caps_shout", label: "Mostly ALL-CAPS", applies: "not_interested",
       factor: 1.5, provenance: "estimate", why: "Shouting correlates with 'show less' feedback." }
   ],

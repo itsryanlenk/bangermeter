@@ -488,6 +488,55 @@
     check("Indonesian prefix", E.replyMarkerIn("Membalas @user") === true);
 
     // ================================================================
+    // Engagement-bait detection, Hinglish. Patterns supplied by a native
+    // speaker (2026-08-25) rather than transliterated by us. Scope is
+    // deliberately the IMPERATIVE CTA family — "do X if you Y" — which is
+    // what the English list already targets.
+    // ================================================================
+    section("Hinglish engagement bait");
+    function isBaitText(t) { return E.analyzeText(t).isBait; }
+
+    check("comment karo agar ... -> bait",
+      isBaitText("Comment karo agar tum bhi single ho") === true);
+    check("1 likho agar ... -> bait",
+      isBaitText("1 likho agar tumhe bhi yeh feel hua hai") === true);
+    check("like karo agar / follow karo -> bait",
+      isBaitText("Like karo agar aap agree karte ho! Follow karo daily tips ke liye!") === true);
+    check("sach batao confession demand -> bait",
+      isBaitText("Sach batao, tumne bhi kabhi socha hai?") === true);
+    check("change my mind -> bait",
+      isBaitText("Ladkiyan sirf paisa dekhti hain, change my mind") === true);
+    check("tag karo -> bait", isBaitText("Tag karo apne best friend ko") === true);
+    check("English bait still detected",
+      isBaitText("Like if you agree! Follow me for more!") === true);
+
+    // FALSE-POSITIVE GUARDS. These are ordinary Hinglish posts and one of
+    // iGreenGod's real top-quartile posts; flagging any of them would tell a
+    // creator their best work is spam.
+    check("ordinary Hinglish story is not bait",
+      isBaitText("Aaj subah beti ko school chhoda, raaste mein usne pucha badal kahan jaate hain.") === false);
+    check("ordinary Devanagari post is not bait",
+      isBaitText("आज सुबह मैंने अपनी बेटी को स्कूल छोड़ा और रास्ते में उसने मुझसे पूछा।") === false);
+    check("a real top-quartile post is not bait",
+      isBaitText("The most dangerous sentence in the house: “Do you know why I’m upset?”") === false,
+      "7.6% like rate — his own data");
+    check("a genuine question is not bait",
+      isBaitText("What single habit most improved your life this year?") === false);
+
+    // DELIBERATELY NOT DETECTED. The rhetorical-question / forced-binary
+    // "rage bait" genre is real, but it cannot be separated from a sincere
+    // question by pattern alone, and the structural rule proposed for it
+    // (short + question + absolutist word) was tested against 228 real posts:
+    // it fired on 1, and that 1 was a top-quartile post, while missing both
+    // canonical bait examples outright. Detecting it would cost more than it
+    // buys, so this tool says nothing rather than guessing.
+    check("rhetorical-question bait is NOT claimed as detected",
+      isBaitText("Kya sach mein pyaar jaisi koi cheez hoti hai?") === false,
+      "documented non-goal, not an oversight");
+    check("forced binary is NOT claimed as detected",
+      isBaitText("Ladka smart hona chahiye ya rich?") === false);
+
+    // ================================================================
     // Reply verdict — which surface you are on decides which signal is
     // trustworthy. Found in the field on 2026-08-25: X renders NO "Replying
     // to" label inside a conversation, so a label-only reader scores every
