@@ -434,16 +434,29 @@
   // see which formats score consistently higher over time. chrome.storage.local
   // (never sync), 200 entries, and only what the popup renders: id, time,
   // scores, reply flag, an 80-char snippet. No author handle, no full text.
+  // Writes are serialized through a promise chain: get-then-set is not
+  // atomic, and two panel opens racing in the same tick would let the second
+  // set() overwrite the first entry.
+  var historyWrite = Promise.resolve();
   function recordHistory(features, result) {
     if (!settings.keepHistory) return;
+    var entry;
     try {
-      var entry = BangermeterEngine.makeHistoryEntry(features, result, Date.now());
-      chrome.storage.local.get({ bmHistory: [] }, function (data) {
-        chrome.storage.local.set({
-          bmHistory: BangermeterEngine.pushHistory(data.bmHistory || [], entry, 200)
-        });
+      entry = BangermeterEngine.makeHistoryEntry(features, result, Date.now());
+    } catch (e) { return; }
+    historyWrite = historyWrite.then(function () {
+      return new Promise(function (resolve) {
+        try {
+          chrome.storage.local.get({ bmHistory: [] }, function (data) {
+            try {
+              chrome.storage.local.set({
+                bmHistory: BangermeterEngine.pushHistory(data.bmHistory || [], entry, 200)
+              }, resolve);
+            } catch (e2) { resolve(); }
+          });
+        } catch (e2) { resolve(); /* storage unavailable (fixture harness) */ }
       });
-    } catch (e) { /* storage unavailable (fixture harness) — history is optional */ }
+    });
   }
 
   function openPanel(article, anchor) {
@@ -787,38 +800,58 @@
   // localized marker as backup. This used to be hardcoded false, which scored
   // every reply draft as an original — hiding the ×0.75 discount every
   // in-network reply actually takes.
+  //
+  // The marker fallback must never read text that can LEGITIMATELY carry a
+  // reply phrase without this draft being a reply: the draft's own words
+  // ("…yanıt olarak…" mid-sentence in Turkish), and a quoted post's card,
+  // which shows the QUOTED post's own "Replying to" line. Lines from those
+  // subtrees are excluded before matching.
+  function markerOutsideDraft(scope, editorHost) {
+    var excluded = {};
+    var excludeEls = [editorHost];
+    scope.querySelectorAll('article, div[role="link"]').forEach(function (n) {
+      excludeEls.push(n);
+    });
+    excludeEls.forEach(function (n) {
+      if (!n) return;
+      (n.innerText || "").split("\n").forEach(function (l) { excluded[l.trim()] = true; });
+    });
+    var lines = (scope.innerText || "").slice(0, 400).split("\n");
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim();
+      if (excluded[line]) continue;
+      if (BangermeterEngine.replyMarkerIn(line)) return true;
+    }
+    return false;
+  }
+
   function composerIsReply(editor) {
     var host = editor.closest('div[data-testid^="tweetTextarea"]') || editor;
     var dialog = editor.closest('[role="dialog"]');
     if (dialog) {
-      // A reply modal shows the parent post ABOVE the composer; a quote modal
-      // embeds the quoted post BELOW it. DOM order separates the two without
-      // any locale knowledge.
+      // An embedded post decides it outright: a reply modal shows the parent
+      // ABOVE the composer, a quote modal embeds the quoted post BELOW it.
+      // DOM order separates the two without any locale knowledge — and when
+      // an article is present the marker fallback must NOT run, because a
+      // quote modal's card renders the quoted post's own reply line.
       var art = dialog.querySelector('article');
-      if (art && (art.compareDocumentPosition(host) & Node.DOCUMENT_POSITION_FOLLOWING)) {
-        return true;
+      if (art) {
+        return !!(art.compareDocumentPosition(host) & Node.DOCUMENT_POSITION_FOLLOWING);
       }
-      // Marker fallback for reply surfaces that render no parent article.
-      var dLines = (dialog.innerText || "").slice(0, 300).split("\n");
-      for (var i = 0; i < dLines.length; i++) {
-        if (BangermeterEngine.replyMarkerIn(dLines[i])) return true;
-      }
-      return false;
+      return markerOutsideDraft(dialog, host);
     }
     // The inline composer on a post's detail page is always the reply box.
     if (/\/status\/\d+/.test(location.pathname)) return true;
     // Inline elsewhere: look for the marker in the composer's own cell.
     var cell = editor.closest('[data-testid="cellInnerDiv"]');
-    if (cell) {
-      var cLines = (cell.innerText || "").slice(0, 300).split("\n");
-      for (var j = 0; j < cLines.length; j++) {
-        if (BangermeterEngine.replyMarkerIn(cLines[j])) return true;
-      }
-    }
+    if (cell) return markerOutsideDraft(cell, host);
     return false;
   }
 
-  function draftFeatures(editor, text) {
+  // isReply is decided ONCE per composer (in ensureMeter) and passed in: a
+  // reply box stays a reply box for its lifetime, and the detection walks
+  // innerText, which is not something to repeat on every keystroke.
+  function draftFeatures(editor, text, isReply) {
     var composeRoot = editor.closest('div[data-testid^="tweetTextarea"]');
     var scope = (composeRoot && composeRoot.parentElement && composeRoot.parentElement.parentElement) || document;
     var hasImage = !!scope.querySelector('[data-testid="attachments"] img');
@@ -831,7 +864,7 @@
       hasImage: hasImage,
       hasExternalLink: hasExternalLink,
       hashtagCount: hashtagCount,
-      isReply: composerIsReply(editor),
+      isReply: isReply === true,
       isThreadStarter: /🧵/.test(text) || /(^|\s)1\/\d+/.test(text)
     };
   }
@@ -957,7 +990,8 @@
     meter.appendChild(el("span", "bangermeter-meter-score", ""));
     meter.appendChild(el("span", "bangermeter-meter-hints", ""));
 
-    var entry = { editor: editor, meter: meter, variants: [], last: null };
+    var entry = { editor: editor, meter: meter, variants: [], last: null,
+      isReply: composerIsReply(editor) };
     var save = el("button", "bangermeter-meter-save", "+ compare");
     save.type = "button";
     save.title = "Save this draft's score as a variant (up to three). Rewrite, then compare " +
@@ -999,7 +1033,7 @@
       .getBoundingClientRect();
     if (hostRect.width > 120) meter.style.maxWidth = Math.round(hostRect.width) + "px";
 
-    var feats = draftFeatures(editor, text);
+    var feats = draftFeatures(editor, text, entry.isReply);
     var result = BangermeterEngine.contentScore(feats, settings);
     // A snapshot the "+ compare" button can save. Only the score and a short
     // snippet — draft text stays out of storage entirely.
