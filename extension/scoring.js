@@ -264,6 +264,17 @@ var BangermeterEngine = (function () {
 
     function str(v, cap) { return typeof v === "string" ? v.slice(0, cap) : null; }
     function num(v) { return (typeof v === "number" && isFinite(v)) ? v : null; }
+    // The published serving code emits percentages as STRINGS with a % sign
+    // ("7.14%", formatPercentage in underTheHoodReport.User.strato); early
+    // community write-ups showed numbers. Accept both, normalize to a number.
+    function pct(v) {
+      if (typeof v === "number") return isFinite(v) ? v : null;
+      if (typeof v === "string" && /^\d{1,3}(\.\d{1,4})?%?$/.test(v.trim())) {
+        var n = parseFloat(v);
+        return isFinite(n) ? n : null;
+      }
+      return null;
+    }
     var LABEL_RE = /^[A-Za-z0-9_]{1,64}$/;
 
     function labelRows(arr) {
@@ -280,7 +291,11 @@ var BangermeterEngine = (function () {
           effect: str(row.effect, 400),
           posts: num(row.posts),
           totalPostsInMonth: num(row.totalPostsInMonth),
-          percentageOfPosts: num(row.percentageOfPosts)
+          percentageOfPosts: pct(row.percentageOfPosts),
+          // Account-label rows carry day counts instead of post counts.
+          days: num(row.days),
+          daysInPeriod: num(row.daysInPeriod),
+          percentageOfDays: pct(row.percentageOfDays)
         });
       }
       return rows;

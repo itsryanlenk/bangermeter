@@ -96,10 +96,16 @@
       SF.conversationRanker && SF.conversationRanker.published === false);
     check("OON reply hard-filter recorded",
       !!SF.oonReplyFilter && /entirely/i.test(SF.oonReplyFilter.note));
-    check("reply quality gate: 100K threshold, 0-3 score, 30-day label",
+    check("reply quality gate: 100K threshold, 0-3 score, label named",
       SF.replyQualityGate.followerThreshold === 100000 && SF.replyQualityGate.scoreMax === 3 &&
       SF.replyQualityGate.zeroScoreLabel === "RiskyHighVizReply" &&
-      SF.replyQualityGate.labelTtlDays === 30 && SF.replyQualityGate.selfRepliesExempt === true);
+      SF.replyQualityGate.selfRepliesExempt === true);
+    // task_write.py applies the label with NO duration argument; the 30-day
+    // TTL in enforcement_post.yaml belongs to the llm_slop_post trigger, a
+    // different rule. Claiming 30 days here would be a misattribution.
+    check("no TTL claimed for the score-0 label application",
+      SF.replyQualityGate.labelTtlDays === undefined &&
+      /not published/i.test(SF.replyQualityGate.note));
     check("reply rubric marked withheld — inputs listed, no invented direction",
       SF.replyQualityGate.rubricWithheld === true && SF.replyQualityGate.signals.length === 8);
     check("Under the Hood: aggregates only, 18 post + 12 account labels",
@@ -533,14 +539,17 @@
     // characters, cap sizes, and never throw.
     // ================================================================
     section("Under the Hood report parsing");
+    // Shapes match the PUBLISHED serving code (underTheHoodReport.User.strato):
+    // percentages arrive as strings with a % sign, account labels carry day
+    // counts. A numeric percentage is accepted too.
     var uthGood = JSON.stringify({
       postCount: 42, generatedAt: 1756000000,
       period: { startDate: "2026-07-01", endDate: "2026-07-31", timezone: "UTC" },
       postLabels: [
-        { label: "SPAM_HIGH_RECALL", about: "Suspected spam.", effect: "Post hidden from recommendations to non-followers", posts: 3, totalPostsInMonth: 42, percentageOfPosts: 7.1 }
+        { label: "SPAM_HIGH_RECALL", about: "Suspected spam.", effect: "Post hidden from recommendations to non-followers", posts: 3, totalPostsInMonth: 42, percentageOfPosts: "7.14%" }
       ],
       accountLabels: [
-        { label: "DoNotAmplify", about: "Account deamplified.", effect: "The account's posts are hidden from recommendations to non-followers" }
+        { label: "DoNotAmplify", about: "Account deamplified.", effect: "The account's posts are hidden from recommendations to non-followers", days: 5, daysInPeriod: 31, percentageOfDays: "16.13%" }
       ],
       notes: "ignored free text"
     });
@@ -549,10 +558,16 @@
       uth && uth.postCount === 42 && uth.period.startDate === "2026-07-01" &&
       uth.postLabels.length === 1 && uth.accountLabels.length === 1,
       JSON.stringify(uth));
-    check("label row keeps label, effect, posts, percentage",
+    check("string percentage ('7.14%', the published shape) normalizes to a number",
       uth.postLabels[0].label === "SPAM_HIGH_RECALL" &&
-      uth.postLabels[0].posts === 3 && uth.postLabels[0].percentageOfPosts === 7.1 &&
+      uth.postLabels[0].posts === 3 && uth.postLabels[0].percentageOfPosts === 7.14 &&
       /non-followers/.test(uth.postLabels[0].effect));
+    check("account-label day counts survive",
+      uth.accountLabels[0].days === 5 && uth.accountLabels[0].daysInPeriod === 31 &&
+      uth.accountLabels[0].percentageOfDays === 16.13);
+    check("numeric percentage accepted too",
+      E.parseUnderTheHoodReport('{"postLabels":[{"label":"SPAM","posts":1,"percentageOfPosts":7.1}]}')
+        .postLabels[0].percentageOfPosts === 7.1);
     check("garbage JSON -> null", E.parseUnderTheHoodReport("not json {") === null);
     check("JSON array -> null", E.parseUnderTheHoodReport("[1,2,3]") === null);
     check("object with neither label family -> null",

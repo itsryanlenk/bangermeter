@@ -536,9 +536,9 @@
             "ORIGINAL post — replies are ineligible.",
           tip: "bidirectional_boost_eligible requires in_reply_to_tweet_id to be none " +
             "(ranking_scorer.rs). " + BANGERMETER_CONFIG.heads.reply.note },
-        { mark: "·", text: "Replying to a " + (RQ.followerThreshold / 1000) + "K+ account? A Grok " +
-            "model scores the reply " + RQ.scoreMin + "–" + RQ.scoreMax + "; a " + RQ.scoreMin +
-            " applies the " + RQ.zeroScoreLabel + " label for " + RQ.labelTtlDays + " days.",
+        { mark: "·", text: "Replying to an account over " + (RQ.followerThreshold / 1000) + "K " +
+            "followers? A Grok model scores the reply " + RQ.scoreMin + "–" + RQ.scoreMax + "; a " +
+            RQ.scoreMin + " applies the " + RQ.zeroScoreLabel + " label (duration unpublished).",
           tip: RQ.note + " Signals it is shown: " + RQ.signals.join("; ") + ". (" + RQ.source + ")" },
         { mark: "·", text: "Where this reply SORTS inside the thread is not something anyone " +
             "outside X can score — that ranker is not open-sourced.",
@@ -652,9 +652,10 @@
         "▼ Posting cadence: post #" + (slateK + 1) + " from this author in the loaded stretch of " +
         "feed — production attenuates it ×" + dmul.toFixed(2) + " (author diversity)");
       drow.title = "diversity_multiplier(k=" + slateK + ") = (1 − floor) × decay^k + floor, with " +
-        "decay 0.5 and floor 0.25 (ranking_scorer.rs; EnableAuthorDiversity ships true and it is " +
-        "applied unconditionally). Only currently rendered posts are counted, so the true rank " +
-        "can be higher. Not applied to the score above — it is slate-relative and viewer-specific.";
+        "decay 0.5 and floor 0.25 (ranking_scorer.rs; flag-gated behind EnableAuthorDiversity, " +
+        "which ships true — when enabled it applies to every candidate). Only currently rendered " +
+        "posts are counted, so the true rank can be higher. Not applied to the score above — it " +
+        "is slate-relative and viewer-specific.";
       sec3.appendChild(drow);
     }
     if (result.features.isVerified && !settings.applyVerifiedBoost2023) {
@@ -700,8 +701,8 @@
       "▼ Any post whose weighted sum goes net-negative is rescaled below every positive post, " +
         "no matter what else it earned.",
       "▼ Posting again while your last post is still in the same feed slate costs the newer " +
-        "one: the 2nd post from an author runs ×0.625, the 3rd ×0.44, decaying to a ×0.25 " +
-        "floor (author diversity — decay 0.5, floor 0.25, applied unconditionally).",
+        "one: an author's 2nd post in the slate runs ×0.625, the 3rd ×0.44, decaying to a " +
+        "×0.25 floor (author diversity — decay 0.5, floor 0.25, shipped on by default).",
       "· Grok's “banger” pipeline only ever looks at original posts — replies and " +
         "protected accounts are filtered out before it runs.",
       "· Engagement only counts if the post reached the reader through their Home Timeline. " +
@@ -1061,9 +1062,9 @@
       if (pastedEditors.has(editor)) {
         var pasteChip = el("span", null, "· pasted text");
         pasteChip.title = "You pasted into this reply. X's reply-quality scorer is shown an " +
-          "is_pasted flag when scoring replies to 100K+ accounts (grox/core/lm/thread.py). What " +
-          "the withheld rubric does with it is unpublished — this chip is informational, and the " +
-          "score above does not move on it.";
+          "is_pasted flag when scoring replies to accounts over 100K followers " +
+          "(grox/core/lm/thread.py). What the withheld rubric does with it is unpublished — this " +
+          "chip is informational, and the score above does not move on it.";
         hintsEl.appendChild(pasteChip);
       }
     }

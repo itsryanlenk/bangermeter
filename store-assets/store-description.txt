@@ -17,7 +17,7 @@ WHAT YOU GET
 
 • A weight table in the popup. All 26 ranking heads, their published values, and which ones the extension can measure versus estimate.
 
-• Reply mode. Reply drafts are scored as replies (they take a ×0.75 factor in the published math), and the breakdown explains what X publishes about replies: out-of-network replies never reach For You at all, replies never get the mutual-follow boost, and replies to 100K+ accounts are quality-scored by a Grok model whose rubric X withholds.
+• Reply mode. Reply drafts are scored as replies (they take a ×0.75 factor in the published math), and the breakdown explains what X publishes about replies: out-of-network replies never reach For You at all, replies never get the mutual-follow boost, and replies to accounts over 100K followers are quality-scored by a Grok model whose rubric X withholds.
 
 • Draft comparison. Save up to three variants of a draft and pick the best-scoring one before posting. Variants live in memory only.
 
@@ -66,14 +66,14 @@ Everything runs locally in your browser. The source is public and reviewable.
 
 OPEN SOURCE
 
-MIT licensed, with the full research record and 175 automated tests that check every published weight against X's source individually.
+MIT licensed, with the full research record and 178 automated tests that check every published weight against X's source individually.
 
 github.com/itsryanlenk/bangermeter
 
 
 WHAT'S NEW IN 0.10.0
 
-• Reply mode. The compose meter now knows when you're drafting a reply and scores it as one — reply drafts were previously scored as originals, hiding the ×0.75 factor the published math applies. The breakdown panel gains a reply-scoring section built from the published code: out-of-network replies are hard-filtered from For You, replies never get the mutual-follow boost, and replies to 100K+ accounts are scored 0-3 by a Grok model. X withholds that model's rubric to reduce gameability, so this extension lists the published inputs and refuses to fake the score.
+• Reply mode. The compose meter now knows when you're drafting a reply and scores it as one — reply drafts were previously scored as originals, hiding the ×0.75 factor the published math applies. The breakdown panel gains a reply-scoring section built from the published code: out-of-network replies are hard-filtered from For You, replies never get the mutual-follow boost, and replies to accounts over 100K followers are scored 0-3 by a Grok model. X withholds that model's rubric to reduce gameability, so this extension lists the published inputs and refuses to fake the score.
 
 • Draft comparison. Save up to three draft variants and compare their scores side by side before posting.
 

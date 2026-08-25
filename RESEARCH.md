@@ -79,11 +79,15 @@ adversarial second pass before anything here was written into `weights.js`.
   July 24**. Press coverage framed it as boosting mutuals' *replies inside threads*; the
   published implementation boosts *original posts from mutuals* in For You (the reply-head
   weight rises 5.0 → 20.0), and replies themselves are explicitly ineligible
-  (`bidirectional_boost_eligible` requires `in_reply_to_tweet_id` to be none). No
-  thread-ranking module exists anywhere in the repo.
+  (`bidirectional_boost_eligible` requires `in_reply_to_tweet_id` to be none). The
+  service that orders replies under a post is absent from the repo — what it ships is
+  the 0–3 reply-score *generator* (`grox/flows/reply_spam/`), not the ordering logic
+  that consumes it.
 - **Replies to big accounts are LLM-scored.** `grox/flows/reply_spam/` scores replies to
   authors (parent or thread root) with **over 100,000 followers** on a 0–3 rubric using a
-  Grok model; a score of 0 applies the `RiskyHighVizReply` safety label for 30 days.
+  Grok model; a score of 0 applies the `RiskyHighVizReply` safety label — with **no
+  published duration** (`task_write.py` passes no TTL; the 30-day TTL in
+  `enforcement_post.yaml` belongs to a different rule triggered by `llm_slop_post`).
   Self-replies are exempt. The signals fed to the scorer are published (follower count,
   reply volume last 24h, legitimate blocks received last 24h, pasted-text flag, thread
   context…) but the rubric prompt is **withheld by X "to reduce gameability"** — so no
@@ -96,9 +100,11 @@ adversarial second pass before anything here was written into `weights.js`.
 - **"Under the Hood" is real, and aggregate-only.** The Aug 13 transparency pilot
   (`x.com/i/under_the_hood`, `under-the-hood/` in the repo) gives eligible users a
   downloadable JSON of visibility-impacting labels on their own account/posts — monthly
-  per-label counts and percentages, **no post IDs**. The report is served over GraphQL and
-  never rendered into the page DOM, so a zero-network extension cannot read it
-  automatically. Bangermeter v0.10.0 instead accepts the file by user-initiated import,
+  per-label counts and percentages, **no post IDs**. The report is served over GraphQL as
+  a single JSON blob (published serving code); in our testing the page offers it as a
+  download and does not render the label data into the DOM (observed client behavior,
+  Aug 2026) — so a zero-network extension cannot read it automatically. Bangermeter
+  v0.10.0 instead accepts the file by user-initiated import,
   parses it locally against the published 18-post-label / 12-account-label allowlist
   (`underTheHoodLabels.strato`), and stores the summary only in `chrome.storage.local`.
 - **`reply_engaged_by_author` stays dead.** No author-engagement reply signal exists

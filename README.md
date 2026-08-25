@@ -51,9 +51,10 @@ what the published weights actually say.
 - **Reply mode.** Reply drafts are scored as replies — the ×0.75 in-network reply factor
   the compose meter previously missed — and the breakdown panel gets a reply-scoring
   section: out-of-network replies never reach For You at all (`OONRetweetReplyFilter`),
-  replies are ineligible for the +15.0 mutual-follow boost, and replies to 100K+-follower
-  accounts are scored 0–3 by a Grok model whose rubric X withholds (the published *inputs*
-  are listed; no invented direction). Where a reply sorts inside a thread is disclosed as
+  replies are ineligible for the +15.0 mutual-follow boost, and replies to accounts over
+  100K followers are scored 0–3 by a Grok model whose rubric X withholds (the published
+  *inputs* are listed; no invented direction — and no duration for the score-0 label,
+  because none is published). Where a reply sorts inside a thread is disclosed as
   unpublished rather than guessed.
 - **Score history.** Opening a breakdown panel logs the scores to a local, capped list
   (`chrome.storage.local`, 200 entries — id, time, scores, an 80-char snippet).
@@ -64,9 +65,9 @@ what the published weights actually say.
   memory only and vanish with the page.
 - **Posting-cadence warning.** When an author has more than one post in the loaded stretch
   of feed, the panel reports the author-diversity attenuation production would apply —
-  `(1 − 0.25) × 0.5^k + 0.25`: the 2nd consecutive post runs ×0.625, the 3rd ×0.44, to a
-  ×0.25 floor. Reported as context, not applied to the score (it is slate-relative and
-  viewer-specific).
+  `(1 − 0.25) × 0.5^k + 0.25`: an author's 2nd post in the slate runs ×0.625, the 3rd
+  ×0.44, to a ×0.25 floor — wherever in the slate they sit. Reported as context, not
+  applied to the score (it is slate-relative and viewer-specific).
 - **Under the Hood import.** Pilot-cohort users can import the JSON report X lets them
   download from `x.com/i/under_the_hood`; the popup summarizes the visibility labels X
   itself applied (monthly aggregates — the report carries no post IDs). Parsed locally,
@@ -126,9 +127,9 @@ what the published weights actually say.
 
 ## Known limitations
 
-- Count parsing prefers a locale word table (English today; locales join only with sourced
+- Count parsing prefers a locale word table (16 locales today; more join only with sourced
   strings) and falls back to the locale-independent `data-testid` buttons, so counts and
-  views survive on non-English locales. Reply detection on timeline posts still needs the
+  views survive even on locales the table does not know. Reply detection on timeline posts still needs the
   localized "Replying to" marker; reply *drafts* are detected structurally (dialog order,
   status-page URL), which is locale-independent.
 - The E score needs a visible view count (hidden on some surfaces).
@@ -146,7 +147,7 @@ what the published weights actually say.
 | `extension/weights.js` | Single source of truth: weight layer + estimator layer, all provenance-tagged |
 | `extension/scoring.js` | Pure scoring engine (direct port of `ranking_scorer.rs`) |
 | `extension/content.js` | Badges, breakdown panel, compose meter |
-| `extension/test.html` | Engine self-test — open in any browser (175 assertions) |
+| `extension/test.html` | Engine self-test — open in any browser (178 assertions) |
 | `extension/fixture.html` | X-DOM fixture harness for the content script |
 | `extension/fixture-compose.html` | Compose-meter visibility harness — asserts the draft meter survives X's scrolling, overflow-hidden compose dialog (it prints its own pass count) |
 | `extension/bangermeter.user.js` | Single-file Tampermonkey build (generated — see `store-assets/make-userscript.ps1`) |
@@ -161,7 +162,7 @@ happened when those numbers were hardcoded.
 
 ## Verification status
 
-- Engine math: **175/175 self-tests pass** (`test.html`). Every one of the 26 published
+- Engine math: **178/178 self-tests pass** (`test.html`). Every one of the 26 published
   weights and its feature-switch parameter name is asserted against `param.rs`
   individually, so a silent transcription error fails the suite rather than shipping.
   All 26 re-verified unchanged against the live repo on Aug 25, 2026.

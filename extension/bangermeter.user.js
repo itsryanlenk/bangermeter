@@ -197,7 +197,7 @@ var BANGERMETER_CONFIG = {
       param: "rust_home_mixer_author_diversity_decay",
       floorParam: "rust_home_mixer_author_diversity_floor",
       provenance: "2026-published", label: "Author diversity decay",
-      note: "(1 - floor) × decay^k + floor, where k is the author's rank among their own posts in the slate. EnableAuthorDiversity ships true and it is applied unconditionally in RankingScorer::score." },
+      note: "(1 - floor) × decay^k + floor, where k is the author's rank among their own posts in the slate. Flag-gated (EnableAuthorDiversity) but shipped true — and when enabled it applies to every candidate, not just out-of-network ones." },
 
     // NOT part of the 2026 release. 2023-era serving code (commit ec83d01dca),
     // removed Sept 2025. Opt-in only — see the v0.7.1 regression note.
@@ -260,7 +260,7 @@ var BANGERMETER_CONFIG = {
 
     // ── Reply-specific facts (verified against the repo 2026-08-25) ───────
     conversationRanker: { published: false, provenance: "2026-published",
-      note: "The service that ORDERS replies under a post is not in the open-source release. The repo's own README scopes it to the For You feed, and no conversation/thread-ranking module exists in the tree. Any claim about a reply's position inside a thread is unpublished territory and this tool says so rather than guessing." },
+      note: "The service that ORDERS replies under a post is not in the open-source release — the repo's own README scopes it to the For You feed. What the repo DOES ship is the 0-3 reply-ranking score generator (grox/flows/reply_spam/), not the ordering logic that consumes it. Any claim about a reply's position inside a thread is unpublished territory and this tool says so rather than guessing." },
 
     oonReplyFilter: { provenance: "2026-published",
       source: "home-mixer/filters/oon_retweet_reply_filter.rs",
@@ -268,7 +268,7 @@ var BANGERMETER_CONFIG = {
 
     replyQualityGate: {
       followerThreshold: 100000, scoreMin: 0, scoreMax: 3,
-      zeroScoreLabel: "RiskyHighVizReply", labelTtlDays: 30,
+      zeroScoreLabel: "RiskyHighVizReply",
       selfRepliesExempt: true, rubricWithheld: true,
       provenance: "2026-published",
       source: "grox/flows/reply_spam/ (plan_reply_ranking.py, task_filter.py, classifier_reply_ranking.py, task_write.py)",
@@ -279,16 +279,27 @@ var BANGERMETER_CONFIG = {
         "legitimate blocks received in the last 24 hours", "risky-safety-label flag",
         "pasted-text flag (is_pasted)", "missing-client-events flag",
         "account country and language", "up to 10 posts of thread context"],
-      note: "Replies to a parent or thread-root author with over 100,000 followers are scored 0-3 by a Grok model (GROK_4_MINI_CRITICAL). A score of 0 applies the RiskyHighVizReply safety label for 30 days. Self-replies are exempt, and high-PageRank / grey-badge authors are exempt from the label. The scoring rubric itself is withheld by X 'to reduce gameability' — so no tool can honestly claim to reproduce it, this one included. Replies to accounts at or under the threshold go through a spam filter instead." },
+      // NO duration is published for the score-0 label application:
+      // task_write.py applies RiskyHighVizReply with no TTL argument, and the
+      // strato module behind it is not in the repo. A DIFFERENT published
+      // rule (abuse-enforcement-service enforcement_post.yaml,
+      // act_add_llm_slop_post_label) applies the same label for 30 days on
+      // its own llm_slop_post trigger — that TTL belongs to that rule, not
+      // to the reply score. A 30-day figure shipped here briefly during
+      // development and was caught by the provenance review before release.
+      note: "Replies to a parent or thread-root author with strictly over 100,000 followers are scored 0-3 by a Grok model (GROK_4_MINI_CRITICAL). A score of 0 applies the RiskyHighVizReply safety label; the duration of that application is not published (a separate enforcement rule applies the same label for 30 days on a different trigger, llm_slop_post). Self-replies are exempt, and high-PageRank / grey-badge authors are exempt from the label. The scoring rubric itself is withheld by X 'to reduce gameability' — so no tool can honestly claim to reproduce it, this one included. Replies to accounts at or under the threshold go through a spam filter instead." },
 
     // ── "Under the Hood" transparency pilot (announced Aug 13, 2026) ──────
     underTheHood: {
       provenance: "2026-published",
       source: "under-the-hood/ (underTheHoodLabels.strato, under_the_hood.thrift, uth_serving.thrift)",
       path: "x.com/i/under_the_hood",
-      eligibility: "pilot cohort: account at least 1 year old, 10+ posts in the previous month, randomized selection",
+      // The two published eligibility checks, verbatim from
+      // underTheHoodReport.User.strato. X's announcement described a limited
+      // pilot cohort beyond these, but no selection mechanism is in the repo.
+      eligibility: "account at least 1 year old, 10 or more posts in the prior month",
       aggregatesOnly: true,
-      note: "A pilot report of visibility-impacting safety labels on the user's own account and posts, downloadable as JSON. The report holds MONTHLY PER-LABEL AGGREGATES — counts and percentages, no post IDs — so it can say 'N posts carried label X this month', never 'this post was deboosted'. The report is served via GraphQL and offered as a file download, not rendered into the page DOM, so a zero-network extension cannot read it automatically; Bangermeter accepts the file by user-initiated import instead, and parses it locally.",
+      note: "A pilot report of visibility-impacting safety labels on the user's own account and posts, downloadable as JSON. The report holds MONTHLY PER-LABEL AGGREGATES — counts and percentages, no post IDs — so it can say 'N posts carried label X this month', never 'this post was deboosted'. The report is served via GraphQL as a single JSON blob (published serving code); in our testing the page offers it as a file download and does not render the label data into the DOM (observed client behavior, Aug 2026) — so a zero-network extension cannot read it automatically, and Bangermeter accepts the file by user-initiated import instead, parsing it locally.",
       // The public allowlist of label names, transcribed from
       // underTheHoodLabels.strato. X does not claim these are the only labels
       // that exist — they are the ones the report discloses.
@@ -722,6 +733,17 @@ var BangermeterEngine = (function () {
 
     function str(v, cap) { return typeof v === "string" ? v.slice(0, cap) : null; }
     function num(v) { return (typeof v === "number" && isFinite(v)) ? v : null; }
+    // The published serving code emits percentages as STRINGS with a % sign
+    // ("7.14%", formatPercentage in underTheHoodReport.User.strato); early
+    // community write-ups showed numbers. Accept both, normalize to a number.
+    function pct(v) {
+      if (typeof v === "number") return isFinite(v) ? v : null;
+      if (typeof v === "string" && /^\d{1,3}(\.\d{1,4})?%?$/.test(v.trim())) {
+        var n = parseFloat(v);
+        return isFinite(n) ? n : null;
+      }
+      return null;
+    }
     var LABEL_RE = /^[A-Za-z0-9_]{1,64}$/;
 
     function labelRows(arr) {
@@ -738,7 +760,11 @@ var BangermeterEngine = (function () {
           effect: str(row.effect, 400),
           posts: num(row.posts),
           totalPostsInMonth: num(row.totalPostsInMonth),
-          percentageOfPosts: num(row.percentageOfPosts)
+          percentageOfPosts: pct(row.percentageOfPosts),
+          // Account-label rows carry day counts instead of post counts.
+          days: num(row.days),
+          daysInPeriod: num(row.daysInPeriod),
+          percentageOfDays: pct(row.percentageOfDays)
         });
       }
       return rows;
@@ -1657,9 +1683,9 @@ var BangermeterEngine = (function () {
             "ORIGINAL post — replies are ineligible.",
           tip: "bidirectional_boost_eligible requires in_reply_to_tweet_id to be none " +
             "(ranking_scorer.rs). " + BANGERMETER_CONFIG.heads.reply.note },
-        { mark: "·", text: "Replying to a " + (RQ.followerThreshold / 1000) + "K+ account? A Grok " +
-            "model scores the reply " + RQ.scoreMin + "–" + RQ.scoreMax + "; a " + RQ.scoreMin +
-            " applies the " + RQ.zeroScoreLabel + " label for " + RQ.labelTtlDays + " days.",
+        { mark: "·", text: "Replying to an account over " + (RQ.followerThreshold / 1000) + "K " +
+            "followers? A Grok model scores the reply " + RQ.scoreMin + "–" + RQ.scoreMax + "; a " +
+            RQ.scoreMin + " applies the " + RQ.zeroScoreLabel + " label (duration unpublished).",
           tip: RQ.note + " Signals it is shown: " + RQ.signals.join("; ") + ". (" + RQ.source + ")" },
         { mark: "·", text: "Where this reply SORTS inside the thread is not something anyone " +
             "outside X can score — that ranker is not open-sourced.",
@@ -1773,9 +1799,10 @@ var BangermeterEngine = (function () {
         "▼ Posting cadence: post #" + (slateK + 1) + " from this author in the loaded stretch of " +
         "feed — production attenuates it ×" + dmul.toFixed(2) + " (author diversity)");
       drow.title = "diversity_multiplier(k=" + slateK + ") = (1 − floor) × decay^k + floor, with " +
-        "decay 0.5 and floor 0.25 (ranking_scorer.rs; EnableAuthorDiversity ships true and it is " +
-        "applied unconditionally). Only currently rendered posts are counted, so the true rank " +
-        "can be higher. Not applied to the score above — it is slate-relative and viewer-specific.";
+        "decay 0.5 and floor 0.25 (ranking_scorer.rs; flag-gated behind EnableAuthorDiversity, " +
+        "which ships true — when enabled it applies to every candidate). Only currently rendered " +
+        "posts are counted, so the true rank can be higher. Not applied to the score above — it " +
+        "is slate-relative and viewer-specific.";
       sec3.appendChild(drow);
     }
     if (result.features.isVerified && !settings.applyVerifiedBoost2023) {
@@ -1821,8 +1848,8 @@ var BangermeterEngine = (function () {
       "▼ Any post whose weighted sum goes net-negative is rescaled below every positive post, " +
         "no matter what else it earned.",
       "▼ Posting again while your last post is still in the same feed slate costs the newer " +
-        "one: the 2nd post from an author runs ×0.625, the 3rd ×0.44, decaying to a ×0.25 " +
-        "floor (author diversity — decay 0.5, floor 0.25, applied unconditionally).",
+        "one: an author's 2nd post in the slate runs ×0.625, the 3rd ×0.44, decaying to a " +
+        "×0.25 floor (author diversity — decay 0.5, floor 0.25, shipped on by default).",
       "· Grok's “banger” pipeline only ever looks at original posts — replies and " +
         "protected accounts are filtered out before it runs.",
       "· Engagement only counts if the post reached the reader through their Home Timeline. " +
@@ -2182,9 +2209,9 @@ var BangermeterEngine = (function () {
       if (pastedEditors.has(editor)) {
         var pasteChip = el("span", null, "· pasted text");
         pasteChip.title = "You pasted into this reply. X's reply-quality scorer is shown an " +
-          "is_pasted flag when scoring replies to 100K+ accounts (grox/core/lm/thread.py). What " +
-          "the withheld rubric does with it is unpublished — this chip is informational, and the " +
-          "score above does not move on it.";
+          "is_pasted flag when scoring replies to accounts over 100K followers " +
+          "(grox/core/lm/thread.py). What the withheld rubric does with it is unpublished — this " +
+          "chip is informational, and the score above does not move on it.";
         hintsEl.appendChild(pasteChip);
       }
     }

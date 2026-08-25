@@ -138,10 +138,16 @@
       name.textContent = row.label + (known ? "" : " (not in the public allowlist)");
       if (row.about) div.title = row.about;
       div.appendChild(name);
-      if (row.posts != null) {
+      var countText = null;
+      if (row.posts != null) countText = row.posts + (denomText || "");
+      else if (row.days != null) {
+        countText = row.days + (row.days === 1 ? " day" : " days") +
+          (row.percentageOfDays != null ? " (" + row.percentageOfDays + "%)" : "");
+      }
+      if (countText != null) {
         var count = document.createElement("span");
         count.className = "uth-count";
-        count.textContent = row.posts + (denomText || "");
+        count.textContent = countText;
         div.appendChild(count);
       }
       var effect = document.createElement("span");
