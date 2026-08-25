@@ -83,7 +83,7 @@ WHAT'S NEW IN 0.10.0
 
 • Posting-cadence warning. When an author posts more than once into the same stretch of feed, the panel now shows the author-diversity attenuation production applies to the later posts.
 
-• Works on a Hindi X interface, and 15 other languages. Reply markers and count words for 16 locales are transcribed from X's own published interface strings — so if your X is set to Hindi, Spanish, Japanese, Arabic or Turkish, posts still score. On a locale not in the table, parsing falls back to X's language-independent element IDs, so nothing breaks. Engagement-bait detection now recognises Hinglish calls to action ("comment karo agar", "1 likho agar", "sach batao") alongside the English ones.
+• Works on a Hindi X interface, and 15 other languages. Reply markers and count words for 16 locales are transcribed from X's own published interface strings — so if your X is set to Hindi, Spanish, Japanese, Arabic or Turkish, posts still score. On a locale not in the table, parsing falls back to X's language-independent element IDs, so nothing breaks. Engagement-bait detection now recognizes Hinglish calls to action ("comment karo agar", "1 likho agar", "sach batao") alongside the English ones.
 
 • Replies are detected everywhere, not just where X labels them. Inside a conversation X renders no "Replying to" text at all — the post above is the only marker — so replies under a post used to score as originals and miss the ×0.75 factor. Threads, the with-replies tab and the timeline are each handled on their own terms now.
 
