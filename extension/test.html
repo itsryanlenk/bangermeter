@@ -488,6 +488,72 @@
     check("Indonesian prefix", E.replyMarkerIn("Membalas @user") === true);
 
     // ================================================================
+    // Reply verdict — which surface you are on decides which signal is
+    // trustworthy. Found in the field on 2026-08-25: X renders NO "Replying
+    // to" label inside a conversation, so a label-only reader scores every
+    // reply under a post as an original. The same is true of /with_replies,
+    // which the collector already knew and the extension did not.
+    // ================================================================
+    section("Reply verdict by surface");
+    var V = E.replyVerdict;
+
+    // A repost is never a reply, whatever else is true.
+    check("repost is never a reply",
+      V({ surface: "conversation", isRepost: true, hasMarker: true, hasArticleAbove: true }).isReply === false);
+
+    // The label is authoritative wherever it appears.
+    check("label wins on the timeline",
+      V({ surface: "timeline", hasMarker: true }).isReply === true &&
+      V({ surface: "timeline", hasMarker: true }).signal === "label");
+    check("label wins in a conversation",
+      V({ surface: "conversation", hasMarker: true, hasArticleAbove: false }).isReply === true);
+
+    // CONVERSATION: the post above IS the marker. First article is the top of
+    // the thread; everything below it replies to something.
+    check("conversation: first article is an original",
+      V({ surface: "conversation", hasArticleAbove: false }).isReply === false);
+    check("conversation: any article below the first is a reply",
+      V({ surface: "conversation", hasArticleAbove: true }).isReply === true &&
+      V({ surface: "conversation", hasArticleAbove: true }).signal === "thread-position");
+    // A focal post with ancestors above it IS itself a reply — same rule.
+    check("conversation: focal post with ancestors above is a reply",
+      V({ surface: "conversation", hasArticleAbove: true, isFocal: true }).isReply === true);
+    // "Discover more" recommendations sit below the thread and are NOT replies.
+    check("conversation: recommendations past the boundary are not replies",
+      V({ surface: "conversation", hasArticleAbove: true, beyondThread: true }).isReply === false);
+
+    // WITH_REPLIES: conversation pairs, so a different author directly above
+    // is the signal (this is what collect.js already does).
+    check("with_replies: different author above -> reply",
+      V({ surface: "with_replies", hasPrevArticle: true, prevAuthorDiffers: true }).isReply === true &&
+      V({ surface: "with_replies", hasPrevArticle: true, prevAuthorDiffers: true }).signal === "parent");
+    check("with_replies: same author above -> not a reply",
+      V({ surface: "with_replies", hasPrevArticle: true, prevAuthorDiffers: false }).isReply === false);
+    check("with_replies: nothing above -> falls back to the label",
+      V({ surface: "with_replies", hasPrevArticle: false }).isReply === false);
+
+    // THE REGRESSION GUARD. On the home timeline every neighbour is a
+    // different author. If adjacency ever fires here, every post in the feed
+    // silently takes the x0.75 reply discount.
+    check("timeline: adjacency is IGNORED (guards against flagging the whole feed)",
+      V({ surface: "timeline", hasArticleAbove: true, hasPrevArticle: true, prevAuthorDiffers: true }).isReply === false,
+      "a different author above is normal on a timeline and means nothing");
+    check("timeline: no marker -> not a reply",
+      V({ surface: "timeline", hasMarker: false }).isReply === false &&
+      V({ surface: "timeline", hasMarker: false }).signal === "none");
+
+    // Surface classification from the URL path.
+    check("surface: /user/status/123 -> conversation",
+      E.surfaceFromPath("/hridoyreh/status/2092152773148328214") === "conversation");
+    check("surface: /user/with_replies -> with_replies",
+      E.surfaceFromPath("/iGreenGod/with_replies") === "with_replies");
+    check("surface: profile -> timeline", E.surfaceFromPath("/iGreenGod") === "timeline");
+    check("surface: home -> timeline", E.surfaceFromPath("/home") === "timeline");
+    check("surface: search -> timeline", E.surfaceFromPath("/search") === "timeline");
+    check("surface: photo view of a post is still a conversation",
+      E.surfaceFromPath("/hridoyreh/status/2092152773148328214/photo/1") === "conversation");
+
+    // ================================================================
     // Reply drafts — the compose meter used to hardcode isReply:false, so a
     // reply draft was scored as an original and never saw the x0.75 discount.
     // ================================================================

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Bangermeter — reply-detection harness (conversation / with_replies / timeline)</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: #f7f9f9; margin: 0; padding: 16px; }
+    #results { font-family: Consolas, monospace; font-size: 13px; margin-bottom: 14px; }
+    .pass { color: #00794d; }
+    .fail { color: #c8102e; font-weight: bold; }
+    .note { color: #536471; }
+    article { display: block; background: #fff; border: 1px solid #e1e8ed; border-radius: 12px; padding: 10px 14px; margin: 0 auto 8px; max-width: 560px; }
+    div[role="group"] { display: flex; gap: 20px; margin-top: 6px; color: #536471; font-size: 13px; }
+    h2 { max-width: 560px; margin: 18px auto 8px; font-size: 15px; }
+    .name { font-weight: 700; }
+  </style>
+</head>
+<body>
+  <h3 style="max-width:560px;margin:0 auto 12px;">Reply-detection harness</h3>
+  <div id="results">running…</div>
+  <div id="primary" data-testid="primaryColumn"></div>
+
+  <script>
+    // chrome.storage shim so content.js runs outside the extension context.
+    window.chrome = window.chrome || { storage: {
+      sync: { get: (d, cb) => cb(d), set: () => {} },
+      local: { get: (d, cb) => cb(d), set: () => {}, remove: () => {} },
+      onChanged: { addListener: () => {} } } };
+
+    // ── Build the DOM this surface actually renders ────────────────────────
+    // Structures below were MEASURED from live x.com on 2026-08-25, not
+    // guessed: the focal post carries tabindex="-1" while every other article
+    // carries tabindex="0", and the recommendations that follow a thread sit
+    // under the column's only <h2 role="heading" aria-level="2">.
+    const path = location.pathname;
+    const surface = /^\/[^\/]+\/status\/\d+/.test(path) ? "conversation"
+                  : /\/with_replies$/.test(path) ? "with_replies" : "timeline";
+    const col = document.getElementById("primary");
+
+    let n = 0;
+    function cell(inner) {
+      const c = document.createElement("div");
+      c.setAttribute("data-testid", "cellInnerDiv");
+      c.innerHTML = inner;
+      col.appendChild(c);
+      return c;
+    }
+    // NOTE: no "Replying to" label anywhere in the conversation or
+    // with_replies markup — that is the whole point. X does not render one.
+    function post(handle, text, opts) {
+      opts = opts || {};
+      n++;
+      return cell(
+        '<article data-testid="tweet" tabindex="' + (opts.focal ? "-1" : "0") + '" data-fx="' + (opts.id || n) + '">' +
+          (opts.label ? '<div>Replying to <a href="/' + opts.label + '">@' + opts.label + '</a></div>' : '') +
+          '<div data-testid="User-Name"><a href="/' + handle + '"><span class="name">' + handle + '</span></a> ' +
+            '<a href="/' + handle + '/status/' + (9000 + n) + '"><time datetime="2026-08-25T09:0' + (n % 10) + ':00.000Z">1h</time></a></div>' +
+          '<div data-testid="tweetText">' + text + '</div>' +
+          '<div role="group" aria-label="3 replies, 2 reposts, 40 likes, 1 bookmark, 5000 views">' +
+            '<button data-testid="reply" aria-label="3 replies. Reply">3</button>' +
+            '<button data-testid="retweet" aria-label="2 reposts. Repost">2</button>' +
+            '<button data-testid="like" aria-label="40 likes. Like">40</button>' +
+          '</div>' +
+        '</article>');
+    }
+
+    let expected = {};   // data-fx -> should this be detected as a reply?
+
+    if (surface === "conversation") {
+      // A thread whose focal post is itself a reply: one ancestor above it,
+      // then the focal post, then replies from other people, then the
+      // "Discover more" recommendations, which are NOT replies to anything.
+      post("rootauthor", "The original post that started all of this.", { id: "ancestor" });
+      post("focalguy", "My reply to that, which is the post this page is about.", { id: "focal", focal: true });
+      post("replierone", "First reply under the focal post.", { id: "r1" });
+      post("replytwo", "Second reply under the focal post.", { id: "r2" });
+      post("focalguy", "Author following up in his own thread.", { id: "selfreply" });
+      const h = document.createElement("div");
+      h.setAttribute("data-testid", "cellInnerDiv");
+      h.innerHTML = '<h2 role="heading" aria-level="2">Discover more</h2>';
+      col.appendChild(h);
+      post("randomrec", "A recommended post that has nothing to do with this thread.", { id: "rec1" });
+      post("otherrec", "Another recommendation below the fold.", { id: "rec2" });
+      expected = { ancestor: false, focal: true, r1: true, r2: true, selfreply: true, rec1: false, rec2: false };
+
+    } else if (surface === "with_replies") {
+      // Conversation PAIRS: someone else's post, then the account's reply to
+      // it, with no label on the reply. Then an original by the account.
+      post("someoneelse", "A post by somebody else.", { id: "parent1" });
+      post("theaccount", "The account replying to it, with no label at all.", { id: "reply1" });
+      post("anotherperson", "A different person's post.", { id: "parent2" });
+      post("theaccount", "The account replying again.", { id: "reply2" });
+      post("theaccount", "An original by the account, directly after its own reply.", { id: "original1" });
+      expected = { parent1: false, reply1: true, parent2: true, reply2: true, original1: false };
+
+    } else {
+      // HOME TIMELINE — the regression guard. Every post here is by a
+      // different author than the one above it, which is completely normal.
+      // If adjacency ever leaks onto this surface, every post in the feed
+      // silently takes the x0.75 reply discount.
+      post("alice", "A totally ordinary original post on the home timeline.", { id: "t1" });
+      post("bob", "Another ordinary original by a different author.", { id: "t2" });
+      post("carol", "And a third, also an original.", { id: "t3" });
+      post("dave", "A genuine reply, which DOES carry a label out here.", { id: "t4", label: "alice" });
+      expected = { t1: false, t2: false, t3: false, t4: true };
+    }
+  </script>
+
+  <script src="/weights.js"></script>
+  <script src="/scoring.js"></script>
+  <script src="/content.js"></script>
+
+  <script>
+    const out = document.getElementById("results");
+    let pass = 0, fail = 0;
+    function check(name, cond, detail) {
+      const d = document.createElement("div");
+      d.className = cond ? "pass" : "fail";
+      d.textContent = (cond ? "PASS  " : "FAIL  ") + name + (detail ? "  [" + detail + "]" : "");
+      out.appendChild(d);
+      cond ? pass++ : fail++;
+    }
+
+    // Was this article scored as a reply? The user-visible consequence is the
+    // reply-scoring section in the breakdown panel, so assert on that rather
+    // than on any internal state.
+    function detectedAsReply(article) {
+      const badge = article.querySelector(".bangermeter-badge");
+      if (!badge) return null;
+      badge.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      const panel = document.querySelector(".bangermeter-panel");
+      if (!panel) return null;
+      // textContent, NOT innerText: the subhead is styled text-transform:
+      // uppercase and innerText reflects that, so a case-sensitive match on
+      // innerText silently never fires.
+      const isReply = [...panel.querySelectorAll(".bangermeter-subhead")]
+        .some(h => h.textContent === "Reply scoring");
+      const closeBtn = panel.querySelector(".bangermeter-panel-close");
+      if (closeBtn) closeBtn.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      return isReply;
+    }
+
+    setTimeout(function () {
+      out.textContent = "";
+      const head = document.createElement("div");
+      head.className = "note";
+      head.textContent = "surface: " + surface + "   path: " + location.pathname;
+      out.appendChild(head);
+
+      check("surface detected from the URL",
+        BangermeterEngine.surfaceFromPath(location.pathname) === surface, surface);
+
+      let badged = 0;
+      Object.keys(expected).forEach(function (id) {
+        const art = document.querySelector('article[data-fx="' + id + '"]');
+        if (!art) { check(id + ": article rendered", false); return; }
+        if (art.querySelector(".bangermeter-badge")) badged++;
+        const got = detectedAsReply(art);
+        const want = expected[id];
+        check(id + ": " + (want ? "REPLY" : "original"),
+          got === want, got === null ? "no badge/panel" : (got ? "detected reply" : "detected original"));
+      });
+      check("every article got a badge", badged === Object.keys(expected).length,
+        badged + " of " + Object.keys(expected).length);
+
+      const sum = document.createElement("div");
+      sum.className = fail ? "fail" : "pass";
+      sum.textContent = pass + " passed, " + fail + " failed";
+      out.appendChild(sum);
+      document.title = (fail ? "FAIL " : "PASS ") + "reply-detection harness — " + surface;
+    }, 900);
+  </script>
+</body>
+</html>

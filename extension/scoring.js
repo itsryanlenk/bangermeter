@@ -216,6 +216,54 @@ var BangermeterEngine = (function () {
     return counts;
   }
 
+  // ---- reply detection, by surface ------------------------------------------
+  // The "Replying to" label is NOT rendered everywhere. Inside a conversation
+  // and on /with_replies, X marks a reply by ADJACENCY — the parent post is
+  // rendered directly above, and that is the whole marker. A label-only reader
+  // scores every reply under a post as an original, missing the x0.75 factor
+  // that in-network replies actually take (found live on x.com, 2026-08-25).
+  //
+  // Which signal is trustworthy depends on the surface, and getting that wrong
+  // is dangerous in one specific direction: on a home timeline EVERY post has a
+  // different author above it, so adjacency there would flag the entire feed as
+  // replies. Hence surface gating rather than one universal rule.
+  //
+  //   conversation  — /user/status/123. The thread is the page: the first
+  //                   article is the top of it, everything below replies to
+  //                   something. Ancestors above the focal post are replies
+  //                   too, and so is the focal post when it has ancestors.
+  //                   Recommendations below the thread ("Discover more") are
+  //                   NOT part of it — the caller flags those via beyondThread.
+  //   with_replies  — conversation PAIRS: someone else's post, then the
+  //                   account's reply to it. A different author directly above
+  //                   is the signal (the rule collect.js already uses).
+  //   timeline      — home, profile, search. Label only. Adjacency means
+  //                   nothing here and must never be consulted.
+  function surfaceFromPath(pathname) {
+    var p = String(pathname || "");
+    if (/^\/[^\/]+\/status\/\d+/.test(p)) return "conversation";
+    if (/\/with_replies\/?$/.test(p)) return "with_replies";
+    return "timeline";
+  }
+
+  function replyVerdict(o) {
+    o = o || {};
+    // A repost is a repost, whatever is around it.
+    if (o.isRepost) return { isReply: false, signal: "repost" };
+    // The label is authoritative wherever X bothers to render it.
+    if (o.hasMarker) return { isReply: true, signal: "label" };
+
+    if (o.surface === "conversation" && !o.beyondThread) {
+      if (o.hasArticleAbove) return { isReply: true, signal: "thread-position" };
+      return { isReply: false, signal: "thread-top" };
+    }
+    if (o.surface === "with_replies") {
+      if (o.hasPrevArticle && o.prevAuthorDiffers) return { isReply: true, signal: "parent" };
+      return { isReply: false, signal: o.hasPrevArticle ? "same-author-above" : "first-in-dom" };
+    }
+    return { isReply: false, signal: "none" };
+  }
+
   // Does this line carry a reply marker in any supported locale?
   function replyMarkerIn(text) {
     if (!text) return false;
@@ -659,6 +707,8 @@ var BangermeterEngine = (function () {
     parseCount: parseCount,
     parseActionBarLabel: parseActionBarLabel,
     replyMarkerIn: replyMarkerIn,
+    replyVerdict: replyVerdict,
+    surfaceFromPath: surfaceFromPath,
     makeHistoryEntry: makeHistoryEntry,
     pushHistory: pushHistory,
     parseUnderTheHoodReport: parseUnderTheHoodReport,

@@ -113,6 +113,38 @@
     return k;
   }
 
+  // Structural context the reply verdict needs on conversation and
+  // /with_replies surfaces, where X renders no "Replying to" label and the
+  // parent post's position IS the marker. Deliberately not computed on a
+  // timeline: adjacency is meaningless there (every neighbor is a different
+  // author) and walking the column per article would cost for nothing.
+  function threadContext(article, surface) {
+    if (surface === "timeline") return {};
+    var col = document.querySelector('[data-testid="primaryColumn"]') || document;
+    var articles = [].slice.call(col.querySelectorAll('article[data-testid="tweet"]'));
+    var idx = articles.indexOf(article);
+    if (idx < 0) return {};
+    var ctx = { hasArticleAbove: idx > 0, hasPrevArticle: idx > 0 };
+    if (idx > 0) {
+      var prev = authorHandleOf(articles[idx - 1]);
+      var mine = authorHandleOf(article);
+      ctx.prevAuthorDiffers = !!(prev && mine && prev !== mine);
+    }
+    if (surface === "conversation") {
+      // Below the thread X shows recommendations under a "Discover more"
+      // heading; those are not replies to anything. Match the HEADING ELEMENT,
+      // never its text — the element is the same in every locale, the words
+      // are not.
+      var heading = col.querySelector(
+        '[data-testid="cellInnerDiv"] [role="heading"][aria-level="2"], [data-testid="cellInnerDiv"] h2');
+      if (heading) {
+        ctx.beyondThread = !!(heading.compareDocumentPosition(article) &
+          Node.DOCUMENT_POSITION_FOLLOWING);
+      }
+    }
+    return ctx;
+  }
+
   function extractFeatures(article) {
     var textEl = article.querySelector('[data-testid="tweetText"]');
     var text = textEl ? textEl.innerText : "";
@@ -161,15 +193,15 @@
     }
     var hashtagCount = textEl ? textEl.querySelectorAll('a[href*="/hashtag/"]').length : 0;
 
-    var isReply = false;
     var socialContext = article.querySelector('[data-testid="socialContext"]');
     var firstDivs = article.innerText.slice(0, 200);
     var isRepost = !!(socialContext && /reposted/i.test(socialContext.innerText));
-    // The reply marker renders ABOVE the tweet's own text, so scan only the
-    // header region — everything before the post text begins. That keeps the
-    // contains-mode locales (tr/hi/ko, where the phrase trails the mentions)
-    // from matching a phrase inside the post body. Locale table lives in the
-    // engine (replyMarkerIn).
+
+    // Signal 1 — the "Replying to" label. It renders ABOVE the tweet's own
+    // text, so scan only the header region; that keeps the contains-mode
+    // locales (tr/hi/ko, where the phrase trails the mentions) from matching
+    // a phrase inside the post body. Locale table lives in the engine.
+    var hasMarker = false;
     if (!isRepost) {
       var headerText = article.innerText;
       if (text) {
@@ -187,9 +219,24 @@
       var markerLines = headerText.slice(0, 300).split("\n");
       for (var ml = 0; ml < markerLines.length; ml++) {
         if (nameLines[markerLines[ml].trim()]) continue;
-        if (BangermeterEngine.replyMarkerIn(markerLines[ml])) { isReply = true; break; }
+        if (BangermeterEngine.replyMarkerIn(markerLines[ml])) { hasMarker = true; break; }
       }
     }
+
+    // Signal 2 — position. X renders NO label inside a conversation or on
+    // /with_replies; there the parent post above IS the marker.
+    var surface = BangermeterEngine.surfaceFromPath(location.pathname);
+    var tctx = threadContext(article, surface);
+    var verdict = BangermeterEngine.replyVerdict({
+      surface: surface,
+      isRepost: isRepost,
+      hasMarker: hasMarker,
+      hasArticleAbove: tctx.hasArticleAbove,
+      hasPrevArticle: tctx.hasPrevArticle,
+      prevAuthorDiffers: tctx.prevAuthorDiffers,
+      beyondThread: tctx.beyondThread
+    });
+    var isReply = verdict.isReply;
 
     // Does THIS post quote another? (enables the quoted-click head)
     var quoteCard = article.querySelector('div[role="link"]');
@@ -237,6 +284,7 @@
       hasExternalLink: hasCard || hasTco || linkishAnchor,
       hashtagCount: hashtagCount,
       isReply: isReply,
+      replySignal: verdict.signal,
       isRepost: isRepost,
       isQuote: isQuote,
       isThreadStarter: isThreadStarter,
@@ -842,7 +890,7 @@
       return markerOutsideDraft(dialog, host);
     }
     // The inline composer on a post's detail page is always the reply box.
-    if (/\/status\/\d+/.test(location.pathname)) return true;
+    if (BangermeterEngine.surfaceFromPath(location.pathname) === "conversation") return true;
     // Inline elsewhere: look for the marker in the composer's own cell.
     var cell = editor.closest('[data-testid="cellInnerDiv"]');
     if (cell) return markerOutsideDraft(cell, host);
