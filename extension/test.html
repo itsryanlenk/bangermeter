@@ -523,6 +523,20 @@
     check("a genuine question is not bait",
       isBaitText("What single habit most improved your life this year?") === false);
 
+    // Boundary behavior. \b cannot be used here — it is defined by
+    // \w = [A-Za-z0-9_], so a Devanagari pattern anchored with \b never
+    // matches anything. These lock in the script-neutral edges that replaced
+    // it: still no matching inside a longer word, which is all \b was for.
+    check("bait phrase inside a longer word is not matched",
+      isBaitText("unlike iffy things") === false &&
+      isBaitText("I dislike ifs and buts") === false);
+    check("bait phrase at the very start of a post is matched",
+      isBaitText("Comment karo agar tum bhi single ho") === true);
+    check("bait phrase after punctuation is matched",
+      isBaitText("Bas ek baat — sach batao, tum khush ho?") === true);
+    check("bait phrase at the very end of a post is matched",
+      isBaitText("Agar tum bhi thak chuke ho toh comment karo") === true);
+
     // DELIBERATELY NOT DETECTED. The rhetorical-question / forced-binary
     // "rage bait" genre is real, but it cannot be separated from a sincere
     // question by pattern alone, and the structural rule proposed for it

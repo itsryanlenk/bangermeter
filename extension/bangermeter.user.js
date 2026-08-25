@@ -1075,7 +1075,18 @@ var BangermeterEngine = (function () {
     "karo agar", "likho agar", "comment karo", "follow karo", "tag karo",
     "sach batao", "sach bataiye", "honestly batao", "honestly batana"
   ];
-  var BAIT_RE = new RegExp("\\b(" + BAIT_PATTERNS.map(escapeRe).join("|") + ")\\b", "i");
+  // Boundaries, NOT \b. JavaScript's \b is defined by \w = [A-Za-z0-9_], so
+  // there is never a word boundary beside a Devanagari (or Arabic, or CJK)
+  // character and a \b-anchored pattern in those scripts can never match —
+  // silently, with no error. Verified: /\b(कमेंट करो)\b/ misses
+  // "कमेंट करो अगर …" at the start of a string, mid-string, everywhere.
+  // Requiring a string edge, whitespace or punctuation instead works in every
+  // script while still refusing to match inside a longer word, which is the
+  // only thing \b was buying ("unlike iffy" must not match "like if").
+  var EDGE_BEFORE = "(?:^|[\\s.,!?;:\"'()\\[\\]—–-])";
+  var EDGE_AFTER = "(?=$|[\\s.,!?;:\"'()\\[\\]—–-])";
+  var BAIT_RE = new RegExp(
+    EDGE_BEFORE + "(" + BAIT_PATTERNS.map(escapeRe).join("|") + ")" + EDGE_AFTER, "i");
 
   function analyzeText(text) {
     var t = text || "";
