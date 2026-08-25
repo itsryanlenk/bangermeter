@@ -414,6 +414,45 @@
     check("first value wins on a duplicated word",
       E.parseActionBarLabel("3 likes, 9 likes").likes === 3);
 
+    // Locale labels, each word transcribed from X's own i18n bundles
+    // (abs.twimg.com/responsive-web/client-web/i18n/*, fetched 2026-08-25).
+    var esLabel = E.parseActionBarLabel("5 respuestas, 3 reposts, 12 Me gusta, 2 elementos guardados, 900 reproducciones");
+    check("Spanish label parses all five counts",
+      esLabel.replies === 5 && esLabel.retweets === 3 && esLabel.likes === 12 &&
+      esLabel.bookmarks === 2 && esLabel.views === 900, JSON.stringify(esLabel));
+    var jaLabel = E.parseActionBarLabel("3件の返信、5件のリポスト、30件のいいね、2件のブックマーク、1034件の表示");
+    check("Japanese label parses (no spaces, 、separator, 件の counters)",
+      jaLabel.replies === 3 && jaLabel.retweets === 5 && jaLabel.likes === 30 &&
+      jaLabel.bookmarks === 2 && jaLabel.views === 1034, JSON.stringify(jaLabel));
+    var deLabel = E.parseActionBarLabel("2 Antworten, 1 Repost, 5 „Gefällt mir“-Angaben, 1 Lesezeichen, 984 Mal angezeigt");
+    check("German label parses (typographic quotes in the likes word)",
+      deLabel.replies === 2 && deLabel.retweets === 1 && deLabel.likes === 5 &&
+      deLabel.bookmarks === 1 && deLabel.views === 984, JSON.stringify(deLabel));
+    var trLabel = E.parseActionBarLabel("5 yanıt, 3 yeniden gönderi, 50 beğeni, 2 yer işareti, 9000 görüntülenme");
+    check("Turkish label parses (multi-word metric names)",
+      trLabel.replies === 5 && trLabel.retweets === 3 && trLabel.likes === 50 &&
+      trLabel.bookmarks === 2 && trLabel.views === 9000, JSON.stringify(trLabel));
+    var hiLabel = E.parseActionBarLabel("4 जवाब, 2 रीपोस्ट, 7 पसंद, 1 बुकमार्क, 500 व्यू");
+    check("Hindi label parses",
+      hiLabel.replies === 4 && hiLabel.retweets === 2 && hiLabel.likes === 7 &&
+      hiLabel.bookmarks === 1 && hiLabel.views === 500, JSON.stringify(hiLabel));
+    var ruLabel = E.parseActionBarLabel("5 ответов, 2 репоста, 10 отметок «Нравится», 1 закладка, 700 просмотров");
+    check("Russian label parses (case endings via stems)",
+      ruLabel.replies === 5 && ruLabel.retweets === 2 && ruLabel.likes === 10 &&
+      ruLabel.bookmarks === 1 && ruLabel.views === 700, JSON.stringify(ruLabel));
+    var arLabel = E.parseActionBarLabel("5 ردود، 3 إعادات نشر، 10 إعجابات، 2 علامتان مرجعيتان، 900 مشاهدة");
+    check("Arabic label parses",
+      arLabel.replies === 5 && arLabel.retweets === 3 && arLabel.likes === 10 &&
+      arLabel.bookmarks === 2 && arLabel.views === 900, JSON.stringify(arLabel));
+    var zhLabel = E.parseActionBarLabel("3 回复, 5 次转帖, 30 喜欢, 2 书签, 1034 次观看");
+    check("Chinese (simplified) label parses",
+      zhLabel.replies === 3 && zhLabel.retweets === 5 && zhLabel.likes === 30 &&
+      zhLabel.bookmarks === 2 && zhLabel.views === 1034, JSON.stringify(zhLabel));
+    var partial = E.parseActionBarLabel("31 replies, 253 reposts, 2365 likes");
+    check("zero-count metrics omitted from the label stay absent",
+      partial.replies === 31 && partial.retweets === 253 && partial.likes === 2365 &&
+      partial.bookmarks === undefined && partial.views === undefined, JSON.stringify(partial));
+
     // ================================================================
     // Reply-marker detection — the string content.js matches to decide a
     // post is a reply. English baseline; localized strings join with sources.
@@ -422,8 +461,25 @@
     check("English 'Replying to' detected", E.replyMarkerIn("Replying to @someone") === true);
     check("case-insensitive", E.replyMarkerIn("replying to @someone") === true);
     check("plain text is not a reply marker", E.replyMarkerIn("I like replying to people") === false,
-      "must anchor to line start, not substring");
+      "prefix locales must anchor to line start, not substring");
     check("empty/null text -> false", E.replyMarkerIn("") === false && E.replyMarkerIn(null) === false);
+    // Localized markers, from X's own i18n bundles (2026-08-25). tr/hi/ko put
+    // the phrase AFTER the mentions, so those match as contains, not prefix.
+    check("Spanish prefix", E.replyMarkerIn("Respondiendo a @user") === true);
+    check("Spanish alternate prefix", E.replyMarkerIn("En respuesta a @user") === true);
+    check("Portuguese prefix", E.replyMarkerIn("Em resposta a @user") === true);
+    check("French prefix", E.replyMarkerIn("En réponse à @user") === true);
+    check("German prefix", E.replyMarkerIn("Antwort an @user") === true);
+    check("Turkish suffix form", E.replyMarkerIn("@birisi adlı kullanıcıya yanıt olarak") === true);
+    check("Hindi suffix form", E.replyMarkerIn("@user को जवाब दे रहे हैं") === true);
+    check("Japanese prefix with colon", E.replyMarkerIn("返信先: @userさん") === true);
+    check("Korean suffix form", E.replyMarkerIn("@user 님에게 보내는 답글") === true);
+    check("Arabic with fathatan diacritic", E.replyMarkerIn("ردًا على @user") === true,
+      "must match after stripping U+064B");
+    check("Russian prefix", E.replyMarkerIn("В ответ @user") === true);
+    check("Chinese prefix", E.replyMarkerIn("回复 @user") === true);
+    check("Traditional Chinese prefix", E.replyMarkerIn("回覆給 @user") === true);
+    check("Indonesian prefix", E.replyMarkerIn("Membalas @user") === true);
 
     // ================================================================
     // Reply drafts — the compose meter used to hardcode isReply:false, so a

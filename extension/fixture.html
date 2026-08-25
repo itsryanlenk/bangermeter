@@ -136,18 +136,35 @@
     </div>
   </article>
 
-  <!-- 9: UNKNOWN locale (Turkish-style labels) — the group aria-label parses to
-       nothing, so counts must come from the per-button testid fallback. Badge
-       should still show C and E scores (E from the analytics-link views). -->
+  <!-- 9: UNKNOWN locale (synthetic words in no table) — the group aria-label
+       parses to nothing, so counts must come from the per-button testid
+       fallback and views from the analytics link. Badge should still show C
+       and E scores. -->
   <article data-testid="tweet" id="t9">
-    <div data-testid="User-Name"><span class="name">Yerel</span> <a href="/yerel/status/1009"><time datetime="2026-08-02T14:45:00.000Z">15dk</time></a></div>
-    <div data-testid="tweetText">Bu gönderi yerel ayarları test ediyor — sayılar yine de okunmalı.</div>
-    <div role="group" aria-label="5 yanıt, 3 yeniden gönderi, 50 beğeni, 2 yer işareti">
+    <div data-testid="User-Name"><span class="name">Fallback</span> <a href="/fallback/status/1009"><time datetime="2026-08-02T14:45:00.000Z">15m</time></a></div>
+    <div data-testid="tweetText">This post's group label uses words no locale table knows — numbers must still be read.</div>
+    <div role="group" aria-label="5 zorbles, 3 blorps, 50 crungs, 2 flibs">
+      <button data-testid="reply" aria-label="5 zorbles. Zorble">💬 5</button>
+      <button data-testid="retweet" aria-label="3 blorps. Blorp">🔁 3</button>
+      <button data-testid="like" aria-label="50 crungs. Crung">❤ 50</button>
+      <button data-testid="bookmark" aria-label="2 flibs. Flib">🔖 2</button>
+      <a href="/fallback/status/1009/analytics" aria-label="9000 glorps. Post analytics">📈</a>
+    </div>
+  </article>
+
+  <!-- 10: TURKISH locale, full word-table path — group label parses directly,
+       and the reply marker trails the mentions (suffix form). The badge must
+       show E from the label's own view count, and the panel must treat it as
+       a reply. -->
+  <article data-testid="tweet" id="t10">
+    <div data-testid="User-Name"><span class="name">Yerel</span> <a href="/yerel/status/1010"><time datetime="2026-08-02T14:50:00.000Z">10dk</time></a></div>
+    <div>@alice adlı kullanıcıya yanıt olarak</div>
+    <div data-testid="tweetText">Türkçe arayüzde de sayılar sözcük tablosundan okunmalı.</div>
+    <div role="group" aria-label="5 yanıt, 3 yeniden gönderi, 50 beğeni, 2 yer işareti, 9000 görüntülenme">
       <button data-testid="reply" aria-label="5 yanıt. Yanıtla">💬 5</button>
       <button data-testid="retweet" aria-label="3 yeniden gönderi. Yeniden gönder">🔁 3</button>
       <button data-testid="like" aria-label="50 beğeni. Beğen">❤ 50</button>
       <button data-testid="bookmark" aria-label="2 yer işareti. Yer işareti">🔖 2</button>
-      <a href="/yerel/status/1009/analytics" aria-label="9000 görüntülenme. Gönderi analizleri">📈</a>
     </div>
   </article>
 

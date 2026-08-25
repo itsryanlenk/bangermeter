@@ -46,6 +46,32 @@ Click the badge for the breakdown: per-head contributions (`weight × P`), detec
 with direction and provenance, rescoring factors, freshness, and a collapsible table of
 what the published weights actually say.
 
+## Creator tools (v0.10.0)
+
+- **Reply mode.** Reply drafts are scored as replies — the ×0.75 in-network reply factor
+  the compose meter previously missed — and the breakdown panel gets a reply-scoring
+  section: out-of-network replies never reach For You at all (`OONRetweetReplyFilter`),
+  replies are ineligible for the +15.0 mutual-follow boost, and replies to 100K+-follower
+  accounts are scored 0–3 by a Grok model whose rubric X withholds (the published *inputs*
+  are listed; no invented direction). Where a reply sorts inside a thread is disclosed as
+  unpublished rather than guessed.
+- **Score history.** Opening a breakdown panel logs the scores to a local, capped list
+  (`chrome.storage.local`, 200 entries — id, time, scores, views, an 80-char snippet).
+  The popup shows the recent log with links back to each post, plus a Clear button and a
+  default-on toggle. Nothing ever leaves the browser.
+- **Draft comparison.** The compose meter gains a `+ compare` button: save up to three
+  variants of a draft (A/B/C), rewrite, and pick the best-scoring one. Variants live in
+  memory only and vanish with the page.
+- **Posting-cadence warning.** When an author has more than one post in the loaded stretch
+  of feed, the panel reports the author-diversity attenuation production would apply —
+  `(1 − 0.25) × 0.5^k + 0.25`: the 2nd consecutive post runs ×0.625, the 3rd ×0.44, to a
+  ×0.25 floor. Reported as context, not applied to the score (it is slate-relative and
+  viewer-specific).
+- **Under the Hood import.** Pilot-cohort users can import the JSON report X lets them
+  download from `x.com/i/under_the_hood`; the popup summarizes the visibility labels X
+  itself applied (monthly aggregates — the report carries no post IDs). Parsed locally,
+  stored locally, validated against the published label allowlist.
+
 ## Methodology and honesty
 
 - **Formula:** `Σ(weight × P(action))` over the Phoenix head set, then `offset_score` —
@@ -100,7 +126,11 @@ what the published weights actually say.
 
 ## Known limitations
 
-- Count parsing and "Replying to" detection assume an English X locale.
+- Count parsing prefers a locale word table (English today; locales join only with sourced
+  strings) and falls back to the locale-independent `data-testid` buttons, so counts and
+  views survive on non-English locales. Reply detection on timeline posts still needs the
+  localized "Replying to" marker; reply *drafts* are detected structurally (dialog order,
+  status-page URL), which is locale-independent.
 - The E score needs a visible view count (hidden on some surfaces).
 - Viewer-specific factors can't be observed: in-network status, mutual-follow status and
   the vqv follower gate. Out-of-network and mutual-follow are popup toggles instead.
@@ -116,9 +146,9 @@ what the published weights actually say.
 | `extension/weights.js` | Single source of truth: weight layer + estimator layer, all provenance-tagged |
 | `extension/scoring.js` | Pure scoring engine (direct port of `ranking_scorer.rs`) |
 | `extension/content.js` | Badges, breakdown panel, compose meter |
-| `extension/test.html` | Engine self-test — open in any browser (120 assertions) |
+| `extension/test.html` | Engine self-test — open in any browser (175 assertions) |
 | `extension/fixture.html` | X-DOM fixture harness for the content script |
-| `extension/fixture-compose.html` | Compose-meter visibility harness — asserts the draft meter survives X's scrolling, overflow-hidden compose dialog (9 assertions) |
+| `extension/fixture-compose.html` | Compose-meter visibility harness — asserts the draft meter survives X's scrolling, overflow-hidden compose dialog (it prints its own pass count) |
 | `extension/bangermeter.user.js` | Single-file Tampermonkey build (generated — see `store-assets/make-userscript.ps1`) |
 | `skills/audience-readout/` | Claude skill: collect one account's real posts, score them, and write a read-out. Carries the analytical rules (rates not counts, confound checks) and the privacy rule — never commit an archive. Copy to `~/.claude/skills/` to install — see its SKILL.md |
 | `store-assets/weights-export.js` | Emits the weight values the store art needs, straight from `weights.js` |
@@ -131,9 +161,14 @@ happened when those numbers were hardcoded.
 
 ## Verification status
 
-- Engine math: **120/120 self-tests pass** (`test.html`). Every one of the 26 published
+- Engine math: **175/175 self-tests pass** (`test.html`). Every one of the 26 published
   weights and its feature-switch parameter name is asserted against `param.rs`
   individually, so a silent transcription error fails the suite rather than shipping.
+  All 26 re-verified unchanged against the live repo on Aug 25, 2026.
+- Locale strings (reply markers and count words for 16 locales) are transcribed from X's
+  own production i18n bundles (`abs.twimg.com/responsive-web/client-web/i18n/*`), fetched
+  Aug 25, 2026 and cross-checked against Wayback captures of the same bundles. Locales
+  join the table only with a sourced string — the same rule the weight layer follows.
 - Adversarially reviewed at v0.9.0 by three independent passes — weight transcription,
   Rust-to-JS arithmetic fidelity, and a stale-claim sweep. The arithmetic pass swept
   ~654k generated inputs for NaN, out-of-range and non-monotonic scores and found none,

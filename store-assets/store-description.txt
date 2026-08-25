@@ -17,6 +17,16 @@ WHAT YOU GET
 
 • A weight table in the popup. All 26 ranking heads, their published values, and which ones the extension can measure versus estimate.
 
+• Reply mode. Reply drafts are scored as replies (they take a ×0.75 factor in the published math), and the breakdown explains what X publishes about replies: out-of-network replies never reach For You at all, replies never get the mutual-follow boost, and replies to 100K+ accounts are quality-scored by a Grok model whose rubric X withholds.
+
+• Draft comparison. Save up to three variants of a draft and pick the best-scoring one before posting. Variants live in memory only.
+
+• Local score history. Opening a breakdown logs the scores to a list in your browser, so you can see which formats score higher over time. Capped, local-only, one-click clear, and a toggle to turn it off.
+
+• Under the Hood import. In X's transparency pilot? Import the report you download from x.com/i/under_the_hood and see the visibility labels X itself applied — parsed locally, stored locally.
+
+• A posting-cadence note. Post twice into the same stretch of feed and the panel shows the author-diversity attenuation production applies (second post ×0.625, decaying to a ×0.25 floor).
+
 
 SOME OF WHAT THE WEIGHTS SAY
 
@@ -49,17 +59,33 @@ PRIVACY
 • No data collection. None.
 • No network requests. The extension never phones home, because there is no home.
 • No account, no sign-in, no analytics, no tracking.
-• The only permission is storage, used to remember your settings.
+• The only permission is storage: your settings sync with your Chrome profile, and the optional score history and imported Under the Hood report stay in this browser's local storage. Nothing is transmitted anywhere, and both are one click to delete.
 
 Everything runs locally in your browser. The source is public and reviewable.
 
 
 OPEN SOURCE
 
-MIT licensed, with the full research record and 120 automated tests that check every published weight against X's source individually.
+MIT licensed, with the full research record and 175 automated tests that check every published weight against X's source individually.
 
 github.com/itsryanlenk/bangermeter
 
+
+WHAT'S NEW IN 0.10.0
+
+• Reply mode. The compose meter now knows when you're drafting a reply and scores it as one — reply drafts were previously scored as originals, hiding the ×0.75 factor the published math applies. The breakdown panel gains a reply-scoring section built from the published code: out-of-network replies are hard-filtered from For You, replies never get the mutual-follow boost, and replies to 100K+ accounts are scored 0-3 by a Grok model. X withholds that model's rubric to reduce gameability, so this extension lists the published inputs and refuses to fake the score.
+
+• Draft comparison. Save up to three draft variants and compare their scores side by side before posting.
+
+• Local score history. Open a breakdown and the scores are logged to a local list, so you can track which formats score higher over time. Capped at 200 entries, stored only in this browser, one-click clear, and a settings toggle.
+
+• Under the Hood report import. If you're in X's transparency pilot, import the JSON report from x.com/i/under_the_hood and the popup summarizes the visibility labels X applied to your account and posts. Parsed and stored locally.
+
+• Posting-cadence warning. When an author posts more than once into the same stretch of feed, the panel now shows the author-diversity attenuation production applies to the later posts.
+
+• Better non-English support. Count parsing no longer depends on English words — it falls back to X's locale-independent element IDs, so scores survive on non-English X locales.
+
+• The "mutuals boost" from July 13, verified. X's repo documents that announcement as the mutual-follow reply-weight boost this extension already models: launched at 20.0, reduced to 15.0 on July 24. All 26 weights re-verified unchanged against the current repo on Aug 25; a circulating claim that dwell and video weights went up is false against the published file.
 
 WHAT'S NEW IN 0.9.5
 

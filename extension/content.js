@@ -165,11 +165,18 @@
     var socialContext = article.querySelector('[data-testid="socialContext"]');
     var firstDivs = article.innerText.slice(0, 200);
     var isRepost = !!(socialContext && /reposted/i.test(socialContext.innerText));
-    // The reply marker is its own rendered line, so test line starts — a post
-    // whose TEXT mentions "replying to" must not flag. Locale table lives in
-    // the engine (replyMarkerIn).
+    // The reply marker renders ABOVE the tweet's own text, so scan only the
+    // header region — everything before the post text begins. That keeps the
+    // contains-mode locales (tr/hi/ko, where the phrase trails the mentions)
+    // from matching a phrase inside the post body. Locale table lives in the
+    // engine (replyMarkerIn).
     if (!isRepost) {
-      var markerLines = firstDivs.split("\n");
+      var headerText = article.innerText;
+      if (text) {
+        var textStart = headerText.indexOf(text.slice(0, 40));
+        if (textStart > 0) headerText = headerText.slice(0, textStart);
+      }
+      var markerLines = headerText.slice(0, 300).split("\n");
       for (var ml = 0; ml < markerLines.length; ml++) {
         if (BangermeterEngine.replyMarkerIn(markerLines[ml])) { isReply = true; break; }
       }

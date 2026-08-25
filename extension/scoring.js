@@ -57,64 +57,174 @@ var BangermeterEngine = (function () {
   // silently in the field, which is worse than falling back to the
   // testid-based per-button path content.js keeps as backup.
 
-  // aria-label count words, per locale, lowercase. Keyed by the counts-object
-  // key each word maps to.
-  var COUNT_WORDS = {
-    en: {
-      replies: ["reply", "replies"],
-      retweets: ["repost", "reposts", "retweet", "retweets"],
-      likes: ["like", "likes"],
-      bookmarks: ["bookmark", "bookmarks"],
-      views: ["view", "views"]
-    }
+  // ── Locale string tables ────────────────────────────────────────────────
+  // Every string below was transcribed from X's OWN production i18n bundles
+  // (abs.twimg.com/responsive-web/client-web/i18n/<locale>.<hash>.js, fetched
+  // 2026-08-25 and cross-checked against Feb–Aug 2026 Wayback captures of the
+  // same bundles — identical). Same rule as the weight layer: no guessed
+  // strings. A locale missing here still works through the data-testid
+  // fallback in content.js, which needs no words at all.
+  //
+  // aria-label count words. The number precedes the word in all 16 locales
+  // (message keys d0eeb127/dc0e7f37/e089b42d/e0a8fe39/c58b2ab7), so each
+  // metric is matched as NUMBER + word-alternative, longest alternative
+  // first, and the separator between metrics never matters. Russian and
+  // Arabic entries are stems that cover the case/dual endings.
+  var COUNT_WORD_TABLE = {
+    replies: [
+      "reply", "replies",                       // en
+      "respuesta", "respuestas",                // es
+      "resposta", "respostas",                  // pt
+      "réponse", "réponses",                    // fr
+      "antwort", "antworten",                   // de
+      "risposta", "risposte",                   // it
+      "antwoord", "antwoorden",                 // nl
+      "yanıt",                                  // tr
+      "balasan",                                // id
+      "件の返信",                                // ja
+      "답글",                                    // ko
+      "رد",                                     // ar stem (رد/ردود/ردان)
+      "ответ",                                  // ru stem (ответ/ответа/ответов)
+      "जवाब",                                    // hi
+      "回复",                                    // zh
+      "則回覆"                                   // zh-Hant
+    ],
+    retweets: [
+      "repost", "reposts",                      // en/es/pt/fr/de/it/nl
+      "retweet", "retweets",                    // legacy wording
+      "yeniden gönderi",                        // tr
+      "posting ulang",                          // id
+      "件のリポスト",                             // ja
+      "재게시",                                  // ko
+      "إعادة نشر", "إعادات نشر", "إعادتا نشر",   // ar
+      "репост",                                 // ru stem
+      "रीपोस्ट",                                  // hi stem (रीपोस्ट/रीपोस्ट्स)
+      "次转帖",                                  // zh
+      "次轉發"                                   // zh-Hant
+    ],
+    likes: [
+      "like", "likes",                          // en
+      "me gusta",                               // es (invariant)
+      "curtida", "curtidas",                    // pt
+      "j'aime", "j’aime",                       // fr (either apostrophe)
+      "„gefällt mir“-angabe", "„gefällt mir“-angaben",  // de (typographic quotes)
+      "mi piace",                               // it (invariant)
+      "vind-ik-leuk", "vind-ik-leuks",          // nl
+      "beğeni",                                 // tr
+      "suka",                                   // id
+      "件のいいね",                               // ja
+      "마음에 들어요",                             // ko
+      "إعجاب",                                   // ar stem
+      "отмет",                                  // ru stem (отметка/отметки/отметок «Нравится»)
+      "पसंद",                                     // hi
+      "喜欢",                                    // zh
+      "個喜歡"                                   // zh-Hant
+    ],
+    bookmarks: [
+      "bookmark", "bookmarks",                  // en
+      "elemento guardado", "elementos guardados", // es
+      "item salvo", "itens salvos",             // pt
+      "signet", "signets",                      // fr
+      "lesezeichen",                            // de (invariant)
+      "segnalibro", "segnalibri",               // it
+      "bladwijzer", "bladwijzers",              // nl
+      "yer işareti",                            // tr
+      "markah",                                 // id
+      "件のブックマーク",                          // ja
+      "북마크",                                  // ko
+      "علامة مرجعية", "علامات مرجعية", "علامتان مرجعيتان", // ar (tanween handled by the U+064B strip)
+      "закладк",                                // ru stem
+      "बुकमार्क",                                 // hi
+      "书签",                                    // zh
+      "個書籤"                                   // zh-Hant
+    ],
+    views: [
+      "view", "views",                          // en
+      "reproducción", "reproducciones",         // es
+      "visualização", "visualizações",          // pt
+      "vue", "vues",                            // fr
+      "mal angezeigt",                          // de (invariant)
+      "visualizzazione", "visualizzazioni",     // it
+      "keer bekeken",                           // nl (invariant)
+      "görüntülenme",                           // tr
+      "tayangan",                               // id
+      "件の表示",                                 // ja
+      "조회수",                                   // ko
+      "مشاهد",                                   // ar stem (مشاهدة/مشاهدات/مشاهدتان)
+      "просмотр",                               // ru stem
+      "व्यू",                                     // hi
+      "次观看",                                  // zh
+      "次觀看"                                   // zh-Hant
+    ]
   };
 
-  // Leading marker text that identifies a post as a reply, per locale.
-  // Matched against the START of a text block (the marker is its own line in
-  // the rendered post), never as a free substring — "I like replying to
-  // people" must not flag.
-  var REPLY_MARKERS = {
-    en: ["replying to"]
-  };
+  function escapeRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
 
-  // word (lowercase) -> counts key, flattened across locales once at load.
-  var WORD_TO_KEY = (function () {
-    var map = {};
-    Object.keys(COUNT_WORDS).forEach(function (loc) {
-      var words = COUNT_WORDS[loc];
-      Object.keys(words).forEach(function (key) {
-        words[key].forEach(function (w) { map[w] = key; });
-      });
+  // One compiled pattern per metric: NUMBER (+ optional K/M/B) + any of the
+  // word alternatives, longest first. Leftmost match wins, so a duplicated
+  // word cannot overwrite an earlier count.
+  var COUNT_PATTERNS = (function () {
+    var out = {};
+    Object.keys(COUNT_WORD_TABLE).forEach(function (key) {
+      var alts = COUNT_WORD_TABLE[key].slice()
+        .sort(function (a, b) { return b.length - a.length; })
+        .map(escapeRe);
+      out[key] = new RegExp("(\\d[\\d.,]*)(?:\\s?([KMB]))?\\s*(?:" + alts.join("|") + ")", "iu");
     });
-    return map;
+    return out;
   })();
 
+  // Marker text that identifies a post as a reply. m: "p" = must start the
+  // line (the marker is its own rendered line); m: "c" = contains, for the
+  // locales (tr/hi/ko) where the mentions come first and the phrase is a
+  // suffix. Callers pass individual LINES, and content.js only scans the text
+  // ABOVE the tweet's own text, so a post whose body mentions "replying to"
+  // cannot flag.
+  var REPLY_MARKERS = [
+    { t: "replying to", m: "p" },                          // en
+    { t: "respondiendo a", m: "p" }, { t: "en respuesta a", m: "p" },      // es
+    { t: "respondendo a", m: "p" }, { t: "em resposta a", m: "p" },
+    { t: "respondendo para", m: "p" },                     // pt
+    { t: "en réponse à", m: "p" },                         // fr
+    { t: "antwort an", m: "p" }, { t: "antwortet", m: "p" },               // de
+    { t: "in risposta a", m: "p" },                        // it
+    { t: "als antwoord op", m: "p" }, { t: "je antwoordt op", m: "p" },    // nl
+    { t: "yanıt olarak", m: "c" }, { t: "yanıt veriliyor", m: "c" },       // tr (suffix)
+    { t: "membalas ", m: "p" },                            // id
+    { t: "返信先", m: "p" },                                // ja
+    { t: "에게 보내는 답글", m: "c" },                        // ko (suffix)
+    { t: "ردا على", m: "p" },                              // ar (post U+064B strip)
+    { t: "в ответ ", m: "p" }, { t: "вы отвечаете", m: "p" },              // ru
+    { t: "जवाब दे रहे हैं", m: "c" },                        // hi (suffix)
+    { t: "回复 ", m: "p" },                                 // zh
+    { t: "回覆給", m: "p" }, { t: "回覆 ", m: "p" }          // zh-Hant
+  ];
+
   // "1 reply, 5 reposts, 30 likes, 2 bookmarks, 1034 views" -> counts object.
-  // Unicode-aware on the word side so non-Latin locales can join the table.
-  // First value wins per key: the group label lists each count once, and a
-  // duplicate word means we are misreading something — trusting the first
-  // occurrence keeps the failure conservative.
+  // Also: "3件の返信、30件のいいね…", "5 ردود، 10 إعجابات…", etc. Zero-count
+  // metrics are omitted from X's label; missing keys stay absent here too.
   function parseActionBarLabel(label) {
     var counts = {};
     if (!label) return counts;
-    var re = /([\d.,]+\s?[KMB]?)\s+([\p{L}\p{M}]+)/gu, m;
-    while ((m = re.exec(label)) !== null) {
-      var key = WORD_TO_KEY[m[2].toLowerCase()];
-      if (key && counts[key] == null) counts[key] = parseCount(m[1]);
-    }
+    // The bundles ship two diacritic orderings of several Arabic words;
+    // stripping fathatan (U+064B) lets a single spelling match both.
+    var s = String(label).replace(/ً/g, "");
+    Object.keys(COUNT_PATTERNS).forEach(function (key) {
+      var m = COUNT_PATTERNS[key].exec(s);
+      if (m) counts[key] = parseCount(m[1] + (m[2] || ""));
+    });
     return counts;
   }
 
-  // Does this text block START with a reply marker in any supported locale?
+  // Does this line carry a reply marker in any supported locale?
   function replyMarkerIn(text) {
     if (!text) return false;
-    var t = String(text).replace(/^\s+/, "").toLowerCase();
-    var locales = Object.keys(REPLY_MARKERS);
-    for (var i = 0; i < locales.length; i++) {
-      var markers = REPLY_MARKERS[locales[i]];
-      for (var j = 0; j < markers.length; j++) {
-        if (t.indexOf(markers[j]) === 0) return true;
-      }
+    var t = String(text).replace(/ً/g, "").replace(/^\s+/, "").toLowerCase();
+    if (!t) return false;
+    for (var i = 0; i < REPLY_MARKERS.length; i++) {
+      var mk = REPLY_MARKERS[i];
+      var idx = t.indexOf(mk.t);
+      if (mk.m === "p" ? idx === 0 : idx !== -1) return true;
     }
     return false;
   }

@@ -59,6 +59,51 @@ reported to Brazil's Electoral Court for the 2026 election, unless the viewer fo
 account. It is compiled in rather than feature-switched — IDs obfuscated, usernames left in
 source for transparency — and runs *before* scoring, so no weight can offset it.
 
+## Update — August 25, 2026: re-verification and the reply-side findings
+
+A five-agent research sweep against the live repo (HEAD `d011592a`), triggered by a batch
+of user feature requests. Each weight-layer claim was independently re-verified by an
+adversarial second pass before anything here was written into `weights.js`.
+
+- **All 26 weights re-verified unchanged.** The upstream last-sync stamp is still
+  `2026-08-12T04:09:22Z`; the only `param.rs` changes since Aug 14 are three default-false
+  feature flags (`UseServedSlateContext`, `EnableAdsBrandSafetyVerdictV2`,
+  `EnableAiTrendFeedbackContext`). A user-reported claim that "dwell and video watch time
+  are now weighted more heavily" is **false against the published file** — every dwell and
+  video head carries exactly the value it carried on Aug 14, and the deep-negative
+  `DwellRegret*` family is a pre-existing, gated alternate path, not a reweighting.
+- **The July 13 "mutuals" change is not a new signal.** xai-org's own
+  `docs/BIDIRECTIONAL_BOOST_CHANGE.md` links Nikita Bier's July 13, 2026 announcement to
+  the `BidirectionalFollowReplyWeightBoost` this tool already models: A/B-tested at
+  0/5/10/15/20 from July 10, launched broadly at 20.0 on July 13, **reduced to 15.0 on
+  July 24**. Press coverage framed it as boosting mutuals' *replies inside threads*; the
+  published implementation boosts *original posts from mutuals* in For You (the reply-head
+  weight rises 5.0 → 20.0), and replies themselves are explicitly ineligible
+  (`bidirectional_boost_eligible` requires `in_reply_to_tweet_id` to be none). No
+  thread-ranking module exists anywhere in the repo.
+- **Replies to big accounts are LLM-scored.** `grox/flows/reply_spam/` scores replies to
+  authors (parent or thread root) with **over 100,000 followers** on a 0–3 rubric using a
+  Grok model; a score of 0 applies the `RiskyHighVizReply` safety label for 30 days.
+  Self-replies are exempt. The signals fed to the scorer are published (follower count,
+  reply volume last 24h, legitimate blocks received last 24h, pasted-text flag, thread
+  context…) but the rubric prompt is **withheld by X "to reduce gameability"** — so no
+  external tool can honestly claim to reproduce the score, and this one doesn't try.
+- **The conversation-view ranker is not open-sourced.** The repo scopes itself to the For
+  You feed; the service that orders replies under a post is absent. Also confirmed:
+  `OONRetweetReplyFilter` drops out-of-network replies from For You candidates entirely —
+  an OON reply is not down-weighted, it is gone. Both facts now render in the panel's
+  reply-scoring section.
+- **"Under the Hood" is real, and aggregate-only.** The Aug 13 transparency pilot
+  (`x.com/i/under_the_hood`, `under-the-hood/` in the repo) gives eligible users a
+  downloadable JSON of visibility-impacting labels on their own account/posts — monthly
+  per-label counts and percentages, **no post IDs**. The report is served over GraphQL and
+  never rendered into the page DOM, so a zero-network extension cannot read it
+  automatically. Bangermeter v0.10.0 instead accepts the file by user-initiated import,
+  parses it locally against the published 18-post-label / 12-account-label allowlist
+  (`underTheHoodLabels.strato`), and stores the summary only in `chrome.storage.local`.
+- **`reply_engaged_by_author` stays dead.** No author-engagement reply signal exists
+  anywhere in the current release — the 2023-era head remains 2023-era.
+
 ## What the release settled
 
 | Question this doc left open | Answer, Aug 13 2026 |
