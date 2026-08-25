@@ -66,7 +66,7 @@ var BANGERMETER_CONFIG = {
       provenance: "2026-published", label: "Likes", observable: true },
     reply: { weight: 5.0, param: "rust_home_mixer_reply_weight",
       provenance: "2026-published", label: "Replies", observable: true,
-      note: "Rises to 20.0 (+15.0) on an ORIGINAL post from an author you mutually follow — see bidirectionalFollowReplyBoost. Down from 13.5 in the 2023 table. This boost IS the 'mutuals' change Nikita Bier announced July 13, 2026 — xai-org's own docs/BIDIRECTIONAL_BOOST_CHANGE.md links his post to exactly this parameter (A/B tested at 0/5/10/15/20 from July 10, launched at 20.0 on July 13, reduced to 15.0 on July 24 2026). Press framed it as boosting mutuals' replies inside threads; the published implementation boosts original posts from mutuals in For You, and no thread ranker is in the repo." },
+      note: "Rises to 20.0 (+15.0) on an ORIGINAL post from an author you mutually follow — see bidirectionalFollowReplyBoost. Down from 13.5 in the 2023 table. This boost IS the 'mutuals' change X's Head of Product announced on July 13, 2026 — xai-org's own docs/BIDIRECTIONAL_BOOST_CHANGE.md links that announcement to exactly this parameter (A/B tested at 0/5/10/15/20 from July 10, launched at 20.0 on July 13, reduced to 15.0 on July 24 2026). Press framed it as boosting mutuals' replies inside threads; the published implementation boosts original posts from mutuals in For You, and no thread ranker is in the repo." },
     retweet: { weight: 1.0, param: "rust_home_mixer_retweet_weight",
       provenance: "2026-published", label: "Reposts", observable: true },
     quote: { weight: 5.0, param: "rust_home_mixer_quote_weight",

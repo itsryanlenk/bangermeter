@@ -237,13 +237,13 @@ var BangermeterEngine = (function () {
     if (snippet.length > HISTORY_SNIPPET_CHARS) {
       snippet = snippet.slice(0, HISTORY_SNIPPET_CHARS - 1) + "…";
     }
-    var counts = features.counts || {};
+    // Only what the popup renders — nothing speculative. A views field was
+    // stored here once, unrendered; the PII review flagged it and it is gone.
     return {
       id: features.tweetId || null,
       t: now,
       c: result.content ? result.content.score : null,
       e: (result.engagement && result.engagement.available) ? result.engagement.score : null,
-      v: counts.views == null ? null : counts.views,
       r: features.isReply ? 1 : 0,
       s: snippet
     };
@@ -291,8 +291,8 @@ var BangermeterEngine = (function () {
       endDate: str(raw.period.endDate, 40)
     } : null;
 
+    // generatedAt exists in the file but nothing renders it — not kept.
     return {
-      generatedAt: num(raw.generatedAt),
       postCount: num(raw.postCount),
       period: period,
       postLabels: labelRows(raw.postLabels),

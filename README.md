@@ -56,7 +56,7 @@ what the published weights actually say.
   are listed; no invented direction). Where a reply sorts inside a thread is disclosed as
   unpublished rather than guessed.
 - **Score history.** Opening a breakdown panel logs the scores to a local, capped list
-  (`chrome.storage.local`, 200 entries — id, time, scores, views, an 80-char snippet).
+  (`chrome.storage.local`, 200 entries — id, time, scores, an 80-char snippet).
   The popup shows the recent log with links back to each post, plus a Clear button and a
   default-on toggle. Nothing ever leaves the browser.
 - **Draft comparison.** The compose meter gains a `+ compare` button: save up to three

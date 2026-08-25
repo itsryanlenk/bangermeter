@@ -213,7 +213,15 @@
     render(null);
     try {
       chrome.storage.local.get({ bmUthReport: null }, function (data) {
-        if (data && data.bmUthReport) render(data.bmUthReport);
+        if (data && data.bmUthReport) {
+          // Re-validate on READ, not just on import — storage contents are
+          // not trusted to still match what the sanitizer wrote.
+          var revalidated = null;
+          try {
+            revalidated = BangermeterEngine.parseUnderTheHoodReport(JSON.stringify(data.bmUthReport));
+          } catch (e2) { /* malformed stored value — treat as no report */ }
+          if (revalidated) render(revalidated);
+        }
       });
     } catch (e) { /* storage unavailable (preview harness) — import-only mode */ }
   })();

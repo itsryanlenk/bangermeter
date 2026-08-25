@@ -429,6 +429,14 @@
   gap: 6px;
   align-items: center;
 }
+/* Fallback position under the composer: X's toolbar and Post/Reply button
+   live there, so the interactive chips go inert rather than risk sitting
+   over a control and eating its click. */
+.bangermeter-meter-below .bangermeter-meter-save,
+.bangermeter-meter-below .bangermeter-variant {
+  pointer-events: none;
+  opacity: 0.55;
+}
 .bangermeter-compare.bangermeter-hidden { display: none; }
 .bangermeter-variant {
   pointer-events: auto;

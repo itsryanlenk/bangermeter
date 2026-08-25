@@ -102,16 +102,32 @@ try {
   const tracked = execSync("git ls-files", { cwd: root, encoding: "utf8" })
     .trim().split(/\r?\n/).filter(Boolean);
   const ARCHIVE_COLS = ["views", "likes", "replies", "reposts"];
+  const archiveWarn = f => problems.push(f + " looks like a collected account archive. " +
+    "Archives identify a real person and must not be committed — move it outside the repo.");
   for (const f of tracked) {
-    if (!/\.(tsv|csv)$/i.test(f)) continue;
-    let head;
-    try { head = (read(f).split(/\r?\n/)[0] || ""); } catch { continue; }
-    const cols = head.toLowerCase().split(/[\t,]/).map(c => c.trim());
-    const hits = ARCHIVE_COLS.filter(c => cols.includes(c));
-    if (hits.length >= 3 && cols.includes("text")) {
-      problems.push(f + " looks like a collected account archive (has " + hits.join(", ") +
-        " and post text). Archives identify a real person and must not be committed — " +
-        "move it outside the repo.");
+    if (/\.(tsv|csv)$/i.test(f)) {
+      let head;
+      try { head = (read(f).split(/\r?\n/)[0] || ""); } catch { continue; }
+      const cols = head.toLowerCase().split(/[\t,]/).map(c => c.trim());
+      const hits = ARCHIVE_COLS.filter(c => cols.includes(c));
+      if (hits.length >= 3 && cols.includes("text")) archiveWarn(f + " (has " + hits.join(", ") + " and post text)");
+    } else if (/\.(json|jsonl|ndjson)$/i.test(f)) {
+      // A collector could just as easily emit JSON; match the same SHAPE there:
+      // an object (or array/lines of objects) carrying 3+ archive keys plus text.
+      let sample;
+      try {
+        const raw = read(f);
+        sample = /\.jsonl$|\.ndjson$/i.test(f)
+          ? JSON.parse(raw.split(/\r?\n/).find(l => l.trim()) || "null")
+          : JSON.parse(raw);
+      } catch { continue; }
+      if (Array.isArray(sample)) sample = sample[0];
+      if (!sample || typeof sample !== "object") continue;
+      const keys = Object.keys(sample).map(k => k.toLowerCase());
+      const hits = ARCHIVE_COLS.filter(c => keys.includes(c));
+      if (hits.length >= 3 && (keys.includes("text") || keys.includes("full_text"))) {
+        archiveWarn(f + " (object with " + hits.join(", ") + " and post text)");
+      }
     }
   }
 } catch (e) {

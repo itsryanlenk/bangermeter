@@ -176,8 +176,17 @@
         var textStart = headerText.indexOf(text.slice(0, 40));
         if (textStart > 0) headerText = headerText.slice(0, textStart);
       }
+      // The author's display name renders in this same region and is chosen
+      // by the author — a name that reads like a reply marker must not flip
+      // the flag, so lines belonging to the User-Name block are skipped.
+      var nameLines = {};
+      var nameEl = article.querySelector('[data-testid="User-Name"]');
+      if (nameEl) {
+        nameEl.innerText.split("\n").forEach(function (l) { nameLines[l.trim()] = true; });
+      }
       var markerLines = headerText.slice(0, 300).split("\n");
       for (var ml = 0; ml < markerLines.length; ml++) {
+        if (nameLines[markerLines[ml].trim()]) continue;
         if (BangermeterEngine.replyMarkerIn(markerLines[ml])) { isReply = true; break; }
       }
     }
@@ -423,8 +432,8 @@
 
   // Score history — a capped, local-only log of panel opens so a creator can
   // see which formats score consistently higher over time. chrome.storage.local
-  // (never sync), 200 entries, and only what the entry needs: id, time, scores,
-  // views, reply flag, an 80-char snippet. No author handle, no full text.
+  // (never sync), 200 entries, and only what the popup renders: id, time,
+  // scores, reply flag, an 80-char snippet. No author handle, no full text.
   function recordHistory(features, result) {
     if (!settings.keepHistory) return;
     try {
@@ -882,9 +891,14 @@
     var mw = meter.offsetWidth || 260;
     var mh = meter.offsetHeight || 30;
     var GAP = 8;
+    var below = false;
     var top = r.top - mh - GAP;                        // above the whole composer
-    if (top < GAP) top = r.bottom + GAP;               // no room up there — go below it
+    if (top < GAP) { top = r.bottom + GAP; below = true; } // no room up there — go below it
     top = Math.max(GAP, Math.min(top, vh - mh - GAP)); // clamp into the viewport
+    // Below the composer is where X's own controls live. The clickable chips
+    // (+ compare, variants) go inert there so a floating chip can never sit
+    // over the Reply button and swallow its click.
+    meter.classList.toggle("bangermeter-meter-below", below);
     var left = Math.max(GAP, Math.min(r.left, vw - mw - GAP));
     meter.style.top = top + "px";
     meter.style.left = left + "px";
