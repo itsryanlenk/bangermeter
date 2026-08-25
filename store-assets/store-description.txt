@@ -21,7 +21,7 @@ WHAT YOU GET
 
 • Draft comparison. Save up to three variants of a draft and pick the best-scoring one before posting. Variants live in memory only.
 
-• Local score history. Opening a breakdown logs the scores, the post's link and a short text snippet to a list in your browser, so you can see which formats score higher over time. Capped, local-only, one-click clear, and a toggle to turn it off.
+• Local score history. Opt in from the popup and opening a breakdown logs the scores, the post's link and a short text snippet to a list in your browser, so you can see which formats score higher over time. Off by default, capped, local-only, one-click clear.
 
 • Under the Hood import. In X's transparency pilot? Import the report you download from x.com/i/under_the_hood and see the visibility labels X itself applied — parsed locally, stored locally.
 
@@ -77,7 +77,7 @@ WHAT'S NEW IN 0.10.0
 
 • Draft comparison. Save up to three draft variants and compare their scores side by side before posting.
 
-• Local score history. Open a breakdown and the scores, post link and a short text snippet are logged to a local list, so you can track which formats score higher over time. Capped at 200 entries, stored only in this browser, one-click clear, and a settings toggle.
+• Local score history, opt-in. Turn it on in the popup and every breakdown you open logs the scores, post link and a short text snippet to a local list, so you can track which formats score higher over time. Off by default, capped at 200 entries, stored only in this browser, one-click clear.
 
 • Under the Hood report import. If you're in X's transparency pilot, import the JSON report from x.com/i/under_the_hood and the popup summarizes the visibility labels X applied to your account and posts. Parsed and stored locally.
 

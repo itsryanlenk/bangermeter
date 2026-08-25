@@ -446,8 +446,9 @@ var BANGERMETER_DEFAULT_SETTINGS = {
   assumeMutualFollow: false,
   applyVerifiedBoost2023: false,
   // Local-only score log (chrome.storage.local, capped at 200 entries) written
-  // when a breakdown panel is opened. Never synced, never transmitted.
-  keepHistory: true,
+  // when a breakdown panel is opened. Never synced, never transmitted. OFF by
+  // default — logging other people's posts, even locally, is opt-in.
+  keepHistory: false,
   theme: "auto"
 };
 

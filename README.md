@@ -56,10 +56,10 @@ what the published weights actually say.
   *inputs* are listed; no invented direction — and no duration for the score-0 label,
   because none is published). Where a reply sorts inside a thread is disclosed as
   unpublished rather than guessed.
-- **Score history.** Opening a breakdown panel logs the scores to a local, capped list
-  (`chrome.storage.local`, 200 entries — id, time, scores, an 80-char snippet).
-  The popup shows the recent log with links back to each post, plus a Clear button and a
-  default-on toggle. Nothing ever leaves the browser.
+- **Score history (opt-in).** Off by default; enable it in the popup and opening a
+  breakdown panel logs the scores to a local, capped list (`chrome.storage.local`,
+  200 entries — id, time, scores, an 80-char snippet). The popup shows the recent log
+  with links back to each post, plus a Clear button. Nothing ever leaves the browser.
 - **Draft comparison.** The compose meter gains a `+ compare` button: save up to three
   variants of a draft (A/B/C), rewrite, and pick the best-scoring one. Variants live in
   memory only and vanish with the page.
