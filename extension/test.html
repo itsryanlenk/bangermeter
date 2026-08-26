@@ -535,7 +535,55 @@
     check("bait phrase after punctuation is matched",
       isBaitText("Bas ek baat — sach batao, tum khush ho?") === true);
     check("bait phrase at the very end of a post is matched",
-      isBaitText("Agar tum bhi thak chuke ho toh comment karo") === true);
+      isBaitText("Achhi shayari ke liye mujhe follow karo") === true);
+
+    // ── Devanagari ────────────────────────────────────────────────────
+    // Hindi does NOT put the call to action first: "like karo agar X" is a
+    // calque of English. Real Devanagari bait reads "X तो लाइक करें" — the
+    // CTA last, anchored on तो — or carries जरूर ("definitely"). Searching X
+    // for the bare verb phrases showed why that anchor matters: on X the bare
+    // form is usually an ARGUMENT ("first read it, THEN comment"), not a
+    // solicitation. Sentences below are modeled on observed usage, not
+    // copied from anyone's account.
+    check("तो + like CTA -> bait",
+      isBaitText("वीडियो पसंद आए तो लाइक करें") === true);
+    check("तो + share CTA -> bait",
+      isBaitText("अगर आप सहमत हैं तो शेयर करें") === true);
+    check("comment box + जरूर -> bait",
+      isBaitText("अपनी राय कमेंट बॉक्स में जरूर दें") === true);
+    check("write-in-the-comments -> bait",
+      isBaitText("कमेंट में लिखो आप कहाँ से हो") === true);
+    check("reduplicated सच सच बताओ -> bait",
+      isBaitText("सच सच बताओ, जिंदगी से खुश तो हो ना?") === true);
+    check("follow + जरूर -> bait",
+      isBaitText("ऐसी ही शायरी के लिए पेज को फॉलो जरूर करें") === true);
+    check("मुझे फॉलो करो -> bait",
+      isBaitText("अच्छी शायरी के लिए मुझे फॉलो करो") === true);
+    check("polite कीजिए form is caught too",
+      isBaitText("पसंद आए तो लाइक कीजिए") === true,
+      "suppletive stem — the कर alternation does not cover it");
+
+    // FALSE-POSITIVE GUARDS, every one modeled on a real pattern seen while
+    // searching X. The bare verb phrases below are arguments, not bait, and
+    // flagging them would tell Hindi speakers their arguments are spam.
+    check("'first read, THEN comment' is an argument, not bait",
+      isBaitText("पहले पूरी किताब पढ़ो, फिर कमेंट करो") === false);
+    check("'go watch it, then comment' is an argument, not bait",
+      isBaitText("लाइव देख लो जाके अभी फिर कमेंट करो") === false);
+    check("comment box named without a solicitation is not bait",
+      isBaitText("गाली दोगे तो कमेंट बॉक्स में कितनी गालियां आएंगी") === false);
+    check("'follow these steps' is not bait",
+      isBaitText("रील बनाने के लिए इन स्टेप्स को फॉलो करें") === false,
+      "the reason bare फॉलो कर is not shipped");
+    check("ordinary 'share the information' is not bait",
+      isBaitText("यह जानकारी सबके साथ शेयर करें") === false);
+    check("ordinary 'tell me' is not bait",
+      isBaitText("मुझे बताओ कि कल क्या हुआ था") === false);
+
+    // Zero-width joiners are common in Hindi social text and are invisible.
+    check("zero-width characters do not defeat a match",
+      isBaitText("वीडियो पसंद आए तो लाइक‍करें") === true ||
+      isBaitText("वीडियो पसंद आए तो ‌लाइक करें") === true);
 
     // DELIBERATELY NOT DETECTED. The rhetorical-question / forced-binary
     // "rage bait" genre is real, but it cannot be separated from a sincere

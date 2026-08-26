@@ -133,12 +133,18 @@ what the published weights actually say.
 - Reply detection uses whichever signal the surface actually provides: the "Replying to"
   label on timelines, and **position in the thread** inside a conversation or on
   `with_replies`, where X renders no label at all.
-- Engagement-bait detection covers English and Hinglish (Latin script) imperative calls
-  to action — "comment karo agar", "1 likho agar", "sach batao". Devanagari-script
-  equivalents are not sourced yet, and the rhetorical-question genre ("Kya …?", "X ya
-  Y?") is deliberately not detected: tested against 228 real posts, the structural rule
-  for it flagged one post — a top-quartile one — and missed the actual bait. ALL-CAPS
-  detection is Latin-only by nature, since caseless scripts have no capitals to count. Reply detection on timeline posts still needs the
+- Engagement-bait detection covers English, Hinglish and Devanagari imperative calls to
+  action. The Devanagari patterns are **not** transliterations of the Hinglish ones —
+  Hindi puts the call to action last, so "like karo agar X" is an English calque that
+  barely occurs, and the real form is "…तो लाइक करें" or "कमेंट बॉक्स में जरूर". That
+  anchor does the work: on X the bare verb phrase is usually an argument ("पहले पढ़ो,
+  फिर कमेंट करो" — *first read it, then comment*) rather than a request for engagement,
+  so bare `कमेंट कर` / `फॉलो कर` are deliberately excluded. Validated against real Hindi
+  posts collected from X: zero false positives, conservative recall.
+- The rhetorical-question genre ("Kya …?", "X ya Y?") is deliberately not detected.
+  Tested against 228 real posts, the structural rule for it flagged exactly one — a
+  top-quartile post — and missed the actual bait. ALL-CAPS detection is Latin-only by
+  nature, since caseless scripts have no capitals to count. Reply detection on timeline posts still needs the
   localized "Replying to" marker; reply *drafts* are detected structurally (dialog order,
   status-page URL), which is locale-independent.
 - The E score needs a visible view count (hidden on some surfaces).
@@ -156,7 +162,7 @@ what the published weights actually say.
 | `extension/weights.js` | Single source of truth: weight layer + estimator layer, all provenance-tagged |
 | `extension/scoring.js` | Pure scoring engine (direct port of `ranking_scorer.rs`) |
 | `extension/content.js` | Badges, breakdown panel, compose meter |
-| `extension/test.html` | Engine self-test — open in any browser (213 assertions) |
+| `extension/test.html` | Engine self-test — open in any browser (228 assertions) |
 | `extension/fixture.html` | X-DOM fixture harness for the content script |
 | `extension/fixture-thread.html` | Reply-detection harness — asserts the conversation, `with_replies` and home-timeline surfaces separately, because X marks a reply differently on each. Needs `serve-fixtures.js` (it reads `location.pathname`) |
 | `extension/serve-fixtures.js` | Tiny static server for the harnesses, including the x.com-shaped paths the reply-detection cases need |
@@ -173,7 +179,7 @@ happened when those numbers were hardcoded.
 
 ## Verification status
 
-- Engine math: **213/213 self-tests pass** (`test.html`). Every one of the 26 published
+- Engine math: **228/228 self-tests pass** (`test.html`). Every one of the 26 published
   weights and its feature-switch parameter name is asserted against `param.rs`
   individually, so a silent transcription error fails the suite rather than shipping.
   All 26 re-verified unchanged against the live repo on Aug 25, 2026.

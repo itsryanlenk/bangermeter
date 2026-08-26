@@ -599,12 +599,56 @@ var BangermeterEngine = (function () {
     // English
     "like if", "rt if", "retweet if", "repost if", "follow me", "follow for",
     "drop a", "comment below", "tag someone", "tag a friend", "change my mind",
+
     // Hinglish (Latin script), supplied by a native speaker 2026-08-25.
     // "karo agar" is the load-bearing one: it covers comment/like/RT/share
-    // karo agar, which is how the CTA is actually written.
-    "karo agar", "likho agar", "comment karo", "follow karo", "tag karo",
-    "sach batao", "sach bataiye", "honestly batao", "honestly batana"
+    // karo agar, which is how the CTA is written in Latin-script Hinglish.
+    // Bare "comment karo" and "follow karo" were dropped after checking real
+    // posts: the first is usually an argument ("pehle padho, phir comment
+    // karo") and the second usually means "follow these steps".
+    "karo agar", "likho agar", "tag karo", "mujhe follow karo", "follow kar lo",
+    "sach batao", "sach bataiye", "honestly batao", "honestly batana",
+
+    // Devanagari patterns are added below rather than here — see DEV_BAIT.
+    "कमेंट बॉक्स में जरूर"
   ];
+
+  // Devanagari bait. NOT transliterations of the Hinglish above: Hindi puts
+  // the call to action LAST, so "like karo agar X" is an English calque that
+  // essentially never appears in Devanagari. Real bait reads "X तो लाइक करें",
+  // or carries जरूर ("definitely").
+  //
+  // Every pattern anchors on that solicitation marker, because searching X for
+  // the bare verb phrases turned up mostly ARGUMENTS: "पहले पढ़ो, फिर कमेंट
+  // करो" is a rebuke, and about a quarter of bare "कमेंट बॉक्स में" hits were
+  // the same shape. The तो / जरूर / मुझे anchor is what separates a request
+  // for engagement from a person telling an opponent to go and comment.
+  //
+  // Verb endings are enumerated rather than stem-matched. A bare stem would
+  // match past and declarative forms too — "कमेंट में लिखा था" ("it was
+  // written in the comments") is not bait, and लिख alone cannot tell that
+  // from "कमेंट में लिखो".
+  var DEV_BAIT = (function () {
+    var KAR = ["करो", "करें", "करना", "करिए", "करिये", "कीजिए", "कीजिये", "कर लो", "कर दो"];
+    var LIKH = ["लिखो", "लिखें", "लिखना", "लिखिए", "लिखिये", "लिखकर"];
+    var BATA = ["बताओ", "बताएं", "बताये", "बताना", "बताइए", "बताइये", "दो", "दें"];
+    var out = [];
+    function expand(prefix, verbs) {
+      verbs.forEach(function (v) { out.push(prefix + v); });
+    }
+    expand("तो लाइक ", KAR);          // "…पसंद आए तो लाइक करें"
+    expand("तो शेयर ", KAR);          // "…सहमत हैं तो शेयर करें"
+    expand("तो कमेंट ", KAR);         // "…दिख रही है तो कमेंट करो"
+    expand("कमेंट में ", LIKH);       // "कमेंट में लिखो आप कहाँ से हो"
+    expand("कमेंट में ", BATA);
+    expand("सच सच ", BATA);           // reduplicated सच is the bait tell
+    expand("फॉलो जरूर ", KAR);        // जरूर blocks the "follow these steps" reading
+    expand("मुझे फॉलो ", KAR);
+    expand("टैग ", KAR);              // "दोस्तों को टैग करो"
+    out.push("फॉलो कर लो");
+    return out;
+  })();
+  BAIT_PATTERNS = BAIT_PATTERNS.concat(DEV_BAIT);
   // Boundaries, NOT \b. JavaScript's \b is defined by \w = [A-Za-z0-9_], so
   // there is never a word boundary beside a Devanagari (or Arabic, or CJK)
   // character and a \b-anchored pattern in those scripts can never match —
@@ -618,8 +662,16 @@ var BangermeterEngine = (function () {
   var BAIT_RE = new RegExp(
     EDGE_BEFORE + "(" + BAIT_PATTERNS.map(escapeRe).join("|") + ")" + EDGE_AFTER, "i");
 
+  // Hindi social text is full of invisible zero-width joiners, and Devanagari
+  // has more than one way to encode what looks like the same word. Without
+  // this, a pattern misses text that is visually identical to what it matches.
+  function normalizeForMatch(s) {
+    var t = String(s).replace(/[​-‍﻿]/g, "");
+    return t.normalize ? t.normalize("NFC") : t;
+  }
+
   function analyzeText(text) {
-    var t = text || "";
+    var t = normalizeForMatch(text || "");
     // Case detection is Latin-only by nature: Devanagari and other caseless
     // scripts have no capitals to count, so this simply never fires there —
     // no false positives, and no detection either.
