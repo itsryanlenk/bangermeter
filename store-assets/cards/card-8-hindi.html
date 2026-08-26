@@ -1,0 +1,75 @@
+<link rel="stylesheet" href="card-base.css">
+<style>
+  /* Archivo Black has no Devanagari, so the headline falls back for those
+     glyphs. Name the Devanagari face explicitly rather than letting the
+     renderer pick, or the two scripts sit at visibly different weights. */
+  .dev { font-family: 'Nirmala UI', 'Noto Sans Devanagari', 'Mangal', sans-serif; }
+  h1 { font-size: 56px; max-width: 17ch; line-height: 1.08; }
+  h1 .dev { font-size: 60px; }
+  .verdict {
+    display: inline-block; background: var(--volt); border: 4px solid var(--ink);
+    box-shadow: 6px 6px 0 var(--ink); padding: 8px 20px;
+    font-family: var(--display); font-size: 25px; text-transform: uppercase;
+    letter-spacing: .03em; margin: 22px 0 22px;
+  }
+  .body { display: grid; grid-template-columns: 1fr 1.12fr; gap: 44px; align-items: start; }
+  .math { font-family: var(--mono); font-size: 18px; color: var(--quiet); line-height: 1.7; }
+  .math b { color: var(--ink); }
+
+  .ex { border: 4px solid var(--ink); background: var(--card); margin-bottom: 18px; }
+  .ex .head {
+    display: flex; align-items: center; gap: 12px;
+    padding: 9px 16px; border-bottom: 4px solid var(--ink);
+    font-family: var(--display); font-size: 16px; text-transform: uppercase; letter-spacing: .04em;
+  }
+  .ex.bait .head { background: var(--stop); }
+  .ex.fine .head { background: var(--go); }
+  .ex .head .tick { margin-left: auto; font-family: var(--mono); font-size: 15px; }
+  .ex .line { padding: 16px 18px 6px; font-size: 25px; line-height: 1.45; }
+  .ex .gloss { padding: 0 18px 15px; font-family: var(--mono); font-size: 16px; color: var(--quiet); }
+  .hl { background: var(--volt); padding: 0 4px; }
+</style>
+
+<div class="top">
+  <span class="bolt"><svg viewBox="0 0 24 24" fill="#000"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg></span>
+  <span class="brand">Bangermeter</span>
+  <span class="src">read off x.com · 25 Aug 2026</span>
+</div>
+
+<div class="body">
+  <div>
+    <h1><span class="dev">कमेंट करो</span> is usually an argument, not bait</h1>
+    <div class="verdict">So we don't flag it</div>
+    <div class="math">
+      Hindi puts the call to action <b>last</b>.<br>
+      "like karo agar…" is an English<br>
+      calque that barely occurs.<br><br>
+      Bait detection ships in Hindi —<br>
+      anchored on <b class="dev">तो</b> and <b class="dev">जरूर</b>, never<br>
+      on the bare verb.
+    </div>
+  </div>
+
+  <div>
+    <div class="ex fine">
+      <div class="head">Not bait <span class="tick">scored clean</span></div>
+      <div class="line dev">पहले पूरी किताब पढ़ो, फिर <b>कमेंट करो</b></div>
+      <div class="gloss">"First read the whole book, THEN comment." A rebuke.</div>
+    </div>
+    <div class="ex fine">
+      <div class="head">Not bait <span class="tick">scored clean</span></div>
+      <div class="line dev">रील बनाने के लिए इन स्टेप्स को <b>फॉलो करें</b></div>
+      <div class="gloss">"Follow these steps to make a reel." Not asking for a follow.</div>
+    </div>
+    <div class="ex bait">
+      <div class="head">Bait <span class="tick">flagged</span></div>
+      <div class="line dev">वीडियो पसंद आए <span class="hl">तो लाइक करें</span></div>
+      <div class="gloss">"If you liked the video, THEN like it." The anchor is तो.</div>
+    </div>
+  </div>
+</div>
+
+<div class="foot">
+  <span class="chip">Checked, not translated</span>
+  <span>Zero false positives on real Hindi posts · github.com/itsryanlenk/bangermeter</span>
+</div>

@@ -1,0 +1,70 @@
+<link rel="stylesheet" href="card-base.css">
+<style>
+  .strike {
+    display: inline-block;
+    font-family: var(--display); font-size: 70px; line-height: 1.14;
+    text-transform: uppercase; letter-spacing: -.02em;
+    text-decoration: line-through;
+    text-decoration-color: var(--stop);
+    text-decoration-thickness: 9px;
+    text-decoration-skip-ink: none;
+  }
+  .verdict {
+    display: inline-block; background: var(--stop); border: 4px solid var(--ink);
+    box-shadow: 6px 6px 0 var(--ink); padding: 8px 20px;
+    font-family: var(--display); font-size: 29px; text-transform: uppercase;
+    letter-spacing: .03em; margin: 24px 0 28px;
+  }
+  .body { display: grid; grid-template-columns: 1.06fr 1fr; gap: 46px; align-items: start; }
+  .math { font-family: var(--mono); font-size: 19px; color: var(--quiet); line-height: 1.7; }
+  .math b { color: var(--ink); }
+
+  table { border-collapse: collapse; width: 100%; font-family: var(--mono); font-size: 20px; }
+  th {
+    text-align: left; font-family: var(--display); font-size: 15px; text-transform: uppercase;
+    letter-spacing: .05em; color: var(--quiet); padding-bottom: 10px; border-bottom: 4px solid var(--ink);
+  }
+  th.n, td.n { text-align: right; }
+  td { padding: 11px 0; border-bottom: 2px solid #DDD6C8; }
+  tr:last-child td { border-bottom: 0; }
+  td.n { font-weight: 700; }
+  .same { font-family: var(--display); font-size: 14px; color: var(--go); letter-spacing: .04em; }
+</style>
+
+<div class="top">
+  <span class="bolt"><svg viewBox="0 0 24 24" fill="#000"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg></span>
+  <span class="brand">Bangermeter</span>
+  <span class="src">xai-org/x-algorithm · re-read 25 Aug 2026</span>
+</div>
+
+<div class="body">
+  <div>
+    <span class="strike">"Dwell and video<br>are weighted<br>more now"</span>
+    <div class="verdict">Not in the file</div>
+    <div class="math">
+      All <b>26</b> published weights re-read<br>
+      against the live repository.<br>
+      <b>None of them moved.</b><br><br>
+      The only changes upstream since<br>
+      14 Aug are three feature flags,<br>
+      every one of them <b>off</b> by default.
+    </div>
+  </div>
+
+  <div>
+    <table>
+      <tr><th>The heads people claim moved</th><th class="n">Weight</th><th class="n">Change</th></tr>
+      <tr><td>Dwell (binary)</td><td class="n">0.0</td><td class="n same">same</td></tr>
+      <tr><td>Dwell time, per second</td><td class="n">0.004</td><td class="n same">same</td></tr>
+      <tr><td>Video open</td><td class="n">0.05</td><td class="n same">same</td></tr>
+      <tr><td>Video quality view</td><td class="n">0.05</td><td class="n same">same</td></tr>
+      <tr><td>Click dwell time</td><td class="n">0.0</td><td class="n same">same</td></tr>
+    </table>
+    <div class="attrib">home-mixer/params/param.rs — last sync stamp unchanged at 2026-08-12T04:09:22Z</div>
+  </div>
+</div>
+
+<div class="foot">
+  <span class="chip">Check it, don't repeat it</span>
+  <span>Every weight cited to source · github.com/itsryanlenk/bangermeter</span>
+</div>

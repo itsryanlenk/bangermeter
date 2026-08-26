@@ -1,0 +1,83 @@
+<link rel="stylesheet" href="card-base.css">
+<style>
+  h1 { font-size: 66px; max-width: 15ch; }
+  .body { display: grid; grid-template-columns: 1.02fr 1fr; gap: 48px; align-items: start; margin-top: 4px; }
+  .verdict {
+    display: inline-block; background: var(--volt); border: 4px solid var(--ink);
+    box-shadow: 6px 6px 0 var(--ink); padding: 8px 20px;
+    font-family: var(--display); font-size: 27px; text-transform: uppercase;
+    letter-spacing: .03em; margin: 26px 0 26px;
+  }
+  .math { font-family: var(--mono); font-size: 19px; color: var(--quiet); line-height: 1.7; }
+  .math b { color: var(--ink); }
+
+  /* A miniature thread: the parent, then the reply with nothing marking it. */
+  .thread { display: flex; flex-direction: column; gap: 0; }
+  .row {
+    background: var(--card); border: 4px solid var(--ink); padding: 16px 20px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .row + .row { border-top: 0; }
+  .row .who { font-family: var(--display); font-size: 19px; text-transform: uppercase; }
+  .row .txt { font-size: 19px; color: var(--quiet); }
+  .row .tagslot { margin-left: auto; font-family: var(--mono); font-size: 15px; }
+  .lbl { background: var(--ink); color: var(--volt); padding: 3px 10px; }
+  .none { color: var(--stop); font-family: var(--display); font-size: 15px; letter-spacing: .04em; }
+  .connector {
+    width: 4px; height: 26px; background: var(--ink); margin-left: 34px;
+  }
+  .caption { font-family: var(--mono); font-size: 17px; color: var(--quiet); margin-top: 20px; line-height: 1.6; }
+  .caption b { color: var(--ink); }
+</style>
+
+<div class="top">
+  <span class="bolt"><svg viewBox="0 0 24 24" fill="#000"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg></span>
+  <span class="brand">Bangermeter</span>
+  <span class="src">observed on x.com · 25 Aug 2026</span>
+</div>
+
+<div class="body">
+  <div>
+    <h1>Inside a thread, X never says "replying to"</h1>
+    <div class="verdict">So we stopped looking for it</div>
+    <div class="math">
+      Ten articles on one live thread.<br>
+      <b>Zero</b> carried the label.<br><br>
+      The post directly above <b>is</b> the marker —<br>
+      and reading only the label scores<br>
+      every reply as an original post.
+    </div>
+  </div>
+
+  <div>
+    <div class="thread">
+      <div class="row">
+        <span class="who">Parent</span>
+        <span class="txt">the post being replied to</span>
+        <span class="tagslot"><span class="lbl">top of thread</span></span>
+      </div>
+    </div>
+    <div class="connector"></div>
+    <div class="thread">
+      <div class="row">
+        <span class="who">Reply</span>
+        <span class="txt">someone answering it</span>
+        <span class="tagslot none">no label</span>
+      </div>
+      <div class="row">
+        <span class="who">Reply</span>
+        <span class="txt">and another</span>
+        <span class="tagslot none">no label</span>
+      </div>
+    </div>
+    <div class="caption">
+      A reply takes the same <b>×0.75</b> factor as an out-of-network post
+      in X's published math. Miss the reply, miss the discount.
+    </div>
+  </div>
+</div>
+
+<div class="foot">
+  <span class="chip">Position is the label</span>
+  <span>Every claim cited to source · github.com/itsryanlenk/bangermeter</span>
+</div>

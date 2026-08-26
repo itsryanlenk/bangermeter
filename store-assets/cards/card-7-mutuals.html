@@ -1,0 +1,83 @@
+<link rel="stylesheet" href="card-base.css">
+<style>
+  h1 { font-size: 62px; max-width: 16ch; }
+  .verdict {
+    display: inline-block; background: var(--volt); border: 4px solid var(--ink);
+    box-shadow: 6px 6px 0 var(--ink); padding: 8px 20px;
+    font-family: var(--display); font-size: 26px; text-transform: uppercase;
+    letter-spacing: .03em; margin: 24px 0 24px;
+  }
+  .body { display: grid; grid-template-columns: 1fr 1.04fr; gap: 46px; align-items: start; }
+  .math { font-family: var(--mono); font-size: 19px; color: var(--quiet); line-height: 1.7; }
+  .math b { color: var(--ink); }
+
+  /* A dated timeline: the value is the story, so the number leads each row. */
+  .tl { display: flex; flex-direction: column; }
+  .ev { display: flex; align-items: center; gap: 18px; }
+  .val {
+    font-family: var(--display); font-size: 34px; width: 118px; flex: none; text-align: center;
+    border: 4px solid var(--ink); padding: 10px 0; background: var(--card);
+    box-shadow: 5px 5px 0 var(--ink);
+  }
+  .val.live { background: var(--volt); }
+  .val.dead { color: var(--quiet); }
+  .when { font-family: var(--mono); font-size: 17px; color: var(--quiet); }
+  .what { font-size: 20px; line-height: 1.4; }
+  .what b { font-family: var(--display); font-size: 17px; text-transform: uppercase; letter-spacing: .03em; }
+  .rail { width: 4px; height: 22px; background: var(--ink); margin-left: 57px; }
+  .note {
+    margin-top: 24px; background: var(--ink); color: var(--paper);
+    border: 4px solid var(--ink); padding: 18px 22px;
+    font-family: var(--mono); font-size: 18px; line-height: 1.6;
+  }
+  .note b { color: var(--volt); }
+</style>
+
+<div class="top">
+  <span class="bolt"><svg viewBox="0 0 24 24" fill="#000"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg></span>
+  <span class="brand">Bangermeter</span>
+  <span class="src">docs/BIDIRECTIONAL_BOOST_CHANGE.md</span>
+</div>
+
+<div class="body">
+  <div>
+    <h1>The mutuals boost is one number, and it already moved</h1>
+    <div class="verdict">20.0 → 15.0</div>
+    <div class="math">
+      X's own repo names the July<br>
+      announcement as this parameter.<br><br>
+      It is not a new signal, and there is<br>
+      no second one hiding in the<br>
+      reply threads. <b>Nothing to add.</b>
+    </div>
+  </div>
+
+  <div>
+    <div class="tl">
+      <div class="ev">
+        <span class="val dead">0/5/10<br>15/20</span>
+        <span><span class="when">10 July 2026</span><br><span class="what"><b>A/B test</b> across five arms</span></span>
+      </div>
+      <div class="rail"></div>
+      <div class="ev">
+        <span class="val dead">20.0</span>
+        <span><span class="when">13 July 2026</span><br><span class="what"><b>Launched</b> — the post everyone quoted</span></span>
+      </div>
+      <div class="rail"></div>
+      <div class="ev">
+        <span class="val live">15.0</span>
+        <span><span class="when">24 July 2026</span><br><span class="what"><b>Cut</b> — and this is what runs today</span></span>
+      </div>
+    </div>
+    <div class="note">
+      Added to the <b>reply</b> weight, taking 5.0 to <b>20.0</b> — but only on an
+      <b>original post</b> from someone you mutually follow. Replies and reposts
+      are ineligible, by the code's own test.
+    </div>
+  </div>
+</div>
+
+<div class="foot">
+  <span class="chip">Read the file, not the thread</span>
+  <span>Every value cited to source · github.com/itsryanlenk/bangermeter</span>
+</div>
