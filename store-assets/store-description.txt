@@ -73,7 +73,9 @@ github.com/itsryanlenk/bangermeter
 
 WHAT'S NEW IN 0.10.0
 
-• Reply mode. The compose meter now knows when you're drafting a reply and scores it as one — reply drafts were previously scored as originals, hiding the ×0.75 factor the published math applies. The breakdown panel gains a reply-scoring section built from the published code: out-of-network replies are hard-filtered from For You, replies never get the mutual-follow boost, and replies to accounts over 100K followers are scored 0-3 by a Grok model. X withholds that model's rubric to reduce gameability, so this extension lists the published inputs and refuses to fake the score.
+NEW
+
+• Reply scoring. The breakdown panel gains a reply section built from X's published code: out-of-network replies are hard-filtered from For You rather than down-weighted, replies never get the mutual-follow boost, and replies to accounts over 100K followers are scored 0-3 by a Grok model. X withholds that model's rubric to reduce gameability, so this extension lists the published inputs and refuses to fake the score. Where a reply ranks inside a thread is not something anyone outside X can score, and it says so instead of guessing.
 
 • Draft comparison. Save up to three draft variants and compare their scores side by side before posting.
 
@@ -87,9 +89,21 @@ WHAT'S NEW IN 0.10.0
 
 • Engagement bait is now detected in Hindi. Both Hinglish ("comment karo agar", "1 likho agar", "sach batao") and Devanagari ("...तो लाइक करें", "कमेंट बॉक्स में जरूर", "सच सच बताओ"). These were checked against real Hindi posts rather than translated from the English, because the phrasing genuinely differs: Hindi puts the call to action at the end, and the bare verb usually belongs to an argument rather than a request for engagement. The patterns are deliberately cautious — they would rather miss bait than tell you a real post is spam.
 
-• Replies are detected everywhere, not just where X labels them. Inside a conversation X renders no "Replying to" text at all — the post above is the only marker — so replies under a post used to score as originals and miss the ×0.75 factor. Threads, the with-replies tab and the timeline are each handled on their own terms now.
 
-• The "mutuals boost" from July 13, verified. X's repo documents that announcement as the mutual-follow reply-weight boost this extension already models: launched at 20.0, reduced to 15.0 on July 24. All 26 weights re-verified unchanged against the current repo on Aug 25; a circulating claim that dwell and video weights went up is false against the published file.
+FIXED
+
+• Replies were being scored as original posts, in two places. Inside a conversation X renders no "Replying to" label at all — the post above is the only marker — so every reply under a post was missing the ×0.75 factor the published math applies to replies. The compose meter had the same blind spot on reply drafts, which made a reply read about a third higher than it should. Threads, the with-replies tab, the timeline and the compose box are each handled on their own terms now.
+
+• The draft meter's new compare buttons could sit over the Post and Reply buttons when the meter was pushed below the composer. They go inert in that position, so they can never swallow a click meant for X.
+
+• A display name written to look like a reply marker could flip a post into reply scoring. Names are now excluded from that check.
+
+
+VERIFIED, WITH NOTHING TO CHANGE
+
+• The "mutuals boost" from July 13 is the boost this extension already models. X's own repo documents that announcement as the mutual-follow reply-weight boost: launched at 20.0, reduced to 15.0 on July 24. No new weight exists to add.
+
+• All 26 weights re-verified unchanged against X's published file on August 25. A circulating claim that dwell time and video watch time were weighted more heavily is false — every one of those values is exactly what it was.
 
 WHAT'S NEW IN 0.9.5
 
