@@ -201,3 +201,13 @@ happened when those numbers were hardcoded.
   arithmetic to the rounded point. Live use is also what surfaced the two compose-meter
   defects the fixture had not modeled. Selectors target `article[data-testid="tweet"]`,
   the action-bar `role="group"` aria-label, and `tweetTextarea_*`, each with fallbacks.
+
+## Credits
+
+- **Hindi and Hinglish guidance** — [Shivangi Bhattacharjee](https://www.linkedin.com/in/shivangi-bhattacharjee/),
+  who worked through the bait phrasing with us. The useful finding was structural rather
+  than lexical: Hindi puts the call to action at the *end* of the sentence, so the
+  Hinglish "like karo agar…" order is an English calque and a Devanagari pattern built by
+  transliterating it would never have matched anything. Every Hindi pattern the extension
+  ships anchors on `तो` / `जरूर` instead, and the bare verb is deliberately left alone
+  because on X it usually belongs to an argument rather than a request for engagement.
