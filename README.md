@@ -9,19 +9,36 @@ scorer arithmetic from [xai-org/x-algorithm](https://github.com/xai-org/x-algori
 `home-mixer/params/param.rs` for the values, `home-mixer/scorers/ranking_scorer.rs` for the
 math. Full source-traced findings: [RESEARCH.md](RESEARCH.md).
 
+## What you actually do with it
+
+1. **Scroll x.com.** Every post picks up a ⚡ badge with two scores, 0–100 — `C` for what
+   the content alone would be predicted to earn, `E` for what the post actually earned per
+   view. **50 is a typical post**: it is a comparison against a median post, not a grade,
+   and not a prediction of reach.
+2. **Click the badge.** You get the breakdown in plain English — which signals fired, what
+   each reply and repost is worth, what age cost it — with every number cited to the line
+   of X's published code it came from.
+3. **Start typing a post.** A live meter scores your draft as you write, and `+ compare`
+   holds up to three variants so you can pick one before you send it.
+
+Everything below is why you can trust the numbers.
+
+## Install
+
+**From the Chrome Web Store** — [Bangermeter](https://chromewebstore.google.com/detail/hecnkfmbffaccdljhpkcoefickilfgmh).
+Installing opens a one-page quick start; the popup keeps a link back to it.
+
+**From source**, to read it before you run it, or to work on it:
+
+1. Open `chrome://extensions`
+2. Enable **Developer mode** (top right)
+3. Click **Load unpacked** → select the `extension/` folder
+
 > **August 13, 2026.** X published the production weights for the For You timeline. Until
 > that morning the only weights anyone had were a March/April 2023 snapshot, and about a
 > third of the ranking heads had never been given a number at all. Bangermeter v0.9.0
 > replaced the entire weight layer with the published set. Everything below describes the
 > new one.
-
-## Install
-
-1. Open `chrome://extensions`
-2. Enable **Developer mode** (top right)
-3. Click **Load unpacked** → select the `extension/` folder
-4. Browse x.com — every timeline post gets a ⚡ badge; click it for the full breakdown.
-   The compose box gets a live draft meter as you type.
 
 ## What it looks like
 
@@ -162,6 +179,8 @@ what the published weights actually say.
 | `extension/weights.js` | Single source of truth: weight layer + estimator layer, all provenance-tagged |
 | `extension/scoring.js` | Pure scoring engine (direct port of `ranking_scorer.rs`) |
 | `extension/content.js` | Badges, breakdown panel, compose meter |
+| `extension/background.js` | Service worker. One listener: open the quick start on first install, never on update |
+| `extension/welcome.html` | The quick start itself — self-contained, loads nothing over the network |
 | `extension/test.html` | Engine self-test — open in any browser (228 assertions) |
 | `extension/fixture.html` | X-DOM fixture harness for the content script |
 | `extension/fixture-thread.html` | Reply-detection harness — asserts the conversation, `with_replies` and home-timeline surfaces separately, because X marks a reply differently on each. Needs `serve-fixtures.js` (it reads `location.pathname`) |

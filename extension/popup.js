@@ -24,6 +24,34 @@
     });
   } catch (e) { /* storage unavailable (preview harness) — table still renders below */ }
 
+  // ── Quick-start strip ──────────────────────────────────────────────────
+  // The welcome page opens itself once, on install. This is the way back to it
+  // for anyone who closed that tab, or who comes back a week later having
+  // forgotten what the two numbers mean. Hidden by default in the markup so it
+  // never flashes on for a user who has already dismissed it.
+  (function () {
+    var strip = document.getElementById("quickStart");
+    var link = document.getElementById("quickStartLink");
+    var dismiss = document.getElementById("quickStartDismiss");
+    if (!strip || !link || !dismiss) return;
+
+    function seen() {
+      strip.hidden = true;
+      try { chrome.storage.sync.set({ quickStartSeen: true }); } catch (e) { /* preview harness */ }
+    }
+
+    // Opening it counts as having seen it; so does dismissing it. Both leave the
+    // page reachable — the strip is the only affordance that goes away.
+    link.addEventListener("click", seen);
+    dismiss.addEventListener("click", seen);
+
+    try {
+      chrome.storage.sync.get({ quickStartSeen: false }, function (stored) {
+        strip.hidden = !!stored.quickStartSeen;
+      });
+    } catch (e) { /* preview harness — leave it hidden rather than guess */ }
+  })();
+
   // ── Local score history ────────────────────────────────────────────────
   // Read-only view over the log content.js writes on panel opens. Lives in
   // chrome.storage.local; the Clear button deletes it outright.

@@ -1,5 +1,17 @@
 See what X's algorithm actually rewards — on every post, as you scroll.
 
+
+HOW TO USE IT
+
+1. Scroll x.com. Every post picks up a badge with two scores, 0–100. 50 is a typical post.
+2. Click the badge. You get a plain-English breakdown of why it scored that way.
+3. Start typing a post. A live meter scores your draft before you send it.
+
+That is the whole thing. Everything below is why you can trust the numbers.
+
+
+WHERE THE NUMBERS COME FROM
+
 On August 13, 2026, X published the real ranking weights for the For You timeline: the exact numbers that decide how far a post travels. Bangermeter puts them on every post in your feed.
 
 No leaked screenshots. No "I reverse-engineered the algorithm" threads. The weights come straight from X's published source, and every factor in the breakdown is cited to the line of code it came from.
@@ -75,6 +87,8 @@ WHAT'S NEW IN 0.10.0
 
 NEW
 
+• A quick start, on install. Installing now opens a short page that shows what the badge looks like, what the two numbers mean, and the three things you do with it. It lives in the extension — no network request, nothing loaded from anywhere — and the popup keeps a link back to it. The first outside feedback this project got was that a new user could not tell quickly what it was for; that was fair, and this is the fix.
+
 • Reply scoring. The breakdown panel gains a reply section built from X's published code: out-of-network replies are hard-filtered from For You rather than down-weighted, replies never get the mutual-follow boost, and replies to accounts over 100K followers are scored 0-3 by a Grok model. X withholds that model's rubric to reduce gameability, so this extension lists the published inputs and refuses to fake the score. Where a reply ranks inside a thread is not something anyone outside X can score, and it says so instead of guessing.
 
 • Draft comparison. Save up to three draft variants and compare their scores side by side before posting.
@@ -110,18 +124,5 @@ WHAT'S NEW IN 0.9.5
 • Corrected a number in the breakdown panel. It said For You hard-filters 670 accounts reported to Brazil's Electoral Court for the 2026 election. The real figure is 665. The correction was made in the source before 0.9.4 shipped and missed that build by a few hours; this release carries it. If you read 670 anywhere, that was us, not X.
 
 • Three panel and tooltip strings used British spellings. Fixed, including one inside a passage quoting X's own wording.
-
-WHAT'S NEW IN 0.9.4
-
-• Scores are now calibrated against real data. The reference rates were measured from 158 real timeline posts instead of estimated. If you used an earlier version, expect your engagement scores to read roughly 15 points lower — the old scale put a typical post at 67 when it should have been 50. Nothing broke; the midpoint moved to where it belongs.
-
-• Updated for X's August 14 clarifications. X added comments to the ranking code confirming that weights multiply a predicted probability, not a count, and explaining that Report carries a large coefficient because reports are over 1000x rarer than likes — not because it's a bigger punishment. All 26 weights re-verified against the update; none changed.
-
-• Two facts worth knowing, now in the breakdown panel: engagement only counts toward ranking if the post reached the reader through their Home Timeline (sending your own link to a group chat does nothing), and mass report campaigns don't straightforwardly bury a post, because predictions are personalized per viewer.
-
-• The draft meter in the compose box no longer covers the Post button, and clears itself once you've posted.
-
-• 120 automated tests, up from 33. Every published weight is checked against X's source individually.
-
 
 Bangermeter is an independent open-source project. It is not affiliated with, endorsed by, or sponsored by X Corp or xAI.

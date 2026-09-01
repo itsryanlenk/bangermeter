@@ -138,6 +138,41 @@
     .snapshot {
       margin: 0 0 8px; font-size: 10.5px; line-height: 1.45; color: var(--ts-ink); opacity: .85;
     }
+    /* Quick-start strip. Shown until dismissed, so someone who closed the
+       welcome tab on install can still find their way back to it. */
+    .quickstart {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 10px 14px 0;
+      padding: 7px 8px 7px 10px;
+      background: var(--ts-yellow);
+      border: 2px solid var(--ts-black);
+      box-shadow: 3px 3px 0 var(--ts-black);
+    }
+    .qs-link {
+      flex: 1;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--ts-black);
+      text-decoration: none;
+    }
+    .qs-link:hover { text-decoration: underline; }
+    .qs-link:focus-visible { outline: 3px solid var(--ts-blue); outline-offset: 2px; }
+    .qs-close {
+      flex: none;
+      font-family: var(--ts-font-body);
+      font-size: 14px;
+      line-height: 1;
+      font-weight: 700;
+      color: var(--ts-black);
+      background: transparent;
+      border: 2px solid var(--ts-black);
+      border-radius: 0;
+      padding: 0 5px 1px;
+      cursor: pointer;
+    }
+    .qs-close:focus-visible { outline: 3px solid var(--ts-blue); outline-offset: 2px; }
     footer {
       padding: 4px 14px 12px;
       font-size: 10.5px;
@@ -238,6 +273,11 @@
   </header>
   <div class="sub">Scores posts with X's published For You ranking weights and the real
     scorer arithmetic (xai-org/x-algorithm, Aug 13 2026).</div>
+
+  <div class="quickstart" id="quickStart" hidden>
+    <a class="qs-link" id="quickStartLink" href="welcome.html" target="_blank">New here? How to use it &rarr;</a>
+    <button class="qs-close" id="quickStartDismiss" title="Hide this" aria-label="Hide this tip">&times;</button>
+  </div>
 
   <section>
     <h2>Settings</h2>

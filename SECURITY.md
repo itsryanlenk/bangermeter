@@ -3,11 +3,12 @@
 ## Supported versions
 
 Only the latest release is supported. Bangermeter has no server component — it is a
-content script that runs entirely in your browser on x.com / twitter.com.
+content script that runs entirely in your browser on x.com / twitter.com, plus a
+service worker whose only job is to open a local quick-start page on first install.
 
 | Version | Supported |
 |---------|-----------|
-| 0.9.x   | ✅        |
+| 0.10.x  | ✅        |
 | < 0.5   | ❌        |
 
 ## Scope
@@ -19,7 +20,8 @@ Things that would qualify as a vulnerability here:
   the only `innerHTML` sinks are hardcoded static SVG icon strings)
 - Any network request (the extension makes none — no fetch, no beacons, no remote fonts)
 - Permission escalation beyond the declared `storage` permission and
-  x.com / twitter.com content-script matches
+  x.com / twitter.com content-script matches (the service worker adds no permission:
+  `chrome.tabs.create` gates on nothing, and it opens only an extension-local URL)
 - Leakage of browsing data out of the page context
 
 ## Reporting a vulnerability
