@@ -83,11 +83,14 @@ MIT licensed, with the full research record and 228 automated tests that check e
 github.com/itsryanlenk/bangermeter
 
 
+WHAT'S NEW IN 0.10.1
+
+• A quick start, on install. Installing now opens a short page that shows what the badge looks like, what the two numbers mean, and the three things you do with it. It lives in the extension — no network request, nothing loaded from anywhere — and the popup keeps a link back to it. The first outside feedback this project got was that a new user could not tell quickly what it was for; that was fair, and this is the fix.
+
+
 WHAT'S NEW IN 0.10.0
 
 NEW
-
-• A quick start, on install. Installing now opens a short page that shows what the badge looks like, what the two numbers mean, and the three things you do with it. It lives in the extension — no network request, nothing loaded from anywhere — and the popup keeps a link back to it. The first outside feedback this project got was that a new user could not tell quickly what it was for; that was fair, and this is the fix.
 
 • Reply scoring. The breakdown panel gains a reply section built from X's published code: out-of-network replies are hard-filtered from For You rather than down-weighted, replies never get the mutual-follow boost, and replies to accounts over 100K followers are scored 0-3 by a Grok model. X withholds that model's rubric to reduce gameability, so this extension lists the published inputs and refuses to fake the score. Where a reply ranks inside a thread is not something anyone outside X can score, and it says so instead of guessing.
 
