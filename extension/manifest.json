@@ -5,6 +5,9 @@
   "description": "Scores posts with X's published For You ranking weights and the real scorer arithmetic. Every factor cited to source.",
   "permissions": ["storage"],
   "host_permissions": [],
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
       "matches": ["https://x.com/*", "https://twitter.com/*"],

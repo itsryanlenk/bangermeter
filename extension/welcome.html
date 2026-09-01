@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bangermeter — Quick Start</title>
+<!-- No webfont link, no analytics, no network requests of any kind. The display
+     face falls back to Arial Black exactly the way the popup already does. -->
+<style>
+  :root {
+    --ts-black: #000000;
+    --ts-white: #FFFFFF;
+    --ts-cream: #F5F0E6;
+    --ts-yellow: #FFEB3B;
+    --ts-blue: #2196F3;
+    --ts-green: #2E7D32;
+    --ts-red: #C62828;
+    --ts-ink: #555555;
+    --ts-font-display: 'Archivo Black', 'Arial Black', Impact, sans-serif;
+    --ts-font-body: 'Space Grotesk', Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 20px 56px;
+    font-family: var(--ts-font-body);
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--ts-black);
+    background: var(--ts-cream);
+  }
+  .wrap { max-width: 680px; margin: 0 auto; }
+
+  /* ── Header ────────────────────────────────────────────────────────── */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 0 -20px 32px;
+    padding: 20px 20px;
+    background: var(--ts-black);
+  }
+  .header-inner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    max-width: 680px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  .bolt-box {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    background: var(--ts-yellow);
+    border: 3px solid var(--ts-black);
+    box-shadow: 3px 3px 0 var(--ts-white);
+    flex: none;
+  }
+  .bolt-box svg { width: 22px; height: 22px; display: block; }
+  h1 {
+    font-family: var(--ts-font-display);
+    font-weight: 400;
+    font-size: 22px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ts-white);
+    margin: 0;
+  }
+
+  /* ── Lede ──────────────────────────────────────────────────────────── */
+  .lede {
+    font-family: var(--ts-font-display);
+    font-weight: 400;
+    font-size: 27px;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    margin: 0 0 8px;
+  }
+  .lede-sub {
+    font-size: 15px;
+    color: var(--ts-ink);
+    margin: 0 0 28px;
+  }
+
+  /* ── Step cards ────────────────────────────────────────────────────── */
+  .step {
+    position: relative;
+    background: var(--ts-white);
+    border: 3px solid var(--ts-black);
+    box-shadow: 6px 6px 0 var(--ts-black);
+    padding: 20px 22px 20px 22px;
+    margin: 0 0 26px;
+  }
+  .step-num {
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ts-yellow);
+    border: 3px solid var(--ts-black);
+    font-family: var(--ts-font-display);
+    font-size: 18px;
+    line-height: 1;
+  }
+  .step h2 {
+    font-family: var(--ts-font-display);
+    font-weight: 400;
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 4px 0 10px 44px;
+  }
+  .step p { margin: 0 0 10px; }
+  .step p:last-child { margin-bottom: 0; }
+  .step .note { font-size: 13.5px; color: var(--ts-ink); }
+  strong { font-weight: 700; }
+
+  /* ── Badge sample (mirrors styles.css exactly) ─────────────────────── */
+  .sample-rail {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    background: var(--ts-cream);
+    border: 2px dashed var(--ts-black);
+    padding: 12px 14px;
+    margin: 14px 0 12px;
+  }
+  .sample-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ts-ink);
+  }
+  .bm-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 7px;
+    background: var(--ts-white);
+    border: 2px solid var(--ts-black);
+    box-shadow: 2px 2px 0 var(--ts-black);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 16px;
+  }
+  .bm-bolt {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    background: var(--ts-yellow);
+    border: 2px solid var(--ts-black);
+    flex: none;
+  }
+  .bm-bolt svg { width: 10px; height: 10px; display: block; }
+  .bm-seg { padding: 0 4px; border: 2px solid var(--ts-black); font-weight: 700; }
+  .bm-high { background: var(--ts-green); color: var(--ts-white); }
+  .bm-mid { background: var(--ts-yellow); }
+
+  .legend { display: flex; flex-direction: column; gap: 3px; font-size: 13px; }
+  .legend b { font-family: var(--ts-font-display); font-weight: 400; }
+
+  /* ── Buttons ───────────────────────────────────────────────────────── */
+  .cta {
+    display: inline-block;
+    font-family: var(--ts-font-body);
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    text-decoration: none;
+    color: var(--ts-black);
+    background: var(--ts-yellow);
+    border: 3px solid var(--ts-black);
+    box-shadow: 4px 4px 0 var(--ts-black);
+    padding: 9px 16px;
+    cursor: pointer;
+  }
+  .cta:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--ts-black); }
+  .cta:focus-visible { outline: 3px solid var(--ts-blue); outline-offset: 3px; }
+
+  /* ── Caveat + footer ───────────────────────────────────────────────── */
+  .caveat {
+    background: var(--ts-black);
+    color: var(--ts-cream);
+    padding: 18px 22px;
+    margin: 34px 0 22px;
+    font-size: 13.5px;
+    line-height: 1.55;
+  }
+  .caveat h2 {
+    font-family: var(--ts-font-display);
+    font-weight: 400;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ts-yellow);
+    margin: 0 0 8px;
+  }
+  .caveat p { margin: 0 0 8px; }
+  .caveat p:last-child { margin-bottom: 0; }
+
+  footer {
+    border-top: 3px solid var(--ts-black);
+    padding-top: 16px;
+    font-size: 13.5px;
+    color: var(--ts-ink);
+  }
+  footer p { margin: 0 0 10px; }
+  footer a { color: var(--ts-black); font-weight: 700; }
+  footer a:focus-visible { outline: 3px solid var(--ts-blue); outline-offset: 2px; }
+  .links { display: flex; gap: 18px; flex-wrap: wrap; }
+  .inline-bolt { vertical-align: -3px; margin: 0 1px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <span class="bolt-box">
+      <svg viewBox="0 0 24 24" fill="#000000" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>
+    </span>
+    <h1>Bangermeter</h1>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <p class="lede">Bangermeter is installed.</p>
+  <p class="lede-sub">Three things and you're using it.</p>
+
+  <!-- 1 ─────────────────────────────────────────────────────────────── -->
+  <section class="step">
+    <span class="step-num">1</span>
+    <h2>Scroll x.com</h2>
+    <p>Every post picks up a badge with two numbers, 0&ndash;100.</p>
+
+    <div class="sample-rail">
+      <span class="sample-label">Looks like</span>
+      <span class="bm-badge">
+        <span class="bm-bolt"><svg viewBox="0 0 24 24" fill="#000000" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg></span>
+        <span class="bm-seg bm-high">C71</span>
+        <span class="bm-seg bm-mid">E48</span>
+      </span>
+      <span class="legend">
+        <span><b>C</b> &mdash; what the content alone would be predicted to earn</span>
+        <span><b>E</b> &mdash; what the post actually earned, per view</span>
+      </span>
+    </div>
+
+    <p class="note"><strong>50 is a typical post.</strong> It's a comparison against a
+      median post, not a grade &mdash; and not a prediction of reach.</p>
+    <p><a class="cta" href="https://x.com" target="_blank" rel="noopener">Open x.com &rarr;</a></p>
+  </section>
+
+  <!-- 2 ─────────────────────────────────────────────────────────────── -->
+  <section class="step">
+    <span class="step-num">2</span>
+    <h2>Click a badge</h2>
+    <p>You get the breakdown in plain English: which signals fired, what each reply
+      and repost is actually worth, and what age cost it.</p>
+    <p class="note">Every number is cited to the line of X's published code it came
+      from. <strong>&ldquo;Show the math&rdquo;</strong> on any section opens the full
+      weight &times; probability table.</p>
+  </section>
+
+  <!-- 3 ─────────────────────────────────────────────────────────────── -->
+  <section class="step">
+    <span class="step-num">3</span>
+    <h2>Start typing a post</h2>
+    <p>A live meter scores your draft as you write, and names what's helping and
+      what isn't &mdash; asks a question, substantive text, bare link, hashtag pile,
+      engagement bait.</p>
+    <p class="note">Hit <strong>+ compare</strong> to save up to three variants and
+      pick the best one before you send it. Replies are scored as replies.</p>
+  </section>
+
+  <!-- Caveat ─────────────────────────────────────────────────────────── -->
+  <div class="caveat">
+    <h2>One thing worth knowing</h2>
+    <p>The weights are X's. The probabilities are estimates.</p>
+    <p>Only likes, replies and reposts come from real counts &mdash; the rest is
+      inferred from the post. The popup labels all 26 ranking heads as
+      <strong>measured</strong>, <strong>estimated</strong>, or <strong>zeroed by
+      X</strong>, so you always know which is which.</p>
+  </div>
+
+  <!-- Footer ─────────────────────────────────────────────────────────── -->
+  <footer>
+    <p>Settings, the full weight table and your score history live behind the
+      toolbar icon &mdash; click the <span class="bm-bolt inline-bolt"><svg
+      viewBox="0 0 24 24" fill="#000000" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg></span>
+      Bangermeter icon any time.</p>
+    <p class="links">
+      <a href="https://github.com/itsryanlenk/bangermeter#readme" target="_blank" rel="noopener">How it works</a>
+      <a href="https://github.com/itsryanlenk/bangermeter/blob/main/RESEARCH.md" target="_blank" rel="noopener">The research</a>
+      <a href="https://github.com/itsryanlenk/bangermeter" target="_blank" rel="noopener">Source on GitHub</a>
+    </p>
+  </footer>
+
+</div>
+</body>
+</html>

@@ -23,7 +23,8 @@ const problems = [];
 // BOM in manifest.json makes Chrome reject the upload as invalid JSON. This
 // already happened once, to two releases, before anything noticed.
 const SHIPPED = ["extension/manifest.json", "extension/weights.js", "extension/scoring.js",
-  "extension/content.js", "extension/popup.js", "extension/popup.html", "extension/styles.css"];
+  "extension/content.js", "extension/popup.js", "extension/popup.html", "extension/styles.css",
+  "extension/background.js", "extension/welcome.html"];
 for (const f of SHIPPED) {
   const b = fs.readFileSync(path.join(root, f));
   if (b[0] === 0xEF && b[1] === 0xBB && b[2] === 0xBF) {
@@ -163,6 +164,51 @@ try {
   }
 } catch (e) {
   problems.push("could not scan for British spellings: " + e.message);
+}
+
+// 7. The three packaging lists must name the same files, and those files must
+// exist. Adding a file to the extension means editing THREE places — this
+// script's BOM list, package-guard's SHIPPED, and make-package.ps1's $items —
+// and the failure mode when you miss one is silent: make-package builds from
+// its own list, so a file absent there is simply not in the zip, and the guard
+// only verifies files it was told about. A typo is just as quiet; adding
+// welcome.html landed "$extackground.js" in the PowerShell list, which would
+// have shipped a store build with no service worker and no welcome page.
+try {
+  const guardList = (read("store-assets/package-guard.js")
+    .match(/const SHIPPED = \[([\s\S]*?)\];/) || [])[1];
+  const psList = (read("store-assets/make-package.ps1")
+    .match(/\$items = @\(([\s\S]*?)\)/) || [])[1];
+  if (!guardList || !psList) throw new Error("could not locate one of the packaging lists");
+
+  const names = s => new Set([...s.matchAll(/"([^"]+)"/g)]
+    .map(m => m[1].replace(/^\$ext[\\/]/, "").replace(/^extension[\\/]/, ""))
+    .filter(n => n !== "icons"));
+
+  const sets = {
+    "check-versions.js": names(JSON.stringify(SHIPPED)),
+    "package-guard.js": names(guardList),
+    "make-package.ps1": names(psList)
+  };
+  const union = new Set(Object.values(sets).flatMap(s => [...s]));
+
+  for (const [where, set] of Object.entries(sets)) {
+    for (const f of union) {
+      if (!set.has(f)) {
+        problems.push(`${f} is missing from the packaging list in ${where} — every shipped ` +
+          `file must appear in all three, or it silently does not reach the store build`);
+      }
+    }
+  }
+  // A name that survives the set comparison can still be a typo present in all
+  // three, so prove each one is a real file.
+  for (const f of union) {
+    if (!fs.existsSync(path.join(root, "extension", f))) {
+      problems.push(`packaging lists name extension/${f}, which does not exist`);
+    }
+  }
+} catch (e) {
+  problems.push("could not cross-check the packaging lists: " + e.message);
 }
 
 if (problems.length) {

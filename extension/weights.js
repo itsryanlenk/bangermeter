@@ -427,7 +427,12 @@ var BANGERMETER_DEFAULT_SETTINGS = {
   // when a breakdown panel is opened. Never synced, never transmitted. OFF by
   // default — logging other people's posts, even locally, is opt-in.
   keepHistory: false,
-  theme: "auto"
+  theme: "auto",
+  // Set once the user has seen the quick start — either by dismissing the strip
+  // in the popup or by opening the welcome page from it. Syncs with the rest of
+  // the settings, so a second machine does not re-explain the extension to
+  // someone who already knows how it works.
+  quickStartSeen: false
 };
 
 // Derived weight sums, built exactly as ScoringWeights::new does.
