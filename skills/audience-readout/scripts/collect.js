@@ -305,6 +305,45 @@
     };
   };
 
+  // Coverage against ground truth. The profile header states a post count, and
+  // it is the only way to know whether you collected most of an account or a
+  // third of it. A timeline that ends cleanly — bottom reached, no spinner, no
+  // error — still routinely stops well short of that number, and reads exactly
+  // like completion. On one account "clean end" meant 144 posts of a stated 331.
+  //
+  // Call this before writing anything, and put the ratio in the deliverable.
+  window.__arCoverage = function () {
+    // Big accounts render the count abbreviated ("12.5K posts"), which is
+    // precisely where coverage matters most — so parse the suffix rather than
+    // returning null and reporting "no count found".
+    const m = document.body.innerText.match(/([\d,.]+)\s*([KMB])?\s+posts/i);
+    let stated = null;
+    if (m) {
+      const suffix = (m[2] || "").toUpperCase();
+      const mult = suffix === "B" ? 1e9 : suffix === "M" ? 1e6 : suffix === "K" ? 1e3 : 1;
+      // With a suffix the separator is a decimal point; without one it groups.
+      const n = suffix ? parseFloat(m[1].replace(/,/g, "")) : parseInt(m[1].replace(/[,.]/g, ""), 10);
+      stated = isNaN(n) ? null : Math.round(n * mult);
+    }
+    const have = [...window.__ar.seen.values()]
+      .filter(r => !window.__AR_ONLY || r.handle.toLowerCase() === window.__AR_ONLY.toLowerCase())
+      .length;
+    if (stated == null) {
+      return { have, stated: null,
+        verdict: "no post count in the header — open the profile page to read it" };
+    }
+    const share = have / stated;
+    return {
+      have, stated, coverage: (share * 100).toFixed(0) + "%",
+      verdict: share >= 0.85 ? "most of the account — describe it as near-complete"
+        : share >= 0.5 ? "PARTIAL — say '" + have + " of a stated " + stated + "' in the write-up"
+        : "THIN — " + have + " of " + stated + ". Say so prominently, and say which way "
+          + "the missing majority biases each finding (a platform serving its more "
+          + "visible posts first makes 'this underperforms' conservative and "
+          + "'this wins' inflated)"
+    };
+  };
+
   window.__arLoad();
 
   // Guard against mixing accounts. localStorage is per-origin, so a sample from

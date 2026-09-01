@@ -79,6 +79,8 @@ through browser automation). It defines:
 - `__arSweep(n)` — scrolls `n` times, collecting twice per position
 - `__arSave()` / `__arLoad()` — persist to `localStorage` so a reload or crash
   does not lose the sample
+- `__arCoverage()` — compares what you have against the post count in the
+  profile header, and tells you how to describe the shortfall
 - `__arExport()` — triggers a TSV download
 
 **Collect twice per scroll position.** X renders after the scroll settles, so a
@@ -207,7 +209,25 @@ bounds to describe the sample — use the dates actually present in it.
 account a June gap was genuinely quiet while an August gap of the same width was
 pure truncation. Never report a gap as a quiet period without probing it.
 
-### 1b-iii. The tabs render differently, and one of them lies
+### 1b-iii. Know your coverage before you write a word
+
+The profile header states a post count — "331 posts". That is ground truth, and
+it is the only way to know whether the sample is 90% of the account or 40% of
+it. `__arCoverage()` reads it and does the division for you.
+
+It matters because **a timeline can end cleanly and still be nowhere near
+complete.** Scrolled to the bottom, no spinner, no error, content simply stops —
+that reads as "collected everything" and on one account it meant 144 posts of
+331. The stop is a pagination cap wearing the costume of an ending.
+
+When the header count and the sample disagree, say so in the deliverable:
+"144 of a stated 331 posts (44%)". Then ask which way the missing half biases
+the result. If the platform serves the more-visible posts first — which is the
+safe assumption — a sample skewed toward the account's better work makes any
+"this format underperforms" finding *conservative*, and any "this format wins"
+finding *inflated*. State which direction applies to the findings you keep.
+
+### 1b-iv. The tabs render differently, and one of them lies
 
 A profile has three surfaces and they are not interchangeable.
 
@@ -394,6 +414,9 @@ Follow `references/readout-template.md`. Non-negotiables:
 | Every post scores 100 | Account far above baseline; the score saturates | Rank by rate instead, and say the score saturated |
 | A contrast vanishes when you look again | It was a timing artifact | This is the confound check working — report the null |
 | Counts look 10× off | Parser split a thousands separator | X aria-labels have no separators; check before "fixing" |
+| Search returns "No results" for an account you can see posting | The **Latest** tab does not index every account — small or new ones are often absent from it entirely | Drop `&f=live` and use the **Top** tab. It returns a ranked subset rather than everything, so it supplements windows, it does not exhaust them |
+| `eval()` of a stored collector throws a CSP error | x.com forbids `unsafe-eval`; `new Function` is blocked too | Paste the collector inline after every navigation. Stashing its source in `localStorage` to re-run later does not work |
+| Timeline ends cleanly but the sample is far short of the header count | Pagination cap that looks like an ending — at the bottom, no spinner, no error | Check coverage against the header count (§1b-iii) and report the shortfall rather than the sample |
 
 ## Scoring caveat
 

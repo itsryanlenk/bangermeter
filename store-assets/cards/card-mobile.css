@@ -1,0 +1,40 @@
+/* Bangermeter social cards — MOBILE portrait variant.
+   1080x1350 (4:5), the tallest ratio X shows in-timeline without cropping.
+   Same brand system as card-base.css; type scaled up because this is read
+   at thumb distance on a phone, not on a monitor. */
+:root {
+  --ink:#000; --paper:#F5F0E6; --card:#FFF; --volt:#FFEB3B;
+  --go:#4CAF50; --stop:#FF5252; --quiet:#55504A;
+  --display:'Archivo Black','Arial Black',Impact,sans-serif;
+  --body:'Space Grotesk',Arial,Helvetica,sans-serif;
+  --mono:'IBM Plex Mono',Consolas,'Courier New',monospace;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+html, body { width:1080px; height:1350px; }
+body {
+  background:var(--paper); color:var(--ink); font-family:var(--body);
+  padding:52px 52px 44px; display:flex; flex-direction:column;
+  -webkit-font-smoothing:antialiased;
+}
+.top { display:flex; align-items:center; gap:14px; margin-bottom:34px; }
+.bolt { width:60px; height:60px; flex:none; background:var(--volt);
+  border:5px solid var(--ink); box-shadow:6px 6px 0 var(--ink);
+  display:flex; align-items:center; justify-content:center; }
+.bolt svg { width:34px; height:34px; display:block; }
+.brand { font-family:var(--display); font-size:30px; letter-spacing:.04em; text-transform:uppercase; }
+.src { margin-left:auto; font-family:var(--mono); font-size:17px; color:var(--quiet); text-align:right; line-height:1.35; }
+
+h1 { font-family:var(--display); font-weight:400; text-transform:uppercase;
+  line-height:1.02; letter-spacing:-.02em; font-size:76px; }
+.verdict { display:inline-block; background:var(--volt); border:5px solid var(--ink);
+  box-shadow:7px 7px 0 var(--ink); padding:11px 24px; font-family:var(--display);
+  font-size:33px; text-transform:uppercase; letter-spacing:.03em; margin:30px 0 34px; align-self:flex-start; }
+.lede { font-family:var(--mono); font-size:26px; color:var(--quiet); line-height:1.6; }
+.lede b { color:var(--ink); }
+
+.foot { margin-top:auto; display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+  font-family:var(--mono); font-size:19px; color:var(--quiet);
+  border-top:5px solid var(--ink); padding-top:20px; }
+.foot .chip { background:var(--volt); border:4px solid var(--ink); box-shadow:4px 4px 0 var(--ink);
+  padding:5px 14px; font-family:var(--display); font-size:18px; color:var(--ink);
+  text-transform:uppercase; letter-spacing:.04em; }

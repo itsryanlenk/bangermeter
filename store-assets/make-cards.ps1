@@ -15,7 +15,13 @@ if (-not $chrome) { throw "Chrome not found - needed to render the cards" }
 $cards = Join-Path $PSScriptRoot "cards"
 $profile = Join-Path $env:TEMP "bm-card-profile"
 
+# Landscape by default; a card named card-m-*.html is the mobile portrait
+# variant and renders 1080x1350 (4:5) - the tallest ratio X shows in-timeline
+# without cropping. A 16:9 card is a letterbox strip on a phone.
 Get-ChildItem $cards -Filter "card-*.html" | Sort-Object Name | ForEach-Object {
+    $portrait = $_.BaseName -like "card-m-*"
+    $w = if ($portrait) { 1080 } else { 1600 }
+    $h = if ($portrait) { 1350 } else { 900 }
     $out = Join-Path $cards ($_.BaseName + ".png")
     if (Test-Path $out) { Remove-Item -LiteralPath $out -Force }
     $url = "file:///" + ($_.FullName -replace '\\', '/')
@@ -25,7 +31,7 @@ Get-ChildItem $cards -Filter "card-*.html" | Sort-Object Name | ForEach-Object {
     $ErrorActionPreference = "Continue"
     & $chrome --headless=new --disable-gpu --no-first-run --no-default-browser-check `
         --user-data-dir="$profile" --hide-scrollbars --force-device-scale-factor=1 `
-        --window-size=1600,900 --screenshot="$out" $url | Out-Null
+        --window-size=$w,$h --screenshot="$out" $url | Out-Null
     $ErrorActionPreference = $prev
     Start-Sleep -Milliseconds 900
     if (Test-Path $out) {
