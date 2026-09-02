@@ -223,6 +223,17 @@ happened when those numbers were hardcoded.
 
 ## Credits
 
+- **First-run onboarding** — [@harvey_control](https://x.com/harvey_control), who installed
+  Bangermeter, kept using it to write replies, and then took the trouble to say the thing a
+  happy user almost never bothers to say: that he could not work out quickly what it was for.
+  That is more useful than a bug report, because nobody files a ticket for confusion — they
+  just leave. He was right about the cause, too. This README and the store listing were
+  ordered provenance-first, every number sourced before you learn what to do with it, which
+  reads as rigor to someone already convinced and as a wall to everyone else. Installing
+  compounded it by completing in silence. Both changed in 0.10.1: the quick start opens
+  itself, and the first thing you read here is what the thing does rather than where the
+  weights came from. A tool nobody can get into is not a rigorous tool, just an unused one.
+
 - **Hindi and Hinglish guidance** — [Shivangi Bhattacharjee](https://www.linkedin.com/in/shivangi-bhattacharjee/),
   who worked through the bait phrasing with us. The useful finding was structural rather
   than lexical: Hindi puts the call to action at the *end* of the sentence, so the
