@@ -7,6 +7,10 @@ ALGORITHM.md
 HANDOFF.md
 WEBSITE-BRIEF.md
 WEBSITE-CHANGES-*.md
+# Website agent working output: drafts, rendered page bodies, and ROLLBACK-*
+# snapshots of the LIVE site. Working material, not part of the shipped tool —
+# and the rollback files are copies of pages we did not author.
+website-v*/
 
 # Per-account archives pulled for analysis. These identify a specific person's
 # posts and must never land in a public repo, so the pattern is blanket rather
