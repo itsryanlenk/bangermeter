@@ -701,7 +701,7 @@ var BangermeterEngine = (function () {
   // Heads scored for every post, regardless of media.
   var ALWAYS_ON = ["favorite", "reply", "retweet", "quote", "share", "share_via_dm",
     "share_via_copy_link", "follow_author", "click", "cont_dwell_time",
-    "not_dwelled", "not_interested", "block_author", "mute_author", "report"];
+    "dwell", "not_dwelled", "not_interested", "block_author", "mute_author", "report"];
 
   function contentScore(features, settings) {
     var B = C.baselineP;

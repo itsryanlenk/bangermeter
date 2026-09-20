@@ -41,16 +41,16 @@
 
     // ================================================================
     // WEIGHT LAYER — verbatim against xai-org/x-algorithm
-    // home-mixer/params/param.rs (sync 2026-08-12T04:09:22Z)
+    // home-mixer/params/param.rs (sync 2026-09-18T16:21:20Z)
     // Every value below was transcribed from the published file. If any
     // of these fail, the tool is lying about X's algorithm.
     // ================================================================
     section("Weight layer — verbatim param.rs");
 
     var PARAM_RS = {
-      favorite: 0.5, reply: 5.0, retweet: 1.0, photo_expand: 0.05, video_open: 0.05,
-      click: 0.4, open_link: 0.2, profile_click: 0.0, vqv: 0.05, share: 2.0,
-      share_via_dm: 5.0, share_via_copy_link: 20.0, dwell: 0.0, quote: 5.0,
+      favorite: 0.5, reply: 5.0, retweet: 1.0, photo_expand: 0.05, video_open: 0.07,
+      click: 0.4, open_link: 0.2, profile_click: 0.0, vqv: 0.0, share: 2.0,
+      share_via_dm: 5.0, share_via_copy_link: 20.0, dwell: 0.05, quote: 5.0,
       quoted_click: 0.05, quoted_vqv: 0.0, follow_author: 4.0, post_unexplored: 0.02,
       cont_dwell_time: 0.004, cont_click_dwell_time: 0.0,
       cont_active_secs_5m_residual_norm: 0.0,
@@ -82,7 +82,7 @@
     check("brigading-resistance explanation is recorded",
       !!SF.brigadingResistance && /personalized/i.test(SF.brigadingResistance.note));
     check("Brazil 2026 election filter recorded with its account count",
-      SF.brazil2026ElectionFilter && SF.brazil2026ElectionFilter.accounts === 665);
+      SF.brazil2026ElectionFilter && SF.brazil2026ElectionFilter.accounts === 2776);
     // The ratio reading X calls incorrect must not reappear as a claim.
     check("the ratio-as-value reading is named as incorrect, not repeated",
       /incorrect/i.test(C.weightsMeaningNote) && /468/.test(C.weightsMeaningNote));
@@ -96,8 +96,8 @@
       SF.conversationRanker && SF.conversationRanker.published === false);
     check("OON reply hard-filter recorded",
       !!SF.oonReplyFilter && /entirely/i.test(SF.oonReplyFilter.note));
-    check("reply quality gate: 100K threshold, 0-3 score, label named",
-      SF.replyQualityGate.followerThreshold === 100000 && SF.replyQualityGate.scoreMax === 3 &&
+    check("reply quality gate: 200K routing threshold, 0-3 score, label named",
+      SF.replyQualityGate.followerThreshold === 200000 && SF.replyQualityGate.scoreMax === 3 &&
       SF.replyQualityGate.zeroScoreLabel === "RiskyHighVizReply" &&
       SF.replyQualityGate.selfRepliesExempt === true);
     // task_write.py applies the label with NO duration argument; the 30-day
@@ -115,13 +115,42 @@
     check("July 13 'mutuals' announcement mapped to the EXISTING boost, still 15.0",
       /July 13/.test(H.reply.note) && C.bidirectionalFollowReplyBoost === 15.0);
 
+    // ── Mechanisms verified against the repo 2026-09-19 ───────────────
+    // Author cold start is DEFAULT ON and promotes exactly one post per
+    // request. home-mixer/scorers/author_cold_start.rs.
+    check("author cold start recorded, default ON, one post per request",
+      SF.authorColdStart && SF.authorColdStart.enabled === true &&
+      SF.authorColdStart.postsPromotedPerRequest === 1);
+    check("cold start gates: 1K followers, 1K impressions, 48h, slot 15",
+      SF.authorColdStart.followerCap === 1000 &&
+      SF.authorColdStart.impressionThreshold === 1000 &&
+      SF.authorColdStart.maxPostAgeHours === 48 &&
+      SF.authorColdStart.slotMin === 15);
+    check("cold start is original posts only — not replies, not reposts",
+      SF.authorColdStart.originalPostsOnly === true);
+    // content_features.rs names the content inputs sent to the model.
+    check("published content features recorded (7 fields)",
+      SF.contentFeatures && SF.contentFeatures.fields.length === 7);
+    check("weighted text length: URL counts 23, CJK counts 2",
+      SF.contentFeatures.urlWeightedLen === 23 && SF.contentFeatures.wideCharWeight === 2);
+    check("a media attachment's t.co is NOT an external URL",
+      SF.contentFeatures.mediaAttachmentIsNotExternalUrl === true);
+    // The dwell-regret gate was deleted upstream on Aug 25 2026.
+    check("no live alternative scoring mode is claimed",
+      SF.valueModelMode.param === undefined &&
+      SF.valueModelMode.removedParam === "rust_home_mixer_value_model_mode" &&
+      /only/i.test(SF.valueModelMode.note));
+    check("bookmark note no longer points at the deleted dwell-regret gate",
+      !/survive only as a user-history feature/i.test(C.unweightedSignals.bookmark.note) &&
+      /telemetry/i.test(C.unweightedSignals.bookmark.note));
+
     // ---- weight sums, exactly as ScoringWeights::new builds them ----
     // ranking_scorer.rs:105-128. cont_* terms and the bidirectional boost are
     // deliberately NOT in positive_sum.
     section("Weight sums (ranking_scorer.rs:105-128)");
-    check("positive_sum = 43.32", approx(C.weightSums.positive, 43.32, 1e-9), C.weightSums.positive);
+    check("positive_sum = 43.34", approx(C.weightSums.positive, 43.34, 1e-9), C.weightSums.positive);
     check("negative_sum = 367.22", approx(C.weightSums.negative, 367.22, 1e-9), C.weightSums.negative);
-    check("total_sum = 410.54", approx(C.weightSums.total, 410.54, 1e-9), C.weightSums.total);
+    check("total_sum = 410.56", approx(C.weightSums.total, 410.56, 1e-9), C.weightSums.total);
     check("cont_dwell_time excluded from positive_sum",
       C.weightSums.positiveMembers.indexOf("cont_dwell_time") === -1);
     check("NEGATIVE_SCORES_OFFSET = 0.001", C.negativeScoresOffset === 0.001);
@@ -132,7 +161,7 @@
     section("offset_score");
     check("positive branch adds the offset", approx(E.offsetScore(2.0), 2.001), E.offsetScore(2.0));
     // negative branch: (combined + negative_sum) / total_sum * OFFSET
-    var negExpect = (-10 + 367.22) / 410.54 * 0.001;
+    var negExpect = (-10 + C.weightSums.negative) / C.weightSums.total * 0.001;
     check("negative branch rescales into (0, offset)", approx(E.offsetScore(-10), negExpect), E.offsetScore(-10));
     check("every negative post sorts below every positive post",
       E.offsetScore(-0.0001) < E.offsetScore(0), E.offsetScore(-0.0001) + " < " + E.offsetScore(0));
@@ -145,9 +174,22 @@
     // A net-negative post must still produce a finite, low score rather than NaN.
     var awful = E.contentScore({ text: "LIKE IF YOU AGREE FOLLOW ME NOW #a #b #c",
       hasExternalLink: true, hashtagCount: 3, isReply: true }, { assumeOutOfNetwork: true });
-    check("net-negative post is flagged", awful.netNegative === true, awful.combined);
-    check("net-negative post scores finite and low",
+    // Through v0.10.0 this post tipped net-negative. It no longer does, and the
+    // reason is a real weight change rather than a retune: binary dwell went
+    // live at 0.05 on Aug 25 2026, adding positive mass to every post. The
+    // bait multipliers were always estimator-layer directional guesses, so
+    // inflating them to force the old sign would be fitting the test. What the
+    // tool actually promises is that a maximally bad post scores low.
+    check("worst-case post scores finite and low",
       Number.isFinite(awful.score) && awful.score >= 0 && awful.score < 30, awful.score);
+    check("worst-case post sits near the zero line, not comfortably above it",
+      awful.combined < 0.01, awful.combined);
+    // The net-negative FLAG still has to work — exercised directly, so it does
+    // not depend on the estimator happening to tune a post below zero.
+    var reported = E.weightedScore({ favorite: { weight: 0.5, p: 0.01 },
+      report: { weight: -234.0, p: 0.001 } });
+    check("net-negative flag fires on a genuinely negative sum",
+      reported.combined < 0, reported.combined);
 
     // ================================================================
     // weightedScore — Σ(weight × P) with the pos/neg split
@@ -157,10 +199,10 @@
     check("fav only: 0.5 x 0.01 + offset", approx(r1.raw, 0.005 + 0.001), r1.raw);
     var r2 = E.weightedScore({ report: { weight: -234.0, p: 0.5 } });
     check("report-dominated post hits the negative branch",
-      approx(r2.raw, (-117 + 367.22) / 410.54 * 0.001), r2.raw);
+      approx(r2.raw, (-117 + C.weightSums.negative) / C.weightSums.total * 0.001), r2.raw);
     check("pos/neg parts reported separately",
       approx(r1.pos, 0.005) && r1.neg === 0, r1.pos + "/" + r1.neg);
-    var rz = E.weightedScore({ profile_click: { weight: 0.0, p: 0.9 }, dwell: { weight: 0.0, p: 0.9 } });
+    var rz = E.weightedScore({ profile_click: { weight: 0.0, p: 0.9 }, vqv: { weight: 0.0, p: 0.9 } });
     check("zeroed heads contribute exactly nothing", approx(rz.combined, 0), rz.combined);
 
     // ================================================================
@@ -267,8 +309,55 @@
     check("unknown duration -> eligible", E.vqvEligible({ hasVideo: true }) === true);
     var gifPost = E.contentScore({ text: "look at this", hasVideo: true, isGif: true }, {});
     var longVid = E.contentScore({ text: "look at this", hasVideo: true, videoSeconds: 40 }, {});
-    check("GIF scores below a qualifying video", gifPost.score < longVid.score,
-      gifPost.score + " vs " + longVid.score);
+    // Through v0.10.0 the GIF scored strictly lower, because clearing the gate
+    // bought a 0.05 vqv term. X zeroed vqv on Aug 25 2026, so the gate now
+    // decides whether to add nothing or nothing. Passing it is worth zero
+    // points, and the tool must not imply otherwise.
+    check("vqv being zeroed makes the gate score-neutral: GIF == qualifying video",
+      approx(gifPost.score, longVid.score), gifPost.score + " vs " + longVid.score);
+    check("the gate itself still discriminates, it just pays nothing",
+      E.vqvEligible({ hasVideo: true, isGif: true }) === false &&
+      E.vqvEligible({ hasVideo: true, videoSeconds: 40 }) === true);
+
+    // ================================================================
+    // Binary dwell — live at 0.05 since Aug 25 2026. Estimated as the
+    // complement of not_dwelled and moved by the same modifiers.
+    // ================================================================
+    section("Binary dwell head");
+    // world.py: dwelled = engaged AND dwell >= 10s; not_dwelled = not engaged.
+    // Deliberately NOT complements — there is a band that fires neither.
+    check("the published 10-second dwell mark is recorded",
+      C.sourcedFacts.dwellMark && C.sourcedFacts.dwellMark.seconds === 10);
+    check("dwell is NOT modelled as the complement of not-dwelled",
+      C.baselineP.dwell + C.baselineP.not_dwelled < 0.95,
+      C.baselineP.dwell + C.baselineP.not_dwelled);
+    check("dwell baseline is rarer than not-dwelled, as a 10s bar implies",
+      C.baselineP.dwell < C.baselineP.not_dwelled);
+    function contrib(res, head) {
+      var row = res.contributions.filter(function (c) { return c.head === head; })[0];
+      return row ? row.contribution : null;
+    }
+    var plainPost = E.contentScore({ text: "a perfectly ordinary post about nothing" }, {});
+    check("dwell is scored on every post", contrib(plainPost, "dwell") != null);
+    check("dwell outweighs the like term for an ordinary post",
+      contrib(plainPost, "dwell") > contrib(plainPost, "favorite"),
+      contrib(plainPost, "dwell") + " vs " + contrib(plainPost, "favorite"));
+    var longText = E.contentScore({ text: "x".repeat(140) }, {});
+    check("substantive text raises dwell as it lowers not-dwelled",
+      contrib(longText, "dwell") > contrib(plainPost, "dwell"),
+      contrib(longText, "dwell") + " vs " + contrib(plainPost, "dwell"));
+    var bareLink = E.contentScore({ text: "https://ex.co", hasExternalLink: true }, {});
+    check("a bare link lowers dwell",
+      contrib(bareLink, "dwell") < contrib(plainPost, "dwell"),
+      contrib(bareLink, "dwell") + " vs " + contrib(plainPost, "dwell"));
+    check("length moves dwell and not-dwelled in opposite directions",
+      contrib(longText, "dwell") > contrib(plainPost, "dwell") &&
+      contrib(longText, "not_dwelled") > contrib(plainPost, "not_dwelled"));
+    var vid = E.contentScore({ text: "watch", hasVideo: true, videoSeconds: 40 }, {});
+    var noVid = E.contentScore({ text: "watch" }, {});
+    check("video clears the 10s dwell bar more easily than text",
+      contrib(vid, "dwell") > contrib(noVid, "dwell"),
+      contrib(vid, "dwell") + " vs " + contrib(noVid, "dwell"));
 
     // ================================================================
     // Input robustness — the DOM layer should never send these, but a

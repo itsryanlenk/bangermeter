@@ -69,7 +69,7 @@ what the published weights actually say.
   the compose meter previously missed — and the breakdown panel gets a reply-scoring
   section: out-of-network replies never reach For You at all (`OONRetweetReplyFilter`),
   replies are ineligible for the +15.0 mutual-follow boost, and replies to accounts over
-  100K followers are scored 0–3 by a Grok model whose rubric X withholds (the published
+  200K followers are scored 0–3 by a Grok model whose rubric X withholds (the published
   *inputs* are listed; no invented direction — and no duration for the score-0 label,
   because none is published). Where a reply sorts inside a thread is disclosed as
   unpublished rather than guessed.
@@ -101,10 +101,15 @@ what the published weights actually say.
 - **Weights:** the published production set. Likes 0.5 · replies 5.0 (**20.0** on an
   original post from a mutual follow) · reposts 1.0 · quotes 5.0 · shares 2.0 · DM shares
   5.0 · **copy-link shares 20.0** · follow-author 4.0 · post clicks 0.4 · link opens 0.2 ·
-  photo expand / video open / video-quality-view / quoted click 0.05 · dwell time 0.004 per
-  second · not-dwelled −0.02 · not-interested −43.2 · block −31.2 · mute −58.8 · report
-  −234.0. Profile clicks, binary dwell and quoted-vqv ship at **0.0** — X zeroed them, and
-  the tool shows that rather than hiding it.
+  photo expand / quoted click 0.05 · **video open 0.07** · **binary dwell 0.05** · dwell
+  time 0.004 per second · not-dwelled −0.02 · not-interested −43.2 · block −31.2 · mute
+  −58.8 · report −234.0. Profile clicks, **video-quality-view** and quoted-vqv ship at
+  **0.0** — X zeroed them, and the tool shows that rather than hiding it.
+- **Three weights moved on 25 August 2026**, and this is the release that catches up.
+  Video-quality-view went 0.05 → **0.0**, binary dwell went 0.0 → **0.05**, video open went
+  0.05 → **0.07**. Finishing a clip stopped paying; *stopping the scroll* started. Versions
+  through v0.10.0 said binary dwell paid nothing — that claim was true when written and is
+  now false, which is the whole reason weight provenance is re-verified every release.
 - **Weights multiply predicted probabilities, not counts.** A report does not cost 234
   points; −234 is the coefficient on *how likely a viewer is to report the post*. On Aug 14
   2026 X made this explicit in the code: reading the ratios as count equivalences — their
@@ -117,7 +122,7 @@ what the published weights actually say.
 - **Brigading is structurally weak.** Predictions are per-viewer and personalized, so mass
   block/report campaigns mostly shift what gets recommended to users similar to the
   brigaders rather than burying the post for everyone.
-- **Hard filters sit outside scoring.** `Brazil2026ElectionFilter` removes 665 accounts
+- **Hard filters sit outside scoring.** `Brazil2026ElectionFilter` removes 2,776 accounts
   reported to Brazil's Electoral Court from For You unless you follow them. It runs before
   ranking, so no weight offsets it — a reminder that the weighted sum is not the whole
   system.
@@ -129,7 +134,28 @@ what the published weights actually say.
 - **Gates we can see and gates we can't.** Video-quality-view needs duration strictly over
   10s, so GIFs and short clips are excluded — the extension reads the duration overlay
   where X renders one. A second vqv gate (the *viewer* having under 10,000 followers) is
-  viewer state a page script cannot read; it is disclosed, not modeled.
+  viewer state a page script cannot read; it is disclosed, not modeled. Both gates now
+  decide whether to add **nothing**, since the weight behind them is 0.0 — the machinery is
+  kept because X can re-enable it by moving one number.
+- **Ten seconds is the bar that matters now.** The binary dwell head is not "looked at it":
+  X's reference implementation marks it when a viewer *engaged* **and** dwelled **≥10
+  seconds**, while not-dwelled means they never engaged at all. The two are not opposites —
+  a post read for four seconds and scrolled past fires neither. Ten seconds is also the
+  video-quality-view duration gate, so it is the one number X uses twice to mean "actually
+  consumed this."
+- **There is a published small-account lane, and it ships on.** On every For You request
+  exactly **one** post is lifted to around **slot 15**: the best-scoring original post whose
+  author has **≤1,000 followers**, which is under **48h** old and still under **1,000**
+  Home impressions. One post per request — not per author, not per session. Bangermeter
+  cannot tell whether a given post *was* promoted (the slate is server-side), so it reports
+  the eligibility rules and refuses to claim credit for the outcome.
+- **The content features are published now too.** The model receives exactly seven things
+  about a post's content: has-video, longest video duration, has-photo, media count,
+  weighted text length, **newline count**, and has-URL. A link counts as 23 characters
+  whatever its real length, CJK and emoji count 2, and a media attachment's own `t.co` is
+  subtracted before has-URL is decided — so posting an image does **not** make your post
+  "have a link". No coefficients are attached to any of them, so the tool lists them and
+  does not score them.
 - **No folklore numbers.** "Bookmark 20×", "links −30–50%", "3+ hashtags −40%", "block
   −120 / mute −100" all failed source-tracing before the release — and none of them matched
   the real values when those arrived. Bookmarks turn out to have **no head at all**.
@@ -181,7 +207,7 @@ what the published weights actually say.
 | `extension/content.js` | Badges, breakdown panel, compose meter |
 | `extension/background.js` | Service worker. One listener: open the quick start on first install, never on update |
 | `extension/welcome.html` | The quick start itself — self-contained, loads nothing over the network |
-| `extension/test.html` | Engine self-test — open in any browser (228 assertions) |
+| `extension/test.html` | Engine self-test — open in any browser (247 assertions) |
 | `extension/fixture.html` | X-DOM fixture harness for the content script |
 | `extension/fixture-thread.html` | Reply-detection harness — asserts the conversation, `with_replies` and home-timeline surfaces separately, because X marks a reply differently on each. Needs `serve-fixtures.js` (it reads `location.pathname`) |
 | `extension/serve-fixtures.js` | Tiny static server for the harnesses, including the x.com-shaped paths the reply-detection cases need |
@@ -198,7 +224,7 @@ happened when those numbers were hardcoded.
 
 ## Verification status
 
-- Engine math: **228/228 self-tests pass** (`test.html`). Every one of the 26 published
+- Engine math: **247/247 self-tests pass** (`test.html`). Every one of the 26 published
   weights and its feature-switch parameter name is asserted against `param.rs`
   individually, so a silent transcription error fails the suite rather than shipping.
   All 26 re-verified unchanged against the live repo on Aug 25, 2026.

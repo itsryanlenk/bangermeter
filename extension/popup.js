@@ -266,9 +266,14 @@
   // How this tool treats each published head. The weights are all X's; what
   // differs is whether a browser can put a number against them.
   var OBSERVED = ["favorite", "reply", "retweet"];
+  // "dwell" joined this list when X turned the head on (0.0 -> 0.05) in Aug 2026.
+  // "vqv" stays listed even though it is now zeroed: role() checks the weight
+  // first, so it reports "zeroed by X", and the entry is what makes it say
+  // "estimated" again the day X moves that number back.
   var ESTIMATED = ["quote", "share", "share_via_dm", "share_via_copy_link", "follow_author",
     "click", "open_link", "photo_expand", "video_open", "vqv", "quoted_click",
-    "cont_dwell_time", "not_dwelled", "not_interested", "block_author", "mute_author", "report"];
+    "cont_dwell_time", "dwell", "not_dwelled", "not_interested", "block_author",
+    "mute_author", "report"];
 
   function role(name) {
     // "zeroed by X" and "we can't score it" are different facts and must not look

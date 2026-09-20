@@ -118,7 +118,12 @@
   position: fixed;
   z-index: 2147483647;
   width: 380px;
-  max-height: 70vh;
+  /* Docked bottom-right by positionPanel(), which overwrites max-height with the
+     real viewport figure. These are the pre-script values so the first paint is
+     never full-page tall, plus the narrow-window guard: at 380px + two 16px
+     margins the panel stops fitting below about 412px of viewport width. */
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
   overflow-y: auto;
   background: var(--bm-surface);
   color: var(--bm-text);

@@ -315,18 +315,18 @@
       badge.className = "bangermeter-badge";
       badge.setAttribute("role", "button");
       badge.setAttribute("tabindex", "0");
-      badge.title = "Bangermeter — click for breakdown";
+      badge.title = "Bangermeter — click for breakdown, click again to close";
       badge.addEventListener("click", function (ev) {
         ev.preventDefault();
         ev.stopPropagation();
-        openPanel(article, badge);
+        togglePanel(article, badge);
       }, true);
       // role="button" divs don't fire click on Enter/Space by themselves
       badge.addEventListener("keydown", function (ev) {
         if (ev.key === "Enter" || ev.key === " ") {
           ev.preventDefault();
           ev.stopPropagation();
-          openPanel(article, badge);
+          togglePanel(article, badge);
         }
       }, true);
       group.appendChild(badge);
@@ -505,6 +505,20 @@
         } catch (e2) { resolve(); /* storage unavailable (fixture harness) */ }
       });
     });
+  }
+
+  // The badge that opened the panel closes it again. Two things made this less
+  // obvious than it looks. outsideClose is bound to document in the CAPTURE
+  // phase, so it runs BEFORE the badge's own handler — left alone it tore the
+  // panel down and the badge immediately rebuilt it, which reads as the button
+  // doing nothing at all. And the toggle has to be per-badge: clicking a
+  // DIFFERENT post's badge should switch the panel to that post, not dismiss it.
+  function togglePanel(article, anchor) {
+    if (panel && lastBadgeFocus === anchor) {
+      closePanel();
+      return;
+    }
+    openPanel(article, anchor);
   }
 
   function openPanel(article, anchor) {
@@ -762,9 +776,25 @@
       "· Mass block/report campaigns don't straightforwardly bury a post. Predictions are " +
         "per-viewer and personalized, so brigading mostly shifts what gets recommended to " +
         "people like the brigaders.",
+      "▲ Holding a reader for " + F.dwellMark.seconds + " seconds pays a flat " +
+        H.dwell.weight + ", on top of the " + H.cont_dwell_time.weight + "/second dwell-time " +
+        "term. X turned this head on in August 2026 — it paid nothing before. Ten seconds is a " +
+        "bar, not a slope: nine seconds earns none of it.",
+      "▼ Video-quality-view now pays " + H.vqv.weight + ". It was " +
+        "0.05 until August 2026, so finishing a clip no longer earns anything directly — " +
+        "though video still clears the " + F.dwellMark.seconds + "-second dwell bar easily.",
+      "· If you have " + F.authorColdStart.followerCap.toLocaleString() + " followers or fewer, " +
+        "one original post per request can be lifted to about slot " + F.authorColdStart.slotMin +
+        " of the feed — but only while it is under " + F.authorColdStart.maxPostAgeHours +
+        "h old and still under " + F.authorColdStart.impressionThreshold.toLocaleString() +
+        " impressions. One post per request, not per author.",
+      "· The model reads seven things about your content: video, longest video length, photo, " +
+        "media count, weighted text length, NEWLINE COUNT, and whether there's a link. A link " +
+        "counts as " + F.contentFeatures.urlWeightedLen + " characters no matter how long it is, " +
+        "and an image's own t.co doesn't count as a link at all.",
       "· Brazil's 2026 election: For You hard-filters " +
-        F.brazil2026ElectionFilter.accounts + " accounts reported to the Electoral Court, " +
-        "unless you follow them. It runs before scoring, so no weight offsets it."
+        F.brazil2026ElectionFilter.accounts.toLocaleString() + " accounts reported to the " +
+        "Electoral Court, unless you follow them. It runs before scoring, so no weight offsets it."
     ].forEach(function (line) {
       var mark = line.charAt(0);
       var row = el("div", "bangermeter-mod");
@@ -787,37 +817,15 @@
       "the live production configuration by cron, which makes them the first ranking weights ever " +
       "published as current rather than historical."));
     d3.appendChild(el("div", "bangermeter-fineprint",
-      "Alternative scoring modes exist in the same code (dwell-regret, with far deeper negatives). " +
-      "The shipped default is the weighted sum modeled here (value_model_mode = “" +
-      F.valueModelMode.value + "”). Relative score, not predicted reach."));
+      "The weighted sum modeled here is now the only scoring mode X publishes. Two alternatives " +
+      "(dwell-regret, with far deeper negatives) existed in the same code until August 25, 2026, " +
+      "when X deleted them along with the switch that chose between them. Relative score, not " +
+      "predicted reach."));
     sec3.appendChild(d3);
     panel.appendChild(sec3);
 
     document.body.appendChild(panel);
-    var rect = anchor.getBoundingClientRect();
-    var vw = window.innerWidth, vh = window.innerHeight;
-    var w = panel.offsetWidth, h = panel.offsetHeight;
-
-    // Open ABOVE the badge (top-left/top-right of the cursor) so the panel never
-    // runs under the OS taskbar; fall back below only when there is clearly more
-    // room under the badge than above it.
-    var spaceAbove = rect.top - 16;
-    var spaceBelow = vh - rect.bottom - 16;
-    var placeAbove = spaceAbove >= Math.min(h, 240) || spaceAbove >= spaceBelow;
-    var maxH = Math.max(120, Math.min(h, placeAbove ? spaceAbove : spaceBelow));
-    panel.style.maxHeight = maxH + "px";
-    // Re-measure: offsetHeight includes padding/borders on top of max-height.
-    var actualH = panel.offsetHeight;
-    var top = placeAbove ? rect.top - actualH - 8 : rect.bottom + 8;
-    // Hard clamp: never off-screen, never under the taskbar edge.
-    top = Math.max(8, Math.min(top, vh - actualH - 8));
-
-    // Right-align to the badge so the panel extends to the LEFT of the cursor.
-    var left = rect.right - w;
-    left = Math.max(8, Math.min(left, vw - w - 8));
-
-    panel.style.top = top + "px";
-    panel.style.left = left + "px";
+    positionPanel(panel);
 
     setTimeout(function () {
       document.addEventListener("click", outsideClose, true);
@@ -827,8 +835,49 @@
     try { close.focus({ preventScroll: true }); } catch (e) { /* focus optional */ }
   }
 
+  // The panel docks to the BOTTOM-RIGHT of the viewport rather than to the badge
+  // that opened it. Anchoring to the badge meant the panel landed on top of the
+  // post being explained — you could not read the post and its breakdown at the
+  // same time — and the available height was whatever happened to be left above
+  // or below the badge, which on a mid-screen post was not enough for the panel
+  // to open fully. Docked, it always gets the same generous height and never
+  // covers the thing it is describing.
+  var PANEL_MARGIN = 16;
+  function positionPanel(panel) {
+    var vw = window.innerWidth, vh = window.innerHeight;
+    // Leave room for the margin top and bottom; the panel scrolls past that.
+    var avail = Math.max(160, vh - PANEL_MARGIN * 2);
+    panel.style.maxHeight = avail + "px";
+    var w = panel.offsetWidth, h = panel.offsetHeight;
+    // max-height governs the CONTENT box, so the 3px borders and the 8px bottom
+    // padding land outside it and the panel measures ~14px taller than asked.
+    // Give that back rather than eating into the bottom margin.
+    if (h > avail) {
+      panel.style.maxHeight = Math.max(160, avail - (h - avail)) + "px";
+      h = panel.offsetHeight;
+    }
+    // Clamp rather than assume it fits: a narrow window can be smaller than the
+    // panel's own width, and a negative offset would push it off-screen left.
+    var left = Math.max(PANEL_MARGIN, vw - w - PANEL_MARGIN);
+    var top = Math.max(PANEL_MARGIN, vh - h - PANEL_MARGIN);
+    panel.style.left = left + "px";
+    panel.style.top = top + "px";
+  }
+
+  // Keep it docked when the window changes size or the page scrolls the layout
+  // out from under it. Cheap enough to run directly — there is only ever one panel.
+  function repositionPanel() {
+    var panel = document.querySelector(".bangermeter-panel");
+    if (panel) positionPanel(panel);
+  }
+
   function outsideClose(ev) {
-    if (panel && !panel.contains(ev.target)) closePanel();
+    if (!panel || panel.contains(ev.target)) return;
+    // Let a badge click reach the badge, which decides whether to toggle shut or
+    // switch posts. Closing here first would make the toggle impossible: the
+    // panel would already be gone by the time the badge could tell it was open.
+    if (ev.target && ev.target.closest && ev.target.closest(".bangermeter-badge")) return;
+    closePanel();
   }
   function escClose(ev) { if (ev.key === "Escape") closePanel(); }
   function closePanel() {
@@ -1110,7 +1159,9 @@
       if (pastedEditors.has(editor)) {
         var pasteChip = el("span", null, "· pasted text");
         pasteChip.title = "You pasted into this reply. X's reply-quality scorer is shown an " +
-          "is_pasted flag when scoring replies to accounts over 100K followers " +
+          "is_pasted flag when scoring replies to accounts over " +
+          (BANGERMETER_CONFIG.sourcedFacts.replyQualityGate.followerThreshold / 1000) +
+          "K followers " +
           "(grox/core/lm/thread.py). What the withheld rubric does with it is unpublished — this " +
           "chip is informational, and the score above does not move on it.";
         hintsEl.appendChild(pasteChip);
@@ -1153,6 +1204,9 @@
     reposTimer = requestAnimationFrame(function () {
       reposTimer = null;
       repositionMeters();
+      // The panel is viewport-docked, so only a resize can move it — but it
+      // rides the same rAF as the meters rather than taking its own listener.
+      repositionPanel();
     });
   }
   window.addEventListener("scroll", scheduleReposition, { capture: true, passive: true });

@@ -29,7 +29,7 @@ WHAT YOU GET
 
 • A weight table in the popup. All 26 ranking heads, their published values, and which ones the extension can measure versus estimate.
 
-• Reply mode. Reply drafts are scored as replies (they take a ×0.75 factor in the published math), and the breakdown explains what X publishes about replies: out-of-network replies never reach For You at all, replies never get the mutual-follow boost, and replies to accounts over 100K followers are quality-scored by a Grok model whose rubric X withholds.
+• Reply mode. Reply drafts are scored as replies (they take a ×0.75 factor in the published math), and the breakdown explains what X publishes about replies: out-of-network replies never reach For You at all, replies never get the mutual-follow boost, and replies to accounts over 200K followers are quality-scored by a Grok model whose rubric X withholds.
 
 • Draft comparison. Save up to three variants of a draft and pick the best-scoring one before posting. Variants live in memory only.
 
@@ -78,9 +78,26 @@ Everything runs locally in your browser. The source is public and reviewable.
 
 OPEN SOURCE
 
-MIT licensed, with the full research record and 228 automated tests that check every published weight against X's source individually.
+MIT licensed, with the full research record and 247 automated tests that check every published weight against X's source individually.
 
 github.com/itsryanlenk/bangermeter
+
+
+WHAT'S NEW IN 0.10.2
+
+• Three weights changed, and this release catches up. On 25 August X zeroed video-quality-view (0.05 to 0.0), turned binary dwell on (0.0 to 0.05), and raised video open (0.05 to 0.07). Finishing a clip stopped paying; stopping the scroll started. Earlier versions told you binary dwell paid nothing — true when written, false now, and re-checking every published weight against X's source each release is exactly what this is for.
+
+• The breakdown panel opens in the bottom-right corner. It used to open on the post you clicked, which covered the post you were trying to read about and left it no room to expand. It now docks to the corner at full height, out of the way of the thing it is explaining.
+
+• The badge closes the panel too. Clicking the badge on a post whose breakdown is already open now shuts it, instead of appearing to do nothing. Clicking a different post's badge still switches the panel to that post. Works from the keyboard as well.
+
+• Ten seconds is the number to know. X's own reference code marks a post "dwelled" only when the reader engaged AND stayed at least ten seconds — and "not dwelled" means they never engaged at all. They are not opposites: a post skimmed for four seconds fires neither. Ten seconds is also the video-quality-view duration gate.
+
+• A published small-account lane. On every For You request exactly one post is lifted to around slot 15: the best-scoring original post from an author with 1,000 or fewer followers, under 48 hours old, still under 1,000 Home impressions. One post per request, not per author. The extension cannot tell whether your post was the one picked, so it reports the rules and does not claim credit.
+
+• The content the model actually reads. X published the seven content features it receives: video, longest video length, photo, media count, weighted text length, newline count, and whether there is a link. A link counts as 23 characters however long it is, and an image's own t.co does not count as a link at all.
+
+• Corrections. The reply quality-scoring threshold is over 200,000 followers, not 100,000 — the old figure came from a number inside the model's prompt rather than the filter that routes replies to it, and the real gate has been raised four times since August. The Brazil electoral filter now covers 2,776 accounts, not 665. The two alternative scoring modes this extension used to caveat were deleted by X on 25 August, so that caveat is gone.
 
 
 WHAT'S NEW IN 0.10.1
@@ -92,7 +109,7 @@ WHAT'S NEW IN 0.10.0
 
 NEW
 
-• Reply scoring. The breakdown panel gains a reply section built from X's published code: out-of-network replies are hard-filtered from For You rather than down-weighted, replies never get the mutual-follow boost, and replies to accounts over 100K followers are scored 0-3 by a Grok model. X withholds that model's rubric to reduce gameability, so this extension lists the published inputs and refuses to fake the score. Where a reply ranks inside a thread is not something anyone outside X can score, and it says so instead of guessing.
+• Reply scoring. The breakdown panel gains a reply section built from X's published code: out-of-network replies are hard-filtered from For You rather than down-weighted, replies never get the mutual-follow boost, and replies to accounts over 200K followers are scored 0-3 by a Grok model. X withholds that model's rubric to reduce gameability, so this extension lists the published inputs and refuses to fake the score. Where a reply ranks inside a thread is not something anyone outside X can score, and it says so instead of guessing.
 
 • Draft comparison. Save up to three draft variants and compare their scores side by side before posting.
 

@@ -15,7 +15,7 @@
 //   "estimate"       — estimator-layer number (baseline rates / directional modifiers).
 
 var BANGERMETER_CONFIG = {
-  version: "0.10.1",
+  version: "0.10.2",
 
   // ── PROVENANCE ──────────────────────────────────────────────────────────────
   // On August 13, 2026 X published the actual production ranking weights for the
@@ -34,7 +34,7 @@ var BANGERMETER_CONFIG = {
   //
   // That is a materially stronger claim than the 2023 release made — these are
   // asserted to BE the production values, not merely plausible defaults.
-  weightsSnapshot: "August 25, 2026 — xai-org/x-algorithm, home-mixer/params/param.rs (all 26 values re-verified unchanged; upstream last-sync stamp still 2026-08-12T04:09:22Z, and the only param.rs changes since Aug 14 are three default-false feature flags)",
+  weightsSnapshot: "September 18, 2026 — xai-org/x-algorithm, home-mixer/params/param.rs (upstream last-sync stamp 2026-09-18T16:21:20Z; all 26 values re-verified, three of them CHANGED on Aug 25 — vqv 0.05→0.0, binary dwell 0.0→0.05, video_open 0.05→0.07)",
   weightsSourceUrl: "https://github.com/xai-org/x-algorithm/blob/main/home-mixer/params/param.rs",
   scorerSourceUrl: "https://github.com/xai-org/x-algorithm/blob/main/home-mixer/scorers/ranking_scorer.rs",
 
@@ -89,11 +89,9 @@ var BANGERMETER_CONFIG = {
       note: "Links ARE rewarded, contradicting the long-standing 'links are punished' folklore — though at 0.2 the reward is small, and low-context link posts still lose more on likes/replies/dwell than they gain here." },
     photo_expand: { weight: 0.05, param: "rust_home_mixer_photo_expand_weight",
       provenance: "2026-published", label: "Photo expand" },
-    video_open: { weight: 0.05, param: "rust_home_mixer_video_open_weight",
-      provenance: "2026-published", label: "Video open" },
-    vqv: { weight: 0.05, param: "rust_home_mixer_vqv_weight",
-      provenance: "2026-published", label: "Video quality view",
-      note: "Two gates, both in candidates_util.rs::vqv_weight. (1) Duration must be STRICTLY GREATER than MinVideoDurationMs = 10,000 — a 10.000s clip earns nothing, and neither do GIFs. (2) If the VIEWER has ≥10,000 followers (MAX_FOLLOWERS_THRESHOLD), the weight is forced to 0 outright — large accounts earn no video-quality-view credit from their own feed at all." },
+    video_open: { weight: 0.07, param: "rust_home_mixer_video_open_weight",
+      provenance: "2026-published", label: "Video open",
+      note: "Raised from 0.05 to 0.07 on August 25, 2026 — the only positive head X has moved UP since first publishing the table. Opening a video is now the better-paid of the two video signals, because the other one was zeroed in the same push (see vqv)." },
     quoted_click: { weight: 0.05, param: "rust_home_mixer_quoted_click_weight",
       provenance: "2026-published", label: "Quoted-post click" },
     post_unexplored: { weight: 0.02, param: "rust_home_mixer_post_unexplored_weight",
@@ -103,15 +101,18 @@ var BANGERMETER_CONFIG = {
       provenance: "2026-published", label: "Dwell time",
       continuous: true,
       note: "CONTINUOUS head: multiplies predicted dwell in seconds, not a probability. At a few seconds of dwell this is one of the largest terms for an ordinary post." },
+    dwell: { weight: 0.05, param: "rust_home_mixer_dwell_weight",
+      provenance: "2026-published", label: "Dwell (binary)",
+      note: "TURNED ON August 25, 2026, at 0.05. Through v0.10.0 this head shipped at 0.0 and this tool said binary dwell paid nothing — that is no longer true. X now pays a flat amount for the reader dwelling at all, on TOP of the continuous dwell-time term (cont_dwell_time, 0.004/second). Stopping the scroll is the cheapest thing a post can win." },
 
     // Heads X ships with an explicit 0.0 — they exist, they are wired in, and they
     // currently contribute exactly nothing. That is a finding, not an omission.
     profile_click: { weight: 0.0, param: "rust_home_mixer_profile_click_weight",
       provenance: "2026-published", label: "Profile click",
       note: "ZEROED. The 2023 table paid 12.0 for a profile-click-and-engage. It is now worth nothing." },
-    dwell: { weight: 0.0, param: "rust_home_mixer_dwell_weight",
-      provenance: "2026-published", label: "Dwell (binary)",
-      note: "ZEROED. Binary dwell pays nothing; only continuous dwell TIME is paid, via cont_dwell_time." },
+    vqv: { weight: 0.0, param: "rust_home_mixer_vqv_weight",
+      provenance: "2026-published", label: "Video quality view",
+      note: "ZEROED August 25, 2026 — it shipped at 0.05 through v0.10.0. The two gates in candidates_util.rs::vqv_weight are still in the code and this tool still evaluates them (duration STRICTLY GREATER than MinVideoDurationMs = 10,000, so a 10.000s clip and every GIF fail it; and a VIEWER with ≥10,000 followers forces the weight to 0 outright). They now gate a term worth nothing. Kept because the machinery is intact and X can re-enable it by moving one number." },
     quoted_vqv: { weight: 0.0, param: "rust_home_mixer_quoted_vqv_weight",
       provenance: "2026-published", label: "Quoted video quality view", note: "ZEROED." },
     cont_click_dwell_time: { weight: 0.0, param: "rust_home_mixer_cont_click_dwell_time_weight",
@@ -194,21 +195,25 @@ var BANGERMETER_CONFIG = {
   // Observable signals with no head in the 2026 roster at all.
   unweightedSignals: {
     bookmark: { label: "Bookmarks",
-      note: "There is NO bookmark head in the 2026 Phoenix roster — bookmarks are not a scored action. They survive only as a user-history feature (n_bm_share) inside the dwell-regret gate. Musk's 'de facto silent like' remark (Jan 2023) never became a shipped weight, and the '10×/20×' claims are folklore." }
+      note: "There is NO bookmark head in the 2026 Phoenix roster — bookmarks are not a scored action, and that is now a cleaner statement than it was. Through v0.10.0 this tool said bookmarks survived as a user-history feature (n_bm_share) inside the dwell-regret gate; X deleted that whole gate on Aug 25, 2026. The one place a bookmark still appears in the published home-mixer is viewer_history.rs, whose POSITIVE_ENGAGEMENTS list includes ClientTweetBookmark — but that list builds a set of authors the viewer has engaged with in order to set a TELEMETRY bit (AUTHOR_NOT_ENGAGED_BY_VIEWER), not to move a score. Musk's 'de facto silent like' remark (Jan 2023) never became a shipped weight, and the '10×/20×' claims are folklore." }
   },
 
   // Facts worth surfacing that are not score components.
   sourcedFacts: {
     minVideoDurationMs: { value: 10000, param: "rust_home_mixer_min_video_duration_ms",
       provenance: "2026-published",
-      note: "Video shorter than 10s earns no video-quality-view weight." },
+      note: "Video shorter than 10s earns no video-quality-view weight — though that weight is now 0.0, so the gate no longer costs anything." },
+
+    dwellMark: { seconds: 10, provenance: "2026-published",
+      source: "phoenix/reference/world.py",
+      note: "The binary dwell head does not mean 'looked at it'. X's reference implementation marks dwelled = the viewer engaged AND dwelled at least TEN SECONDS, while not-dwelled means the viewer did not engage at all. The two are not opposites: an impression that is read for four seconds and then scrolled past fires neither head. Ten seconds is also exactly the video-quality-view duration gate, so it is the one number X uses in two places to mean 'actually consumed this'." },
     maxPostAgeHours: { value: 48, provenance: "2026-config",
       note: "MAX_POST_AGE in config.rs — candidates older than 48h are not retrieved." },
     resultSize: { value: 35, provenance: "2026-config",
       note: "RESULT_SIZE in config.rs — posts returned per For You request." },
-    valueModelMode: { value: "weighted", param: "rust_home_mixer_value_model_mode",
-      provenance: "2026-published",
-      note: "The weighted sum modeled here is the shipped default. Two alternative modes exist in code (dwell_regret_sigmoid, gated_dwell_regret) with far deeper negatives (report -60000); neither is the default." },
+    valueModelMode: { value: "weighted", provenance: "2026-published",
+      removedParam: "rust_home_mixer_value_model_mode",
+      note: "The weighted sum modeled here is now the ONLY scoring mode X publishes. Through Aug 25, 2026 a value_model_mode switch chose between it and two dwell-regret variants carrying far deeper negatives (report −60000); this tool said so through v0.10.0. On Aug 25 X deleted the switch, all 22 dwell-regret parameters and the value_model_gate.rs scorer outright. There is no longer an alternative mode to caveat." },
     // Grok "banger" pipeline eligibility. NOTE: a `quality_score >= 0.4` gate was
     // asserted here through v0.8.0 and has been REMOVED — no such threshold exists
     // anywhere in the published grox pipeline, and the file it was cited to
@@ -232,11 +237,38 @@ var BANGERMETER_CONFIG = {
     brigadingResistance: { provenance: "2026-published",
       note: "Mass block/report campaigns do not straightforwardly suppress reach. X gives two reasons: the model predicts an individual viewer's likelihood of the action rather than summing weights over counts, and recommendations are personalized — so reports from bad actors mainly affect what gets recommended to users similar to those bad actors, rather than moving the post for everyone." },
 
-    brazil2026ElectionFilter: { accounts: 665, provenance: "2026-published",
+    brazil2026ElectionFilter: { accounts: 2776, provenance: "2026-published",
       param: "home-mixer/filters/brazil_2026_election_filter.rs",
-      note: "For You removes posts from 665 accounts reported to Brazil's Electoral Court for the 2026 election, unless the viewer follows the account. Compiled in rather than feature-switched — IDs obfuscated, usernames left in source for transparency. A hard filter that runs before scoring, so no weight can offset it." },
+      note: "For You removes posts from 2,776 accounts reported to Brazil's Electoral Court for the 2026 election, unless the viewer follows the account. The list is revised roughly weekly and has grown steadily — 665 accounts when X first published it on Aug 14, 2,328 on Aug 25, 2,776 by Sept 18 — so treat the count as a reading, not a constant. Compiled in rather than feature-switched: IDs obfuscated, usernames left in source for transparency. A hard filter that runs before scoring, so no weight can offset it." },
 
-    // ── Reply-specific facts (verified against the repo 2026-08-25) ───────
+    // ── Author cold start (verified against the repo 2026-09-19) ─────────
+    // The one published mechanism that deliberately promotes small accounts,
+    // and it ships ON. Bangermeter cannot detect whether a given post WAS
+    // cold-started — the slate is server-side — so this is reported as
+    // eligibility context, never as a score component.
+    authorColdStart: {
+      enabled: true, enabledParam: "rust_home_mixer_enable_viewer_cold_start",
+      followerCap: 1000, impressionThreshold: 1000, maxPostAgeHours: 48,
+      slotMin: 15, slotMax: 16, maxPositionRatio: 0.85,
+      originalPostsOnly: true, postsPromotedPerRequest: 1,
+      provenance: "2026-published",
+      source: "home-mixer/scorers/author_cold_start.rs",
+      note: "EnableViewerColdStart ships true. On each For You request exactly ONE candidate is promoted: the highest-scoring post whose author has 1,000 or fewer followers, which is an original post (not a reply, not a repost), is under 48 hours old, has fewer than 1,000 Home impressions so far, and already sits inside the top 85% of the slate. Its score is raised to whatever the post at rank 15 scored, so it lands around slot 15 of 35. The post-age ceiling was 24 hours until Aug 25, 2026. One post per request, not per author and not per session — so this is a narrow lane, not a small-account boost, and nothing a post does can make it fire twice." },
+
+    // ── Content features the model actually receives (repo 2026-09-19) ────
+    // New file upstream. This is the layer Bangermeter's estimator approximates,
+    // so it is worth being exact about: these are the content inputs, and the
+    // list is short. It is NOT a weight table — no coefficient is published.
+    contentFeatures: {
+      provenance: "2026-published",
+      source: "home-mixer/models/content_features.rs",
+      fields: ["has_video", "max_video_duration_ms", "has_photo", "media_count",
+        "weighted_text_len", "newline_count", "has_url"],
+      urlWeightedLen: 23, wideCharWeight: 2,
+      mediaAttachmentIsNotExternalUrl: true,
+      note: "Published for the first time on Sept 18, 2026 and wired into every candidate. The model sees exactly seven things about a post's content: whether it has video, the longest video's duration, whether it has a photo, how many media items, the weighted text length, the newline count, and whether it has a URL. Weighted length follows X's own text rules — any http(s) token counts 23 regardless of its real length, CJK and emoji count 2, Latin counts 1. Two consequences worth knowing: a media attachment's own t.co link is subtracted before has_url is decided, so posting an image does NOT make your post 'have a link'; and newline_count is a feature in its own right, which is the first published evidence that post SHAPE — not just length — reaches the ranker. No weights are attached to any of these, so this tool reports them and does not score them." },
+
+    // ── Reply-specific facts (verified against the repo 2026-09-19) ───────
     conversationRanker: { published: false, provenance: "2026-published",
       note: "The service that ORDERS replies under a post is not in the open-source release — the repo's own README scopes it to the For You feed. What the repo DOES ship is the 0-3 reply-ranking score generator (grox/flows/reply_spam/), not the ordering logic that consumes it. Any claim about a reply's position inside a thread is unpublished territory and this tool says so rather than guessing." },
 
@@ -245,7 +277,12 @@ var BANGERMETER_CONFIG = {
       note: "OONRetweetReplyFilter removes replies (and reposts) from unfollowed accounts from For You candidates entirely — an out-of-network reply is not down-weighted, it is gone. Replies with a missing parent are dropped too." },
 
     replyQualityGate: {
-      followerThreshold: 100000, scoreMin: 0, scoreMax: 3,
+      followerThreshold: 200000, scoreMin: 0, scoreMax: 3,
+      // The routing gate has moved every week since publication: 30,000 on
+      // Aug 14, 40,000 Aug 17, 60,000 Aug 20, 120,000 Aug 25, and 200,000 now
+      // (GROK_GEMMA_FOLLOWER_SPLIT, constants.py). Read it as a current
+      // reading, not a fixed rule.
+      thresholdParam: "GROK_GEMMA_FOLLOWER_SPLIT",
       zeroScoreLabel: "RiskyHighVizReply",
       selfRepliesExempt: true, rubricWithheld: true,
       provenance: "2026-published",
@@ -265,7 +302,7 @@ var BANGERMETER_CONFIG = {
       // its own llm_slop_post trigger — that TTL belongs to that rule, not
       // to the reply score. A 30-day figure shipped here briefly during
       // development and was caught by the provenance review before release.
-      note: "Replies to a parent or thread-root author with strictly over 100,000 followers are scored 0-3 by a Grok model (GROK_4_MINI_CRITICAL). A score of 0 applies the RiskyHighVizReply safety label; the duration of that application is not published (a separate enforcement rule applies the same label for 30 days on a different trigger, llm_slop_post). Self-replies are exempt, and high-PageRank / grey-badge authors are exempt from the label. The scoring rubric itself is withheld by X 'to reduce gameability' — so no tool can honestly claim to reproduce it, this one included. Replies to accounts at or under the threshold go through a spam filter instead." },
+      note: "Replies are routed to the Grok reply-ranking scorer (GROK_4_MINI_CRITICAL, 0-3) when the DIRECT PARENT author or the THREAD-ROOT author has strictly more than 200,000 followers. Versions of this tool through v0.10.0 said 100,000 — that was wrong. 100,000 is a number inside the prompt text handed to the model (reply_scoring_system_prompt), not the eligibility gate; the gate lives in task_filter.py and has been raised four times since publication. A score of 0 applies the RiskyHighVizReply safety label; the duration of that application is not published (a separate enforcement rule applies the same label for 30 days on a different trigger, llm_slop_post). Self-replies are exempt — the filter skips a reply whose author is the parent author or the root author. The scoring rubric itself is withheld by X 'to reduce gameability', so no tool can honestly claim to reproduce it, this one included. Below the gate a reply goes to a lighter Gemma scorer instead, which itself switches to a reply-spam-tuned model above 150,000 thread followers." },
 
     // ── "Under the Hood" transparency pilot (announced Aug 13, 2026) ──────
     underTheHood: {
@@ -358,6 +395,15 @@ var BANGERMETER_CONFIG = {
     quoted_click: 0.004,       // only when the post quotes another
     cont_dwell_time: 3.0,      // SECONDS of predicted dwell, not a probability
     not_dwelled: 0.55,         // most impressions are scrolled past
+    // Binary dwell went live at 0.05 on Aug 25 2026. It is NOT the complement of
+    // not_dwelled — X's reference implementation defines them separately
+    // (phoenix/reference/world.py): dwelled = engaged AND dwell >= 10s, while
+    // not_dwelled = not engaged. There is a wide middle band that fires neither.
+    // Derivation of the 0.12: not_dwelled 0.55 leaves 0.45 engaged, and the
+    // reference's own no-affinity dwell distribution (lognormal, loc = ln 6,
+    // sigma = 0.8) puts P(>= 10s) at about 0.26. 0.45 x 0.26 ~ 0.12. The
+    // DEFINITION is published; this probability is still an estimate.
+    dwell: 0.12,
     not_interested: 0.00005,
     block_author: 0.00001,
     mute_author: 0.00001,
@@ -378,22 +424,23 @@ var BANGERMETER_CONFIG = {
       why: "Questions raise expected reply rate. Reply is 5.0 — ten times a like — and quote matches it at 5.0." },
     { id: "conversation_length", label: "Substantive text (≥100 chars)",
       applies: "cont_dwell_time", factor: 1.35, provenance: "estimate",
-      alsoApplies: { not_dwelled: 0.8 },
-      why: "Longer posts hold attention. Dwell time is paid continuously (0.004/second) and not-dwelling is penalised (−0.02), so length moves the largest pair of terms an ordinary post has." },
+      alsoApplies: { not_dwelled: 0.8, dwell: 1.5 },
+      why: "Longer posts hold attention, and attention is now paid three ways: continuously (0.004/second), as a penalty for scrolling past (−0.02), and since Aug 25 2026 as a flat 0.05 for clearing a TEN-SECOND dwell mark. That mark is a threshold, not a slope, so length helps it more than it helps mean dwell time — which is why this modifier moves the binary head harder than the continuous one." },
     { id: "thread_starter", label: "Thread starter", applies: "click,quote",
       factor: 1.3, provenance: "estimate",
       why: "Threads drive post clicks (0.4) and give people something to quote (5.0)." },
     { id: "media_image", label: "Has image", applies: "favorite", factor: 1.1,
       provenance: "estimate", why: "Images raise like rates mildly and enable the photo-expand head (0.05)." },
     { id: "has_video", label: "Has video", applies: "", factor: 1.0,
-      enables: "video_open,vqv", provenance: "2026-published",
-      why: "Enables video_open (0.05), and video-quality-view (0.05) when the clip qualifies: vqv needs duration STRICTLY over 10 seconds, so GIFs and short clips earn none of it. A second gate we cannot see — the viewer having under 10,000 followers — can zero it as well. The '10× video boost' remains folklore." },
+      enables: "video_open,vqv", provenance: "estimate",
+      alsoApplies: { dwell: 1.4, not_dwelled: 0.85 },
+      why: "Enables video_open, which X raised from 0.05 to 0.07 on Aug 25 2026. It also enables video-quality-view — but X zeroed that head in the same push, so clearing its gates (duration STRICTLY over 10 seconds, and a viewer under 10,000 followers) is now worth nothing. Video did not stop being paid for holding attention, though: the binary dwell head turned on in the same push at a ten-second mark, which video reaches far more easily than text, so the credit moved rather than vanished. That shift in routing is published; the size of the dwell nudge here is our estimate. The '10× video boost' remains folklore." },
     { id: "external_link", label: "External link", applies: "", factor: 1.0,
       enables: "open_link", provenance: "2026-published",
       why: "The 2026 release pays 0.2 for opening a link — links are NOT structurally unrewarded, which retires the old 'link penalty by head omission' reading. 0.2 is small, but it is positive." },
     { id: "link_no_context", label: "Bare link (little text)",
       applies: "favorite,reply,cont_dwell_time", factor: 0.85, provenance: "estimate",
-      alsoApplies: { not_dwelled: 1.2 },
+      alsoApplies: { not_dwelled: 1.2, dwell: 0.7 },
       why: "A link with no context earns less on every attention head than the 0.2 open-link weight pays back. The '−30–50% link penalty' figure remains unsourced; this is a mild directional estimate." },
     { id: "many_hashtags", label: "3+ hashtags", applies: "favorite,retweet,reply",
       factor: 0.9, provenance: "estimate",
