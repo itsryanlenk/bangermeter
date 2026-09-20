@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -140,9 +140,34 @@
       SF.valueModelMode.param === undefined &&
       SF.valueModelMode.removedParam === "rust_home_mixer_value_model_mode" &&
       /only/i.test(SF.valueModelMode.note));
+    // The claim is "no bookmark WEIGHT", not "bookmarks are absent from the
+    // model": bookmark_count is sent to Phoenix in the same struct literal that
+    // carries content_features. An adversary review caught the stronger version
+    // of this claim, so the narrower one is pinned here.
+    var bmNote = C.unweightedSignals.bookmark.note;
     check("bookmark note no longer points at the deleted dwell-regret gate",
-      !/survive only as a user-history feature/i.test(C.unweightedSignals.bookmark.note) &&
-      /telemetry/i.test(C.unweightedSignals.bookmark.note));
+      !/survive only as a user-history feature/i.test(bmNote));
+    check("bookmark note concedes bookmark_count IS a model input",
+      /bookmark_count/.test(bmNote) && /model input/i.test(bmNote));
+    check("bookmark claim is scoped to the WEIGHT, not to the model",
+      /NO bookmark WEIGHT/.test(bmNote));
+    // Dates: the weights moved Aug 25; the dwell-regret deletion was Sept 18.
+    // Collapsing the two into one push was a shipped error in a 0.10.2 draft.
+    check("dwell-regret deletion dated to Sept 18, not the Aug 25 weight push",
+      /Sept 18/.test(SF.valueModelMode.note) && !/On Aug 25 X deleted/.test(SF.valueModelMode.note));
+    check("dwell_regret parameter count is 17",
+      /17 dwell_regret parameters/.test(SF.valueModelMode.note));
+    // 10s dwell is viewer behavior; MinVideoDurationMs is the clip's length.
+    check("the two ten-second rules are not conflated",
+      !/one number X uses in two places/.test(SF.dwellMark.note) &&
+      /CLIP'S OWN LENGTH/.test(SF.dwellMark.note));
+    check("reply gate carries the date its reading was taken",
+      SF.replyQualityGate.thresholdAsOf === "2026-09-18");
+    check("reply gate does not claim the old 100K figure was mis-sourced",
+      /CORRECT when it shipped/.test(SF.replyQualityGate.note));
+    check("cold start promotes AT MOST one post, not exactly one",
+      /AT MOST ONE/.test(SF.authorColdStart.note) &&
+      /score FLOOR, not a seat/.test(SF.authorColdStart.note));
 
     // ---- weight sums, exactly as ScoringWeights::new builds them ----
     // ranking_scorer.rs:105-128. cont_* terms and the bidirectional boost are
@@ -328,7 +353,7 @@
     // Deliberately NOT complements — there is a band that fires neither.
     check("the published 10-second dwell mark is recorded",
       C.sourcedFacts.dwellMark && C.sourcedFacts.dwellMark.seconds === 10);
-    check("dwell is NOT modelled as the complement of not-dwelled",
+    check("dwell is NOT modeled as the complement of not-dwelled",
       C.baselineP.dwell + C.baselineP.not_dwelled < 0.95,
       C.baselineP.dwell + C.baselineP.not_dwelled);
     check("dwell baseline is rarer than not-dwelled, as a 10s bar implies",

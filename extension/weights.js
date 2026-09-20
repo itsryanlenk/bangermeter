@@ -195,7 +195,7 @@ var BANGERMETER_CONFIG = {
   // Observable signals with no head in the 2026 roster at all.
   unweightedSignals: {
     bookmark: { label: "Bookmarks",
-      note: "There is NO bookmark head in the 2026 Phoenix roster — bookmarks are not a scored action, and that is now a cleaner statement than it was. Through v0.10.0 this tool said bookmarks survived as a user-history feature (n_bm_share) inside the dwell-regret gate; X deleted that whole gate on Aug 25, 2026. The one place a bookmark still appears in the published home-mixer is viewer_history.rs, whose POSITIVE_ENGAGEMENTS list includes ClientTweetBookmark — but that list builds a set of authors the viewer has engaged with in order to set a TELEMETRY bit (AUTHOR_NOT_ENGAGED_BY_VIEWER), not to move a score. Musk's 'de facto silent like' remark (Jan 2023) never became a shipped weight, and the '10×/20×' claims are folklore." }
+      note: "There is NO bookmark WEIGHT in the 2026 Phoenix roster — no coefficient multiplies a predicted bookmark, so a bookmark cannot be converted into score the way a like or a reply can. That is the precise claim, and the precision matters: bookmarks are NOT absent from the model. bookmark_count is hydrated from engagement counts and sent to Phoenix as a model input (home-mixer/models/candidate.rs, the same struct literal that carries content_features), and ClientTweetBookmark is in the POSITIVE_ENGAGEMENTS list in viewer_history.rs used to build the set of authors a viewer has engaged with. So the model can see your bookmarks; the value model just has no term to pay them with. Through v0.10.0 this tool said bookmarks survived only inside the dwell-regret gate — X deleted that gate on Sept 18, 2026, and the statement was too narrow even before then. Musk's 'de facto silent like' remark (Jan 2023) never became a shipped weight, and the '10×/20×' claims are folklore." }
   },
 
   // Facts worth surfacing that are not score components.
@@ -206,14 +206,14 @@ var BANGERMETER_CONFIG = {
 
     dwellMark: { seconds: 10, provenance: "2026-published",
       source: "phoenix/reference/world.py",
-      note: "The binary dwell head does not mean 'looked at it'. X's reference implementation marks dwelled = the viewer engaged AND dwelled at least TEN SECONDS, while not-dwelled means the viewer did not engage at all. The two are not opposites: an impression that is read for four seconds and then scrolled past fires neither head. Ten seconds is also exactly the video-quality-view duration gate, so it is the one number X uses in two places to mean 'actually consumed this'." },
+      note: "The binary dwell head does not mean 'looked at it'. X's reference implementation marks dwelled = the viewer engaged AND dwelled at least TEN SECONDS, while not-dwelled means the viewer did not engage at all. The two are not opposites: an impression that is read for four seconds and then scrolled past fires neither head. MinVideoDurationMs is also 10,000, but do not read the two as the same rule — that one gates on the CLIP'S OWN LENGTH, not on how long anyone watched, and it is a strict greater-than, so a video of exactly 10.000s fails it." },
     maxPostAgeHours: { value: 48, provenance: "2026-config",
       note: "MAX_POST_AGE in config.rs — candidates older than 48h are not retrieved." },
     resultSize: { value: 35, provenance: "2026-config",
       note: "RESULT_SIZE in config.rs — posts returned per For You request." },
     valueModelMode: { value: "weighted", provenance: "2026-published",
       removedParam: "rust_home_mixer_value_model_mode",
-      note: "The weighted sum modeled here is now the ONLY scoring mode X publishes. Through Aug 25, 2026 a value_model_mode switch chose between it and two dwell-regret variants carrying far deeper negatives (report −60000); this tool said so through v0.10.0. On Aug 25 X deleted the switch, all 22 dwell-regret parameters and the value_model_gate.rs scorer outright. There is no longer an alternative mode to caveat." },
+      note: "The weighted sum modeled here is now the ONLY scoring mode X publishes. Until September 18, 2026 a value_model_mode switch chose between it and two dwell-regret variants carrying far deeper negatives (report −60000); this tool caveated them through v0.10.0 because they were real code. On Sept 18 X deleted the switch, all 17 dwell_regret parameters and the value_model_gate.rs scorer outright — a separate push from the Aug 25 weight change, three weeks later. There is no longer an alternative mode to caveat." },
     // Grok "banger" pipeline eligibility. NOTE: a `quality_score >= 0.4` gate was
     // asserted here through v0.8.0 and has been REMOVED — no such threshold exists
     // anywhere in the published grox pipeline, and the file it was cited to
@@ -253,7 +253,7 @@ var BANGERMETER_CONFIG = {
       originalPostsOnly: true, postsPromotedPerRequest: 1,
       provenance: "2026-published",
       source: "home-mixer/scorers/author_cold_start.rs",
-      note: "EnableViewerColdStart ships true. On each For You request exactly ONE candidate is promoted: the highest-scoring post whose author has 1,000 or fewer followers, which is an original post (not a reply, not a repost), is under 48 hours old, has fewer than 1,000 Home impressions so far, and already sits inside the top 85% of the slate. Its score is raised to whatever the post at rank 15 scored, so it lands around slot 15 of 35. The post-age ceiling was 24 hours until Aug 25, 2026. One post per request, not per author and not per session — so this is a narrow lane, not a small-account boost, and nothing a post does can make it fire twice." },
+      note: "EnableViewerColdStart ships true. On each For You request AT MOST ONE candidate is promoted — if nothing qualifies, scores are returned untouched. The winner is the highest-scoring post whose author has 1,000 or fewer followers, which is an original post (not a reply, not a repost), is under 48 hours old, has fewer than 1,000 Home impressions so far, and already ranks inside the top 85% of the candidates that scored above zero. What it gets is a score FLOOR, not a seat: its score is raised to whatever the post at rank 15 scored (max(own, target)), so it lands ABOUT slot 15 of 35 — later scorers can still move it, and a post already scoring higher gains nothing. The post-age ceiling was 24 hours until Aug 25, 2026. One post per request, not per author and not per session — a narrow lane, not a small-account boost." },
 
     // ── Content features the model actually receives (repo 2026-09-19) ────
     // New file upstream. This is the layer Bangermeter's estimator approximates,
@@ -266,7 +266,7 @@ var BANGERMETER_CONFIG = {
         "weighted_text_len", "newline_count", "has_url"],
       urlWeightedLen: 23, wideCharWeight: 2,
       mediaAttachmentIsNotExternalUrl: true,
-      note: "Published for the first time on Sept 18, 2026 and wired into every candidate. The model sees exactly seven things about a post's content: whether it has video, the longest video's duration, whether it has a photo, how many media items, the weighted text length, the newline count, and whether it has a URL. Weighted length follows X's own text rules — any http(s) token counts 23 regardless of its real length, CJK and emoji count 2, Latin counts 1. Two consequences worth knowing: a media attachment's own t.co link is subtracted before has_url is decided, so posting an image does NOT make your post 'have a link'; and newline_count is a feature in its own right, which is the first published evidence that post SHAPE — not just length — reaches the ranker. No weights are attached to any of these, so this tool reports them and does not score them." },
+      note: "Added to the published repo on Sept 8, 2026 and wired into every candidate. The model sees exactly seven things about a post's content: whether it has video, the longest video's duration, whether it has a photo, how many media items, the weighted text length, the newline count, and whether it has a URL. Weighted length follows X's text rules in simplified form — any http:// or https:// token counts 23 regardless of its real length, CJK and emoji count 2, Latin counts 1. Note is_url matches only those two prefixes, so a bare domain is counted character by character. Two consequences worth knowing: a media attachment's own t.co link is subtracted before has_url is decided, so posting an image does NOT make your post 'have a link'; and newline_count is a feature in its own right, which is the first published evidence that post SHAPE — not just length — reaches the ranker. No weights are attached to any of these, so this tool reports them and does not score them." },
 
     // ── Reply-specific facts (verified against the repo 2026-09-19) ───────
     conversationRanker: { published: false, provenance: "2026-published",
@@ -278,11 +278,16 @@ var BANGERMETER_CONFIG = {
 
     replyQualityGate: {
       followerThreshold: 200000, scoreMin: 0, scoreMax: 3,
-      // The routing gate has moved every week since publication: 30,000 on
-      // Aug 14, 40,000 Aug 17, 60,000 Aug 20, 120,000 Aug 25, and 200,000 now
-      // (GROK_GEMMA_FOLLOWER_SPLIT, constants.py). Read it as a current
-      // reading, not a fixed rule.
+      // Traced commit by commit through task_filter.py. The gate has been
+      // raised EIGHT times since publication and has never held for more than
+      // a few days: 15,000 at publication (Aug 13), then 30,000 (Aug 14),
+      // 40,000 (Aug 17), 60,000 (Aug 18), 80,000 (Aug 21), 100,000 (Aug 24),
+      // 120,000 (Aug 25), 150,000 (Sep 8), 200,000 (Sep 16, as the named
+      // constant GROK_GEMMA_FOLLOWER_SPLIT). Read the value below as a dated
+      // reading, not a rule — and re-trace it, because sampling only the
+      // commits that touched param.rs misses most of these.
       thresholdParam: "GROK_GEMMA_FOLLOWER_SPLIT",
+      thresholdAsOf: "2026-09-18",
       zeroScoreLabel: "RiskyHighVizReply",
       selfRepliesExempt: true, rubricWithheld: true,
       provenance: "2026-published",
@@ -302,7 +307,7 @@ var BANGERMETER_CONFIG = {
       // its own llm_slop_post trigger — that TTL belongs to that rule, not
       // to the reply score. A 30-day figure shipped here briefly during
       // development and was caught by the provenance review before release.
-      note: "Replies are routed to the Grok reply-ranking scorer (GROK_4_MINI_CRITICAL, 0-3) when the DIRECT PARENT author or the THREAD-ROOT author has strictly more than 200,000 followers. Versions of this tool through v0.10.0 said 100,000 — that was wrong. 100,000 is a number inside the prompt text handed to the model (reply_scoring_system_prompt), not the eligibility gate; the gate lives in task_filter.py and has been raised four times since publication. A score of 0 applies the RiskyHighVizReply safety label; the duration of that application is not published (a separate enforcement rule applies the same label for 30 days on a different trigger, llm_slop_post). Self-replies are exempt — the filter skips a reply whose author is the parent author or the root author. The scoring rubric itself is withheld by X 'to reduce gameability', so no tool can honestly claim to reproduce it, this one included. Below the gate a reply goes to a lighter Gemma scorer instead, which itself switches to a reply-spam-tuned model above 150,000 thread followers." },
+      note: "Replies are routed to the Grok reply-ranking scorer (GROK_4_MINI_CRITICAL, 0-3) when the DIRECT PARENT author or the THREAD-ROOT author has strictly more than 200,000 followers, as of Sept 18, 2026. Versions through v0.10.0 said 100,000. That figure was CORRECT when it shipped — the gate stood at exactly 100,000 from Aug 24 — and it went stale within a day, the same way the weights did. (A 0.10.2 draft of this note claimed the 100,000 had been mis-sourced from the model's prompt string. That self-correction was itself wrong and was caught in review: the prompt does carry 100,000, and it still does, so anyone re-deriving this number TODAY would land on the wrong one — but that is a live trap, not what happened here.) A score of 0 applies the RiskyHighVizReply safety label; the duration of that application is not published (a separate enforcement rule applies the same label for 30 days on a different trigger, llm_slop_post). Self-replies are exempt — the filter skips a reply whose author is the parent author or the root author. The scoring rubric itself is withheld by X 'to reduce gameability', so no tool can honestly claim to reproduce it, this one included. Below the gate a reply goes to a lighter Gemma scorer instead, which switches to a reply-spam-tuned model above 150,000 thread followers — so that model runs only in the narrow 150,001-200,000 band, not on everything above 150,000." },
 
     // ── "Under the Hood" transparency pilot (announced Aug 13, 2026) ──────
     underTheHood: {

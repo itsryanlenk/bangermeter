@@ -784,7 +784,7 @@
         "0.05 until August 2026, so finishing a clip no longer earns anything directly — " +
         "though video still clears the " + F.dwellMark.seconds + "-second dwell bar easily.",
       "· If you have " + F.authorColdStart.followerCap.toLocaleString() + " followers or fewer, " +
-        "one original post per request can be lifted to about slot " + F.authorColdStart.slotMin +
+        "at most one original post per request can be lifted to about slot " + F.authorColdStart.slotMin +
         " of the feed — but only while it is under " + F.authorColdStart.maxPostAgeHours +
         "h old and still under " + F.authorColdStart.impressionThreshold.toLocaleString() +
         " impressions. One post per request, not per author.",
@@ -818,9 +818,9 @@
       "published as current rather than historical."));
     d3.appendChild(el("div", "bangermeter-fineprint",
       "The weighted sum modeled here is now the only scoring mode X publishes. Two alternatives " +
-      "(dwell-regret, with far deeper negatives) existed in the same code until August 25, 2026, " +
-      "when X deleted them along with the switch that chose between them. Relative score, not " +
-      "predicted reach."));
+      "(dwell-regret, with far deeper negatives) existed in the same code until September 18, " +
+      "2026, when X deleted them along with the switch that chose between them. Relative score, " +
+      "not predicted reach."));
     sec3.appendChild(d3);
     panel.appendChild(sec3);
 

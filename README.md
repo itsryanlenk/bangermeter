@@ -140,11 +140,11 @@ what the published weights actually say.
 - **Ten seconds is the bar that matters now.** The binary dwell head is not "looked at it":
   X's reference implementation marks it when a viewer *engaged* **and** dwelled **≥10
   seconds**, while not-dwelled means they never engaged at all. The two are not opposites —
-  a post read for four seconds and scrolled past fires neither. Ten seconds is also the
-  video-quality-view duration gate, so it is the one number X uses twice to mean "actually
-  consumed this."
+  a post read for four seconds and scrolled past fires neither. `MinVideoDurationMs` is
+  10,000 too, but it is a different rule — it gates on the **clip's own length**, not on how
+  long anyone watched, and it is a strict greater-than.
 - **There is a published small-account lane, and it ships on.** On every For You request
-  exactly **one** post is lifted to around **slot 15**: the best-scoring original post whose
+  **at most one** post is lifted to around **slot 15**: the best-scoring original post whose
   author has **≤1,000 followers**, which is under **48h** old and still under **1,000**
   Home impressions. One post per request — not per author, not per session. Bangermeter
   cannot tell whether a given post *was* promoted (the slate is server-side), so it reports
@@ -207,7 +207,7 @@ what the published weights actually say.
 | `extension/content.js` | Badges, breakdown panel, compose meter |
 | `extension/background.js` | Service worker. One listener: open the quick start on first install, never on update |
 | `extension/welcome.html` | The quick start itself — self-contained, loads nothing over the network |
-| `extension/test.html` | Engine self-test — open in any browser (247 assertions) |
+| `extension/test.html` | Engine self-test — open in any browser (255 assertions) |
 | `extension/fixture.html` | X-DOM fixture harness for the content script |
 | `extension/fixture-thread.html` | Reply-detection harness — asserts the conversation, `with_replies` and home-timeline surfaces separately, because X marks a reply differently on each. Needs `serve-fixtures.js` (it reads `location.pathname`) |
 | `extension/serve-fixtures.js` | Tiny static server for the harnesses, including the x.com-shaped paths the reply-detection cases need |
@@ -224,7 +224,7 @@ happened when those numbers were hardcoded.
 
 ## Verification status
 
-- Engine math: **247/247 self-tests pass** (`test.html`). Every one of the 26 published
+- Engine math: **255/255 self-tests pass** (`test.html`). Every one of the 26 published
   weights and its feature-switch parameter name is asserted against `param.rs`
   individually, so a silent transcription error fails the suite rather than shipping.
   All 26 re-verified unchanged against the live repo on Aug 25, 2026.

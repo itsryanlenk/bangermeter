@@ -78,7 +78,7 @@ Everything runs locally in your browser. The source is public and reviewable.
 
 OPEN SOURCE
 
-MIT licensed, with the full research record and 247 automated tests that check every published weight against X's source individually.
+MIT licensed, with the full research record and 255 automated tests that check every published weight against X's source individually.
 
 github.com/itsryanlenk/bangermeter
 
@@ -93,11 +93,11 @@ WHAT'S NEW IN 0.10.2
 
 • Ten seconds is the number to know. X's own reference code marks a post "dwelled" only when the reader engaged AND stayed at least ten seconds — and "not dwelled" means they never engaged at all. They are not opposites: a post skimmed for four seconds fires neither. Ten seconds is also the video-quality-view duration gate.
 
-• A published small-account lane. On every For You request exactly one post is lifted to around slot 15: the best-scoring original post from an author with 1,000 or fewer followers, under 48 hours old, still under 1,000 Home impressions. One post per request, not per author. The extension cannot tell whether your post was the one picked, so it reports the rules and does not claim credit.
+• A published small-account lane. On every For You request at most one post is lifted to around slot 15: the best-scoring original post from an author with 1,000 or fewer followers, under 48 hours old, still under 1,000 Home impressions. One post per request, not per author. The extension cannot tell whether your post was the one picked, so it reports the rules and does not claim credit.
 
 • The content the model actually reads. X published the seven content features it receives: video, longest video length, photo, media count, weighted text length, newline count, and whether there is a link. A link counts as 23 characters however long it is, and an image's own t.co does not count as a link at all.
 
-• Corrections. The reply quality-scoring threshold is over 200,000 followers, not 100,000 — the old figure came from a number inside the model's prompt rather than the filter that routes replies to it, and the real gate has been raised four times since August. The Brazil electoral filter now covers 2,776 accounts, not 665. The two alternative scoring modes this extension used to caveat were deleted by X on 25 August, so that caveat is gone.
+• Corrections. The reply quality-scoring threshold is over 200,000 followers as of 18 September, not 100,000. The old figure was right when it shipped and went stale in a day: X has raised that gate eight times since publication, from 15,000 to 200,000, never holding a value more than a few days. The Brazil electoral filter now covers 2,776 accounts, up from 665. And the two alternative scoring modes this extension used to caveat were deleted by X on 18 September, so that caveat is gone.
 
 
 WHAT'S NEW IN 0.10.1
