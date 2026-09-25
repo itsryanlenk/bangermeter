@@ -18,21 +18,34 @@ Default mode is audit: like rate inside matched view bands, posts ≥48h old.
 C is a checklist, not a forecast. E is retrospective and unused under 2,000 views.
 Exit codes: 0 ok · 1 drift / gate failure · 2 usage or I/O error.`;
 
+// Flags that never take a value, so `rank --json FILE` reads FILE as the file.
+const BOOLEAN = new Set(["json", "help"]);
+
 function args(argv) {
   const out = { _: [] };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a.startsWith("--")) {
-      const [k, v] = a.slice(2).split("=");
-      if (v !== undefined) out[k] = v;
-      else if (argv[i + 1] && !argv[i + 1].startsWith("--")) out[k] = argv[++i];
+      const eq = a.indexOf("=");
+      const k = eq < 0 ? a.slice(2) : a.slice(2, eq);
+      if (eq >= 0) out[k] = a.slice(eq + 1);
+      else if (BOOLEAN.has(k)) out[k] = true;
+      else if (k === "pdf") out[k] = argv[i + 1] && /\.pdf$/i.test(argv[i + 1]) ? argv[++i] : true;
+      else if (argv[i + 1] !== undefined && !argv[i + 1].startsWith("--")) out[k] = argv[++i];
       else out[k] = true;
     } else out._.push(a);
   }
   return out;
 }
 
-function die(msg) { console.error(msg); process.exit(2); }
+class Usage extends Error {}
+function die(msg) { throw new Usage(msg); }
+
+function count(a, k) {
+  if (a[k] === undefined) return undefined;
+  if (!/^\d+$/.test(String(a[k]))) die("--" + k + " must be a whole number ≥ 0 (got " + JSON.stringify(a[k]) + ")");
+  return Number(a[k]);
+}
 
 function loadPosts(file) {
   if (!file) die("missing posts file\n\n" + USAGE);
@@ -60,7 +73,7 @@ function printHeader(r) {
 function printRank(r) {
   printHeader(r);
   if (r.mode === "audit") {
-    const line = x => "  " + String(x.rank).padStart(3) + "  " + x.bandIndex.toFixed(2) + "×  " + pct(x.card.rates.like) +
+    const line = x => "  " + String(x.rank).padStart(3) + "  " + (x.bandIndex === Infinity ? "   ∞" : x.bandIndex.toFixed(2)) + "×  " + pct(x.card.rates.like) +
       "  " + (x.card.band || "").padEnd(7) + "  " + (x.reportE ? "E " + x.card.E.score.toFixed(0).padStart(3) : "E  — ") + "  " + snip(x.card.text);
     console.log("WINNERS  (rank · vs band median · like rate · band · E · post)");
     r.winners.forEach(x => console.log(line(x)));
@@ -106,21 +119,18 @@ async function main() {
   if (!cmd || a.help || cmd === "help") { console.log(USAGE); return 0; }
 
   if (cmd === "rank") {
-    const r = bmr.rank(loadPosts(a._[1]), {
-      mode: a.mode || "audit",
-      winners: a.winners ? Number(a.winners) : undefined,
-      losers: a.losers ? Number(a.losers) : undefined
-    });
+    const opts = { mode: a.mode || "audit", winners: count(a, "winners"), losers: count(a, "losers") };
+    let r;
+    try { r = bmr.rank(loadPosts(a._[1]), opts); } catch (e) { die(e.message); }
     if (a.json) console.log(JSON.stringify(r, null, 2)); else printRank(r);
     return 0;
   }
 
   if (cmd === "report") {
-    if (!a.out) die("report needs --out FILE.html");
-    const r = bmr.rank(loadPosts(a._[1]), { mode: "audit" });
+    if (typeof a.out !== "string") die("report needs --out FILE.html");
+    const r = bmr.rank(loadPosts(a._[1]), { mode: "audit", winners: count(a, "winners"), losers: count(a, "losers") });
     const html = bmr.report.html(r, { account: a.account, generatedAt: Date.now() });
-    const research = bmr.report.researchText(html);
-    const bad = bmr.gates.numbers(research).concat(bmr.gates.copy(html));
+    const bad = bmr.report.gate(html);
     if (bad.length) { console.error("report failed its own gates:\n" + JSON.stringify(bad, null, 1)); return 1; }
     fs.writeFileSync(a.out, html);
     console.log("wrote " + a.out + "  (" + r.winners.length + " winners, " + r.misses.length + " misses)");
@@ -160,14 +170,18 @@ async function main() {
     const root = path.resolve(a.root || path.join(__dirname, "..", "..", ".."));
     const r = bmr.gates.scan(root);
     r.copy.forEach(v => console.error("COPY  " + v.file + ":" + v.line + "  \"" + v.match + "\" — " + v.why));
+    r.headCount.forEach(v => console.error("HEADS " + v.file + ":" + v.line + "  \"" + v.match + "\" — " + v.why));
     r.numbers.forEach(v => console.error("NUMBER " + v.file + ":" + v.line + "  " + v.token + " — not in receipts"));
     r.missing.forEach(f => console.error("MISSING " + f));
-    const bad = r.copy.length + r.numbers.length + r.missing.length;
-    if (!bad) console.log("gates ok: copy + numbers");
+    const bad = r.copy.length + r.headCount.length + r.numbers.length + r.missing.length;
+    if (!bad) console.log("gates ok: copy + head count + numbers");
     return bad ? 1 : 0;
   }
 
   die("unknown command '" + cmd + "'\n\n" + USAGE);
 }
 
-main().then(code => process.exit(code), e => { console.error(e.stack || e.message); process.exit(2); });
+main().then(code => process.exit(code), e => {
+  console.error(e instanceof Usage || !process.env.DEBUG ? e.message : e.stack);
+  process.exit(2);
+});

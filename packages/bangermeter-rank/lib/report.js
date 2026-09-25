@@ -10,6 +10,7 @@
 // id — the Numbers Gate at build time. Sections holding research carry
 // data-research so researchText() can hand exactly that prose to the gate.
 const receipts = require("./receipts");
+const gates = require("./gates");
 const copy = require("./copy");
 const { K } = require("./rank");
 
@@ -18,6 +19,12 @@ const esc = s => String(s == null ? "" : s)
 const pct = v => v == null ? "—" : (v * 100).toFixed(2) + "%";
 const int = v => v == null ? "—" : Number(v).toLocaleString("en-US");
 const R = id => receipts.fmt(id);
+
+const idx = v => v === Infinity ? "∞" : v.toFixed(2);
+
+// Customer post text is wrapped so the report's own gates can skip it: a
+// customer quoting a forbidden phrase is their data, not our claim.
+const customer = t => "<span data-customer>" + esc(snippet(t)) + "</span>";
 
 function snippet(text) {
   const t = String(text || "").replace(/\s+/g, " ").trim();
@@ -33,7 +40,8 @@ function checklistCell(card) {
 
 function row(r) {
   const c = r.card;
-  const link = c.url ? '<a href="' + esc(c.url) + '">' + esc(snippet(c.text)) + "</a>" : esc(snippet(c.text));
+  const safeUrl = /^https?:\/\//i.test(String(c.url || "")) ? c.url : null;
+  const link = safeUrl ? '<a href="' + esc(safeUrl) + '">' + customer(c.text) + "</a>" : customer(c.text);
   const eCell = r.reportE ? c.E.score.toFixed(0) : '<span class="muted">not used under ' + int(K) + " views</span>";
   return '<tr data-id="' + esc(c.id) + '">' +
     "<td>" + r.rank + "</td>" +
@@ -42,12 +50,13 @@ function row(r) {
     "<td>" + int(c.views) + "</td>" +
     "<td>" + pct(c.rates.like) + "</td>" +
     "<td>" + pct(r.bandLikeRateP50) + "</td>" +
-    "<td><b>" + r.bandIndex.toFixed(2) + "×</b></td>" +
+    "<td><b>" + idx(r.bandIndex) + "×</b></td>" +
     "<td>" + eCell + "</td>" +
     "<td>" + checklistCell(c) + "</td></tr>";
 }
 
-function table(rows) {
+function table(rows, empty) {
+  if (!rows.length) return '<p class="muted">' + esc(empty) + "</p>";
   return '<table><thead><tr><th>#</th><th>Post</th><th>View band</th><th>Views</th><th>Like rate</th>' +
     "<th>Band median</th><th>vs band</th><th>E (retrospective)</th><th>C checklist (not a forecast)</th></tr></thead><tbody>" +
     rows.map(row).join("") + "</tbody></table>";
@@ -108,7 +117,7 @@ function html(result, opts) {
 
   const unranked = result.unranked.length
     ? '<section><h2>Not ranked</h2><ul>' + result.unranked.map(u =>
-        '<li data-id="' + esc(u.card.id) + '">' + esc(snippet(u.card.text)) + " — " + esc(u.reason) + "</li>").join("") + "</ul></section>"
+        '<li data-id="' + esc(u.card.id) + '">' + customer(u.card.text) + " — " + esc(u.reason) + "</li>").join("") + "</ul></section>"
     : "";
 
   return "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">" +
@@ -120,14 +129,29 @@ function html(result, opts) {
     '<p class="meta">Mode: ' + esc(result.label) + " · weights v" + esc(result.weightsVersion) +
     " · X param.rs last sync " + esc(result.paramRsSync) + " · generated " + esc(when) +
     " · " + result.n + " posts at least " + result.maturityHours + "h old" + (dropped ? " (dropped: " + esc(dropped) + ")" : "") + "</p>" +
-    '<section class="win"><h2>Winners</h2><div class="scroll">' + table(result.winners) + "</div></section>" +
-    '<section class="miss"><h2>Misses</h2><div class="scroll">' + table(result.misses) + "</div></section>" +
+    '<section class="win"><h2>Winners</h2><div class="scroll">' + table(result.winners, "No post beat its band median like rate.") + "</div></section>" +
+    '<section class="miss"><h2>Misses</h2><div class="scroll">' + table(result.misses, "No post fell below its band median like rate.") + "</div></section>" +
     unranked +
     '<section><h2>View bands on this account</h2><table><thead><tr><th>Band</th><th>Posts</th><th>Median like rate</th></tr></thead><tbody>' +
     result.bands.map(b => "<tr><td>" + esc(b.band) + "</td><td>" + b.n + "</td><td>" + pct(b.likeRateP50) + "</td></tr>").join("") +
     "</tbody></table></section>" +
     traveled() + honesty() +
     "</main></body></html>";
+}
+
+// Everything the report says in its own voice: the page minus customer text.
+function ownText(doc) {
+  return String(doc)
+    .replace(/<style[\s\S]*?<\/style>/g, " ")
+    .replace(/<span data-customer>[\s\S]*?<\/span>/g, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"');
+}
+
+// Ship gates for a rendered report: copy gate over the report's own voice,
+// Numbers Gate over its research sections. Empty array = clean.
+function gate(doc) {
+  return gates.copy(ownText(doc)).concat(gates.numbers(researchText(doc)));
 }
 
 function researchText(doc) {
@@ -139,4 +163,4 @@ function researchText(doc) {
   return parts.join("\n");
 }
 
-module.exports = { html, researchText };
+module.exports = { html, researchText, ownText, gate };

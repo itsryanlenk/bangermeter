@@ -8,15 +8,17 @@ check, a customer account-audit report, and two ship gates.
 Zero dependencies. Node 18+.
 
 ```bash
-node bin/bangermeter-rank.js rank examples/sample-posts.jsonl
-node bin/bangermeter-rank.js report examples/sample-posts.jsonl --out audit.html --pdf
+node examples/make-sample.js examples/sample.jsonl
+node bin/bangermeter-rank.js rank examples/sample.jsonl
+node bin/bangermeter-rank.js report examples/sample.jsonl --out audit.html --pdf
 node bin/bangermeter-rank.js sync
 node bin/bangermeter-rank.js gate
 npm test
 ```
 
-`examples/sample-posts.jsonl` is synthetic. It exists to show the output shape and
-measures nothing.
+`make-sample.js` writes synthetic posts, each marked `"synthetic": true`. They show
+the output shape and measure nothing. The sample is generated, not committed,
+because the repo refuses to track anything shaped like a real account archive.
 
 ## The four modes
 
@@ -31,7 +33,8 @@ without its hedge.
 | `stealability` | Bookmarks, and formats by median bookmarks. | Bookmarks are not a Phoenix ranking head. This is a human lens. |
 
 Every audit shows misses beside winners. A winner beat its band's median and a miss
-fell below it. A post that is alone in its band, or has under 200 views, goes in a
+fell below it. A post at the median is neither. No post is forced into either list
+to fill it, and the report says so when a list is empty. A post that is alone in its band, or has under 200 views, goes in a
 "not ranked" list with the reason.
 
 Cleaning runs before any ranked mode. It drops posts under 48h old, reposts, replies
@@ -77,19 +80,33 @@ diversity live only in the second file. `sync` exits 1 in any of these cases:
 
 Favorite, Reply, Report, OON, VideoOpen, Vqv and Dwell are flagged `CRITICAL`. If the
 upstream stamp moves but no value changed, the check passes and says so.
-`.github/workflows/weight-sync.yml` runs it daily.
+Each file is checked on its own, and comments are stripped before parsing, so
+a commented-out `param!` line never counts as live. A duplicate declaration or a
+missing `last sync` stamp also fails. The `weight-sync` job in
+`.github/workflows/bangermeter-rank.yml` runs daily and on demand. It does not run
+on PRs, so a PR never goes red because X moved a weight overnight.
 
 ## Gates
 
-- **Copy gate** fails on the three claims marketing may never make (handoff §8 test
-  7; the phrases are in `lib/gates.js` `FORBIDDEN`). It scans the README, the store
-  description, the extension's UI files, and this package.
+- **Copy gate** fails on the three claims marketing may never make, in any wording,
+  across line breaks and markup (handoff §8 test 7; the patterns are in
+  `lib/gates.js` `FORBIDDEN`). It allows the negations the product has to say. It
+  scans the README, the store description, the extension's UI files, and this
+  package. The same scan fails any present-tense head count ("all N ranking
+  heads") that differs from the engine's roster.
 - **Numbers Gate** fails any research figure in this package's client-facing copy
   that does not resolve to `receipts/2026-09-23.json`. The report pulls research
   figures through `receipts.fmt(id)`, which throws on an unknown id. A customer's
   own measurements are data, not claims, and the gate does not police them.
   Fenced code blocks in Markdown are skipped too, because they show shapes, not
-  claims. Prose is always checked.
+  claims. An unclosed fence fails. Prose is always checked.
+  - The sign is part of a figure, so a negative correlation cannot be quoted as a positive one.
+  - A published weight passes only right after its head's name (reply 5.0).
+  - A method constant passes only next to what it measures (2,000 views).
+  - **Scope:** this package's client-facing copy and the report's research
+    sections. The extension's README and store listing cite weights and sourced
+    facts that `extension/test.html` asserts. They predate the receipts, so the
+    Numbers Gate does not cover them.
 
 `receipts/2026-09-23.json` is transcribed from the 2026-09-23 build handoff (§5–§7).
 The raw artifacts are on the build box. Change a figure only from those files.

@@ -64,4 +64,57 @@ test("repo scan: README, store description, and package docs pass both gates", (
   const res = gates.scan(root, gates.DEFAULT_TARGETS);
   assert.deepEqual(res.copy, [], JSON.stringify(res.copy, null, 1));
   assert.deepEqual(res.numbers, [], JSON.stringify(res.numbers, null, 1));
+  assert.deepEqual(res.headCount, [], JSON.stringify(res.headCount, null, 1));
+  assert.deepEqual(res.missing, []);
+});
+
+// ── review findings: gate holes ─────────────────────────────────────────────
+test("numbers gate catches the invented figures the review slipped past it", () => {
+  const cases = [
+    ["Reply = 27× a like", "27×"],
+    ["Decreased 45% of reach", "45%"],
+    ["Posts averaged 1950 likes", "1950"],
+    ["Spearman +0.187 — a positive link", "+0.187"],
+    ["E Spearman −0.7463 on the band", "−0.7463"],
+    ["like rate 0.05 across the sample", "0.05"],
+    ["Costs $20 a month", "$20"],
+    ["It adds 3x reach", "3x"]
+  ];
+  for (const [text, tok] of cases) {
+    assert.deepEqual(gates.numbers(text).map(v => v.token), [tok], text);
+  }
+});
+
+test("numbers gate: a sign is part of the figure", () => {
+  assert.deepEqual(gates.numbers("Spearman −0.187 (n=662)"), []);
+  assert.deepEqual(gates.numbers("Spearman 0.187"), [{ file: null, line: 1, token: "0.187" }]);
+});
+
+test("numbers gate: an unclosed fence in Markdown is itself a failure", () => {
+  const v = gates.numbers("text\n```\n9999 made up\n", "x.md");
+  assert.ok(v.some(x => x.token === "unclosed code fence"));
+});
+
+test("copy gate catches variants, markup, and line breaks", () => {
+  const bad = [
+    "This can predict virality", "It predicted virality twice", "guarantees more reach",
+    "guaranteeing reach for creators", "A high C score means your post will perform",
+    "C scores mean it will perform", "predicts\nvirality", "predicts <b>virality</b>", "predicts&nbsp;virality"
+  ];
+  for (const s of bad) assert.ok(gates.copy(s).length >= 1, JSON.stringify(s));
+});
+
+test("copy gate allows the negations the product must say", () => {
+  const ok = ["This tool never predicts virality.", "Does not predict virality.",
+    "It does not guarantee reach.", "C does not forecast reach or likes."];
+  for (const s of ok) assert.deepEqual(gates.copy(s), [], s);
+});
+
+test("head-count claims in UI copy match the engine's roster", () => {
+  const n = require("..").config ? Object.keys(require("..").config.heads).length : 0;
+  assert.equal(n, 25);
+  assert.equal(gates.headCount("All 25 ranking heads, their published values").length, 0);
+  assert.equal(gates.headCount("The popup labels all 26 ranking heads as").length, 1);
+  // A dated, historical statement is not a current claim.
+  assert.equal(gates.headCount("All 26 weights re-verified unchanged against X's published file on August 25.").length, 0);
 });

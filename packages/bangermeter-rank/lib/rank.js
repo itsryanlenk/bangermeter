@@ -30,23 +30,36 @@ function median(xs) {
   return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
 }
 
+// Exports arrive with counts as "5,000" and flags as "false"; read them as
+// what they mean rather than as JavaScript truthiness.
 function num(v) {
-  const n = Number(v);
-  return v == null || !isFinite(n) ? null : n;
+  if (v == null || v === "") return null;
+  const n = typeof v === "string" ? Number(v.replace(/,/g, "").trim()) : Number(v);
+  return isFinite(n) ? n : null;
+}
+const flag = v => v === true || v === 1 || (typeof v === "string" && /^(true|1|yes)$/i.test(v.trim()));
+
+// ISO string, epoch milliseconds, or epoch seconds.
+function timeOf(v) {
+  if (typeof v === "number" && isFinite(v)) return v < 1e12 ? v * 1000 : v;
+  if (typeof v === "string" && /^\d+$/.test(v.trim())) return timeOf(Number(v));
+  const t = Date.parse(v);
+  return isFinite(t) ? t : NaN;
 }
 
 // ── clean ───────────────────────────────────────────────────────────────────
 function clean(posts, opts) {
   const now = (opts && opts.now) || Date.now();
   const hours = (opts && opts.maturityHours) || MATURITY_HOURS;
-  const dropped = { fresh: 0, repost: 0, replyToOthers: 0, coldMention: 0, noViews: 0 };
+  const dropped = { invalid: 0, fresh: 0, repost: 0, replyToOthers: 0, coldMention: 0, noViews: 0 };
   const kept = [];
-  for (const p of posts) {
+  for (const p of posts || []) {
+    if (!p || typeof p !== "object") { dropped.invalid++; continue; }
     const text = String(p.text || "").trimStart();
-    if (p.isRepost || /^RT @/.test(text)) { dropped.repost++; continue; }
-    if (p.isReply && !p.replyToSelf) { dropped.replyToOthers++; continue; }
-    if (!p.isReply && text.startsWith("@")) { dropped.coldMention++; continue; }
-    const t = Date.parse(p.createdAt);
+    if (flag(p.isRepost) || /^RT @/.test(text)) { dropped.repost++; continue; }
+    if (flag(p.isReply) && !flag(p.replyToSelf)) { dropped.replyToOthers++; continue; }
+    if (!flag(p.isReply) && text.startsWith("@")) { dropped.coldMention++; continue; }
+    const t = timeOf(p.createdAt);
     if (!isFinite(t) || now - t < hours * HOUR) { dropped.fresh++; continue; }
     if (!(num(p.views) > 0)) { dropped.noViews++; continue; }
     kept.push(p);
@@ -58,18 +71,18 @@ function clean(posts, opts) {
 function features(p, now) {
   const media = p.media || "text";
   const text = String(p.text || "");
-  const created = Date.parse(p.createdAt);
+  const created = timeOf(p.createdAt);
   return {
     text,
     hasImage: media === "photo",
     hasVideo: media === "video" || media === "gif",
     isGif: media === "gif",
     videoSeconds: num(p.videoSeconds),
-    hasExternalLink: media === "link" || !!p.hasExternalLink,
-    isThreadStarter: !!p.isThreadStarter,
-    isQuote: !!p.isQuote,
-    isReply: !!p.isReply,
-    isRepost: !!p.isRepost,
+    hasExternalLink: media === "link" || flag(p.hasExternalLink),
+    isThreadStarter: flag(p.isThreadStarter),
+    isQuote: flag(p.isQuote),
+    isReply: flag(p.isReply),
+    isRepost: flag(p.isRepost),
     hashtagCount: p.hashtagCount != null ? p.hashtagCount : (text.match(/(^|\s)#\w/g) || []).length,
     ageMinutes: isFinite(created) && now ? Math.max(0, (now - created) / 60000) : null,
     counts: {
@@ -171,7 +184,9 @@ function audit(cards, opts) {
   const unranked = [];
   const inBand = new Map(BANDS.map(b => [b.name, []]));
   for (const c of cards) {
-    if (!c.band) unranked.push({ card: c, reason: "under 200 views — too few to compare fairly" });
+    if (c.likes == null) unranked.push({ card: c, reason: "no like count in the export — cannot compute a like rate" });
+    else if (c.likes > c.views) unranked.push({ card: c, reason: "more likes than views — bad data, not ranked" });
+    else if (!c.band) unranked.push({ card: c, reason: "under 200 views — too few to compare fairly" });
     else inBand.get(c.band).push(c);
   }
   const bands = [];
@@ -187,7 +202,9 @@ function audit(cards, opts) {
       continue;
     }
     for (const c of cs) {
-      ranked.push({ card: c, bandIndex: p50 > 0 ? c.rates.like / p50 : 0, bandLikeRateP50: p50,
+      // Against a zero median, a post with no likes is level and any like beats it.
+      const idx = p50 > 0 ? c.rates.like / p50 : (c.rates.like > 0 ? Infinity : 1);
+      ranked.push({ card: c, bandIndex: idx, bandLikeRateP50: p50,
         reportE: c.views >= K, badges: [] });
     }
   }
@@ -195,17 +212,12 @@ function audit(cards, opts) {
   ranked.forEach((r, i) => { r.rank = i + 1; });
 
   // A winner beat its band's median like rate; a miss fell below it. A post at
-  // the median is neither. Misses are never hidden: if nothing fell below the
-  // median, the lowest-ranked post that is not a winner is still shown.
-  const n = ranked.length;
-  const W = opts.winners || 5, L = opts.losers || 5;
-  let winners = ranked.filter(r => r.bandIndex > 1).slice(0, W);
-  let misses = ranked.filter(r => r.bandIndex < 1).reverse().slice(0, L);
-  if (n >= 2 && !winners.length) winners = [ranked[0]];
-  if (n >= 2 && !misses.length) {
-    const last = ranked[n - 1];
-    misses = winners.includes(last) ? [] : [last];
-  }
+  // the median is neither, and no post is forced into either list to fill it:
+  // an empty list is reported as empty (the report says so in words).
+  const W = opts.winners != null ? opts.winners : 5;
+  const L = opts.losers != null ? opts.losers : 5;
+  const winners = ranked.filter(r => r.bandIndex > 1).slice(0, W);
+  const misses = ranked.filter(r => r.bandIndex < 1).reverse().slice(0, L);
   winners.forEach(r => r.badges.push("winner: band-matched like rate"));
   misses.forEach(r => r.badges.push("miss: band-matched like rate"));
 
@@ -216,8 +228,11 @@ function rank(posts, opts) {
   opts = opts || {};
   const mode = opts.mode || "audit";
   if (!MODES.includes(mode)) throw new Error("unknown mode '" + mode + "' (expected " + MODES.join(", ") + ")");
-  if (opts.sortBy && /^c$/i.test(opts.sortBy)) {
-    throw new Error("C is a checklist, not a forecast — it cannot be a sort key for a best-posts ranking");
+  if (opts.sortBy !== undefined) {
+    throw new Error("each mode has a fixed order and takes no sort key — C is a checklist, not a forecast, and never orders a best-posts list");
+  }
+  for (const k of ["winners", "losers"]) {
+    if (opts[k] != null && !(Number.isInteger(opts[k]) && opts[k] >= 0)) throw new Error(k + " must be a whole number ≥ 0");
   }
   const now = opts.now || Date.now();
   if (mode === "checklist") return checklist(posts, { now });
