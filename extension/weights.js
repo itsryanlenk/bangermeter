@@ -34,7 +34,10 @@ var BANGERMETER_CONFIG = {
   //
   // That is a materially stronger claim than the 2023 release made — these are
   // asserted to BE the production values, not merely plausible defaults.
-  weightsSnapshot: "September 18, 2026 — xai-org/x-algorithm, home-mixer/params/param.rs (upstream last-sync stamp 2026-09-18T16:21:20Z; all 26 values re-verified, three of them CHANGED on Aug 25 — vqv 0.05→0.0, binary dwell 0.0→0.05, video_open 0.05→0.07)",
+  weightsSnapshot: "September 24, 2026 — xai-org/x-algorithm, home-mixer/params/param.rs (upstream last-sync stamp 2026-09-24T16:24:49Z; all 25 values re-verified — X deleted a 26th head, cont_active_secs_5m_residual_norm, weighted 0.0, on Sept 23 — and three CHANGED on Aug 25 — vqv 0.05→0.0, binary dwell 0.0→0.05, video_open 0.05→0.07)",
+  // Machine-readable copy of the stamp above. Every score card pins this, and
+  // packages/bangermeter-rank's sync job fails when live param.rs drifts from it.
+  paramRsLastSync: "2026-09-24T16:24:49Z",
   weightsSourceUrl: "https://github.com/xai-org/x-algorithm/blob/main/home-mixer/params/param.rs",
   scorerSourceUrl: "https://github.com/xai-org/x-algorithm/blob/main/home-mixer/scorers/ranking_scorer.rs",
 
@@ -117,8 +120,9 @@ var BANGERMETER_CONFIG = {
       provenance: "2026-published", label: "Quoted video quality view", note: "ZEROED." },
     cont_click_dwell_time: { weight: 0.0, param: "rust_home_mixer_cont_click_dwell_time_weight",
       provenance: "2026-published", label: "Click dwell time", continuous: true, note: "ZEROED." },
-    cont_active_secs_5m_residual_norm: { weight: 0.0, param: "rust_home_mixer_cont_active_secs_5m_residual_norm_weight",
-      provenance: "2026-published", label: "Active seconds (5m residual)", continuous: true, note: "ZEROED." },
+    // cont_active_secs_5m_residual_norm (0.0) was deleted from param.rs and
+    // ranking_scorer.rs in the 2026-09-23T16:28:43Z sync. It paid nothing, so no
+    // score moved; it is gone here so the roster matches live 25/25.
 
     // Negative heads.
     not_interested: { weight: -43.2, param: "rust_home_mixer_not_interested_weight",

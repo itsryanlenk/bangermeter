@@ -41,7 +41,7 @@
 
     // ================================================================
     // WEIGHT LAYER — verbatim against xai-org/x-algorithm
-    // home-mixer/params/param.rs (sync 2026-09-18T16:21:20Z)
+    // home-mixer/params/param.rs (sync 2026-09-24T16:24:49Z)
     // Every value below was transcribed from the published file. If any
     // of these fail, the tool is lying about X's algorithm.
     // ================================================================
@@ -53,7 +53,6 @@
       share_via_dm: 5.0, share_via_copy_link: 20.0, dwell: 0.05, quote: 5.0,
       quoted_click: 0.05, quoted_vqv: 0.0, follow_author: 4.0, post_unexplored: 0.02,
       cont_dwell_time: 0.004, cont_click_dwell_time: 0.0,
-      cont_active_secs_5m_residual_norm: 0.0,
       not_interested: -43.2, block_author: -31.2, mute_author: -58.8,
       report: -234.0, not_dwelled: -0.02
     };
@@ -70,6 +69,15 @@
     check("every head is provenance 2026-published",
       Object.keys(H).every(function (k) { return H[k].provenance === "2026-published"; }));
     check("no bookmark head exists in the 2026 roster", H.bookmark === undefined);
+    // X deleted this head (param + scorer term) in the 2026-09-23 sync. It was
+    // 0.0, so no score moved, but carrying it made "26/26" a stale claim.
+    check("head roster matches live param.rs exactly (25 heads)",
+      Object.keys(H).length === Object.keys(PARAM_RS).length && Object.keys(PARAM_RS).length === 25,
+      Object.keys(H).length);
+    check("retired head cont_active_secs_5m_residual_norm is gone",
+      H.cont_active_secs_5m_residual_norm === undefined);
+    check("param.rs last-sync stamp is pinned for score cards",
+      C.paramRsLastSync === "2026-09-24T16:24:49Z", C.paramRsLastSync);
 
     // ── Facts X published on Aug 14 2026 ──────────────────────────────
     // The weights themselves did not move; these are the clarifications
