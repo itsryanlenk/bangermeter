@@ -27,7 +27,7 @@ WHAT YOU GET
 
 • A live meter in the compose box. Score your draft as you type, with hints as they trigger — asks a question, substantive text, bare link, hashtag pile, engagement bait.
 
-• A weight table in the popup. All 26 ranking heads, their published values, and which ones the extension can measure versus estimate.
+• A weight table in the popup. All 25 ranking heads, their published values, and which ones the extension can measure versus estimate.
 
 • Reply mode. Reply drafts are scored as replies (they take a ×0.75 factor in the published math), and the breakdown explains what X publishes about replies: out-of-network replies never reach For You at all, replies never get the mutual-follow boost, and replies to accounts over 200K followers are quality-scored by a Grok model whose rubric X withholds.
 

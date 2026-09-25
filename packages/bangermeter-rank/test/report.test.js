@@ -53,3 +53,26 @@ test("report research section passes the numbers and copy gates", () => {
   assert.deepEqual(bmr.gates.numbers(research), []);
   assert.deepEqual(bmr.gates.copy(html), []);
 });
+
+test("a customer's own post text cannot trip the report's copy gate", () => {
+  const posts = sample();
+  posts[0].text = "Everyone says this app predicts virality, it does not";
+  const html = bmr.report.html(bmr.rank(posts, { now: NOW }), { account: "@acct", generatedAt: NOW });
+  assert.deepEqual(bmr.report.gate(html), []);
+});
+
+test("report only links http(s) URLs", () => {
+  const posts = sample();
+  posts[0].url = "javascript:alert(document.domain)";
+  posts[1].url = "https://x.com/acct/status/2";
+  const html = bmr.report.html(bmr.rank(posts, { now: NOW }), { account: "@acct", generatedAt: NOW });
+  assert.ok(!/href="javascript:/i.test(html));
+  assert.match(html, /href="https:\/\/x\.com\/acct\/status\/2"/);
+});
+
+test("report says so when no post fell below its band median", () => {
+  const same = [1, 2, 3].map(i => post({ id: "t" + i, views: 5000, likes: 100 }));
+  const html = bmr.report.html(bmr.rank(same, { now: NOW }), { account: "@acct", generatedAt: NOW });
+  assert.match(html, /No post fell below its band median/);
+  assert.match(html, /No post beat its band median/);
+});

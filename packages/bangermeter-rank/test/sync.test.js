@@ -78,3 +78,53 @@ test("an unparseable file is an error, not a pass", () => {
   assert.equal(r.ok, false);
   assert.ok(r.problems.some(p => p.kind === "unparseable"));
 });
+
+// ── review findings: per-file checking, comments, truncation, stamp ─────────
+test("a head missing from only ONE upstream file is drift (either file)", () => {
+  const r1 = sync.check({ paramRs: paramRs.replace(/param!\(DwellWeight[^;]*;/, ""), vmParams });
+  assert.equal(r1.ok, false);
+  assert.ok(r1.problems.some(p => p.param === "rust_home_mixer_dwell_weight" && p.file === "paramRs"));
+  const r2 = sync.check({ paramRs, vmParams: vmParams.replace(/param!\(ReportWeight[^;]*;/, "") });
+  assert.equal(r2.ok, false);
+  assert.ok(r2.problems.some(p => p.param === "rust_home_mixer_report_weight" && p.file === "vmParams" && p.critical));
+});
+
+test("a truncated file fails", () => {
+  const r = sync.check({ paramRs: paramRs.slice(0, Math.floor(paramRs.length / 4)), vmParams });
+  assert.equal(r.ok, false);
+});
+
+test("commented-out param! lines are not live values", () => {
+  const commentOut = s => s.replace(/param!\(FavoriteWeight[^;]*;/, m => "// " + m);
+  const r1 = sync.check({ paramRs: commentOut(paramRs), vmParams: commentOut(vmParams) });
+  assert.equal(r1.ok, false);
+  assert.ok(r1.problems.some(p => p.kind === "removed" && p.param === "rust_home_mixer_favorite_weight"));
+
+  const changed = s => s.replace(/param!\(FavoriteWeight[^;]*;/,
+    'param!(FavoriteWeight, f64, "rust_home_mixer_favorite_weight", 0.9);\n// was: param!(FavoriteWeight, f64, "rust_home_mixer_favorite_weight", 0.5);');
+  const r2 = sync.check({ paramRs: changed(paramRs), vmParams: changed(vmParams) });
+  assert.equal(r2.ok, false);
+  assert.ok(r2.problems.some(p => p.kind === "value" && p.live === 0.9));
+
+  const block = s => s.replace(/param!\(ReportWeight[^;]*;/, m => "/* " + m + " */");
+  assert.equal(sync.check({ paramRs: block(paramRs), vmParams: block(vmParams) }).ok, false);
+});
+
+test("a parameter declared twice in one file is drift", () => {
+  const dup = paramRs + '\nparam!(FavoriteWeight2, f64, "rust_home_mixer_favorite_weight", 0.5);\n';
+  const r = sync.check({ paramRs: dup, vmParams });
+  assert.equal(r.ok, false);
+  assert.ok(r.problems.some(p => p.kind === "duplicate"));
+});
+
+test("a missing last-sync stamp fails", () => {
+  const r = sync.check({ paramRs: paramRs.replace(/^\/\/ mirrored.*$/m, ""), vmParams });
+  assert.equal(r.ok, false);
+  assert.ok(r.problems.some(p => p.kind === "nostamp"));
+});
+
+test("the new-user OON factor is checked too", () => {
+  const r = sync.check({ paramRs, vmParams: vmParams.replace(/0\.00001/, "0.5") });
+  assert.equal(r.ok, false);
+  assert.ok(r.problems.some(p => p.param === "rust_home_mixer_new_user_oon_weight_factor"));
+});

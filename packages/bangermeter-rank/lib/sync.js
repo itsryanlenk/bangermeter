@@ -24,31 +24,49 @@ const CRITICAL = new Set([
 
 const PARAM_RE = /param!\(\s*(\w+)\s*,\s*([\w:<>]+)\s*,\s*"([^"]+)"\s*,\s*([\s\S]*?)\s*,?\s*\)\s*;/g;
 
-function parse(src) {
-  const stamp = /last sync (\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ)/.exec(src);
-  const params = {};
-  for (const m of String(src).matchAll(PARAM_RE)) {
-    const raw = m[4].trim().replace(/_/g, "");
-    const v = Number(raw);
-    if (raw !== "" && isFinite(v)) params[m[3]] = v;
-  }
-  return { lastSync: stamp ? stamp[1] : null, params };
+// Remove // and /* */ comments but leave string literals alone, so a
+// commented-out or "was:" param! line can never be read as a live value.
+function stripComments(src) {
+  return String(src).replace(/("(?:\\.|[^"\\])*")|\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (m, str) => str || " ");
 }
 
-// What the engine claims, keyed by feature-switch name.
+function parse(src) {
+  const stamp = /last sync (\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ)/.exec(String(src));
+  const params = {};
+  const duplicates = [];
+  for (const m of stripComments(src).matchAll(PARAM_RE)) {
+    const raw = m[4].trim().replace(/_/g, "");
+    const v = Number(raw);
+    if (raw === "" || !isFinite(v)) continue;
+    if (m[3] in params) duplicates.push(m[3]);
+    params[m[3]] = v;
+  }
+  return { lastSync: stamp ? stamp[1] : null, params, duplicates };
+}
+
+// What the engine claims, keyed by feature-switch name, with the upstream
+// file(s) that must declare it. As of the 2026-09-24 sync every head, both
+// mutual-follow boosts and the video-duration gate are in BOTH files; the
+// OON factors and author diversity are only in vm-ranker/params.rs.
+const BOTH = ["paramRs", "vmParams"];
+const VM = ["vmParams"];
+
 function expected() {
-  const heads = {};
-  for (const [name, h] of Object.entries(C.heads)) heads[h.param] = { value: h.weight, what: "head " + name };
-  const other = {};
+  const out = {};
+  const put = (param, value, what, files) => { out[param] = { value, what, files }; };
+  for (const [name, h] of Object.entries(C.heads)) put(h.param, h.weight, "head " + name, BOTH);
   const r = C.rescorers;
-  other[r.outOfNetwork.param] = { value: r.outOfNetwork.factor, what: "rescorer outOfNetwork" };
-  other[r.topicOutOfNetwork.param] = { value: r.topicOutOfNetwork.factor, what: "rescorer topicOutOfNetwork" };
-  other[r.authorDiversity.param] = { value: r.authorDiversity.decay, what: "author diversity decay" };
-  other[r.authorDiversity.floorParam] = { value: r.authorDiversity.floor, what: "author diversity floor" };
-  other.rust_home_mixer_bidirectional_follow_reply_weight_boost = { value: C.bidirectionalFollowReplyBoost, what: "mutual-follow reply boost" };
-  other.rust_home_mixer_bidirectional_follow_dwell_weight_boost = { value: C.bidirectionalFollowDwellBoost, what: "mutual-follow dwell boost" };
-  other[C.sourcedFacts.minVideoDurationMs.param] = { value: C.sourcedFacts.minVideoDurationMs.value, what: "min video duration ms" };
-  return { heads, other };
+  put(r.outOfNetwork.param, r.outOfNetwork.factor, "rescorer outOfNetwork", VM);
+  put(r.topicOutOfNetwork.param, r.topicOutOfNetwork.factor, "rescorer topicOutOfNetwork", VM);
+  // weights.js records this one from config.rs without a param name; X now
+  // publishes it, so it is checked by its published name.
+  put("rust_home_mixer_new_user_oon_weight_factor", r.newUserOutOfNetwork.factor, "rescorer newUserOutOfNetwork", VM);
+  put(r.authorDiversity.param, r.authorDiversity.decay, "author diversity decay", VM);
+  put(r.authorDiversity.floorParam, r.authorDiversity.floor, "author diversity floor", VM);
+  put("rust_home_mixer_bidirectional_follow_reply_weight_boost", C.bidirectionalFollowReplyBoost, "mutual-follow reply boost", BOTH);
+  put("rust_home_mixer_bidirectional_follow_dwell_weight_boost", C.bidirectionalFollowDwellBoost, "mutual-follow dwell boost", BOTH);
+  put(C.sourcedFacts.minVideoDurationMs.param, C.sourcedFacts.minVideoDurationMs.value, "min video duration ms", BOTH);
+  return out;
 }
 
 // A weight head, as X names them: rust_home_mixer_<action>_weight. Boost and
@@ -57,53 +75,59 @@ const isHeadParam = k => /^rust_home_mixer_.+_weight$/.test(k);
 
 function check(files) {
   const problems = [];
+  const add = p => problems.push(Object.assign({ critical: CRITICAL.has(p.param) }, p));
   const parsed = {};
   for (const [key, src] of Object.entries(files)) {
     const p = parse(src || "");
+    parsed[key] = p;
     if (!Object.keys(p.params).some(isHeadParam)) {
-      problems.push({ kind: "unparseable", file: key, critical: true,
+      add({ kind: "unparseable", file: key, critical: true,
         message: key + ": no weight parameters found — fetch failed or the file moved" });
     }
-    parsed[key] = p;
-  }
-
-  // Union of both files; disagreement between them is drift.
-  const live = {};
-  for (const [key, p] of Object.entries(parsed)) {
-    for (const [name, v] of Object.entries(p.params)) {
-      if (name in live && live[name] !== v) {
-        problems.push({ kind: "disagree", param: name, critical: CRITICAL.has(name),
-          message: name + ": upstream files disagree (" + live[name] + " vs " + v + " in " + key + ")" });
-      } else live[name] = v;
+    for (const d of p.duplicates) {
+      add({ kind: "duplicate", file: key, param: d, critical: true,
+        message: key + ": " + d + " is declared more than once — cannot tell which value is live" });
     }
+  }
+  if (parsed.paramRs && !parsed.paramRs.lastSync) {
+    add({ kind: "nostamp", file: "paramRs", critical: true,
+      message: "paramRs: no 'last sync' stamp — the file format changed or the fetch is not param.rs" });
   }
 
   const exp = expected();
-  const allUnparseable = problems.some(p => p.kind === "unparseable");
+  const live = {};
   let headsChecked = 0;
-  for (const [param, e] of Object.entries(exp.heads)) {
-    headsChecked++;
-    if (!(param in live)) {
-      if (!allUnparseable) problems.push({ kind: "removed", param, critical: CRITICAL.has(param), repo: e.value,
-        message: param + " (" + e.what + "): gone from live param files — X deleted this head" });
-    } else if (live[param] !== e.value) {
-      problems.push({ kind: "value", param, critical: CRITICAL.has(param), repo: e.value, live: live[param],
-        message: param + " (" + e.what + "): repo " + e.value + " ≠ live " + live[param] });
+  for (const [param, e] of Object.entries(exp)) {
+    if (isHeadParam(param) && e.files === BOTH) headsChecked++;
+    const seen = [];
+    for (const key of e.files) {
+      const p = parsed[key];
+      if (!p || !Object.keys(p.params).some(isHeadParam)) continue; // already reported unparseable
+      if (!(param in p.params)) {
+        add({ kind: "removed", file: key, param, repo: e.value,
+          message: key + ": " + param + " (" + e.what + ") is missing — X deleted or moved it" });
+        continue;
+      }
+      seen.push([key, p.params[param]]);
+    }
+    if (seen.length === 2 && seen[0][1] !== seen[1][1]) {
+      add({ kind: "disagree", param,
+        message: param + ": upstream files disagree (" + seen.map(([k, v]) => k + " " + v).join(" vs ") + ")" });
+    }
+    for (const [key, v] of seen) {
+      live[param] = v;
+      if (v !== e.value) {
+        add({ kind: "value", file: key, param, repo: e.value, live: v,
+          message: key + ": " + param + " (" + e.what + "): repo " + e.value + " ≠ live " + v });
+      }
     }
   }
-  for (const [param, e] of Object.entries(exp.other)) {
-    if (!(param in live)) {
-      if (!allUnparseable) problems.push({ kind: "removed", param, critical: CRITICAL.has(param), repo: e.value,
-        message: param + " (" + e.what + "): gone from live param files" });
-    } else if (live[param] !== e.value) {
-      problems.push({ kind: "value", param, critical: CRITICAL.has(param), repo: e.value, live: live[param],
-        message: param + " (" + e.what + "): repo " + e.value + " ≠ live " + live[param] });
-    }
-  }
-  for (const param of Object.keys(live)) {
-    if (isHeadParam(param) && !(param in exp.heads)) {
-      problems.push({ kind: "added", param, critical: true, live: live[param],
-        message: param + ": new weight head upstream (" + live[param] + ") — weights.js does not model it" });
+  for (const [key, p] of Object.entries(parsed)) {
+    for (const param of Object.keys(p.params)) {
+      if (isHeadParam(param) && !(param in exp)) {
+        add({ kind: "added", file: key, param, critical: true, live: p.params[param],
+          message: key + ": new weight head " + param + " (" + p.params[param] + ") — weights.js does not model it" });
+      }
     }
   }
 
@@ -130,4 +154,4 @@ async function fetchLive(fetchImpl) {
   return out;
 }
 
-module.exports = { parse, check, fetchLive, SOURCES, CRITICAL };
+module.exports = { parse, check, fetchLive, stripComments, SOURCES, CRITICAL };

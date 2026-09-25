@@ -32,7 +32,10 @@ jobs:
       - name: Copy + Numbers gates
         run: node packages/bangermeter-rank/bin/bangermeter-rank.js gate
 
+  # Only on the schedule or by hand: a PR should not go red because X moved a
+  # weight overnight. Drift is its own alarm, handled by updating weights.js.
   weight-sync:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

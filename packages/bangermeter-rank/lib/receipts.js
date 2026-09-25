@@ -33,22 +33,20 @@ function pctString(v) {
   return String(p) + "%";
 }
 
-// Every string form a recorded figure may take in prose.
+// Every form a recorded figure may take in prose, in the Numbers Gate's
+// canonical shape: ASCII minus kept (a sign flip is a different claim), no
+// thousands separators, $ and % kept. Only the recorded value and its display
+// forms — not rounded variants, which would let 0.05 stand in for 0.0453.
 function allowedTokens() {
   const out = new Set();
   for (const f of data.figures) {
     const v = f.value;
     if (typeof v !== "number") continue;
-    const forms = [String(v), String(Math.abs(v)), v.toFixed(2), Math.abs(v).toFixed(2)];
-    if (Number.isInteger(v)) forms.push(Math.abs(v).toLocaleString("en-US"));
-    if (f.unit === "rate") forms.push(pctString(v), String(Number((v * 100).toFixed(2))) + "%");
-    for (const s of forms) out.add(normalize(s));
+    out.add(String(v));
+    if (f.unit === "usd") out.add("$" + v.toFixed(2));
+    if (f.unit === "rate") { out.add(pctString(v)); out.add((v * 100).toFixed(2) + "%"); }
   }
   return out;
 }
 
-function normalize(tok) {
-  return tok.replace(/^[−-]/, "").replace(/^\$/, "").replace(/,/g, "");
-}
-
-module.exports = { data, get, fmt, allowedTokens, normalize, pctString };
+module.exports = { data, get, fmt, allowedTokens, pctString };

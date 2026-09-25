@@ -17,7 +17,7 @@ test("clean: drops fresh, reposts, replies to others, cold @-starts; keeps self-
   ];
   const { kept, dropped } = bmr.clean(posts, { now: NOW });
   assert.deepEqual(kept.map(p => p.id), ["keep", "self"]);
-  assert.deepEqual(dropped, { fresh: 1, repost: 2, replyToOthers: 1, coldMention: 1, noViews: 1 });
+  assert.deepEqual(dropped, { invalid: 0, fresh: 1, repost: 2, replyToOthers: 1, coldMention: 1, noViews: 1 });
 });
 
 // Acceptance 1 — 500 views / 10 likes: C renders; E lowSample; no winner badge from E.
@@ -119,13 +119,47 @@ test("audit: winners beat their band median, misses fall below it; a median post
   assert.ok(r.winners.every(x => x.bandIndex > 1) && r.misses.every(x => x.bandIndex < 1));
 });
 
-test("audit: when nothing falls below its band median, the lowest post is still shown as a miss", () => {
-  const posts = [post({ id: "hi", views: 5000, likes: 300 }), post({ id: "eq", views: 5000, likes: 100 }),
-    post({ id: "eq2", views: 5000, likes: 100 })];
+test("audit: no post is forced into winners or misses; equal posts are neither", () => {
+  const same = [1, 2, 3].map(i => post({ id: "t" + i, views: 5000, likes: 100 }));
+  const r1 = bmr.rank(same, { now: NOW });
+  assert.deepEqual(r1.winners, []);
+  assert.deepEqual(r1.misses, []);
+  const zero = [1, 2, 3].map(i => post({ id: "z" + i, views: 5000, likes: 0 }));
+  const r2 = bmr.rank(zero, { now: NOW });
+  assert.deepEqual(r2.winners, []);
+  assert.deepEqual(r2.misses, []);
+  for (const r of r2.ranked) assert.ok(r.badges.length <= 1);
+});
+
+test("audit: missing likes or likes above views are unranked as bad data, not ranked as misses", () => {
+  const posts = [
+    post({ id: "nolikes", views: 5000, likes: undefined }),
+    post({ id: "impossible", views: 5000, likes: 9000 }),
+    post({ id: "a", views: 5000, likes: 100 }), post({ id: "b", views: 6000, likes: 90 }),
+    post({ id: "c", views: 7000, likes: 300 })
+  ];
   const r = bmr.rank(posts, { now: NOW });
-  assert.deepEqual(r.winners.map(x => x.card.id), ["hi"]);
-  assert.equal(r.misses.length, 1);
-  assert.notEqual(r.misses[0].card.id, "hi");
+  const reasons = Object.fromEntries(r.unranked.map(u => [u.card.id, u.reason]));
+  assert.match(reasons.nolikes, /like count/);
+  assert.match(reasons.impossible, /more likes than views/);
+  assert.ok(!r.ranked.some(x => x.card.id === "nolikes" || x.card.id === "impossible"));
+});
+
+test("clean tolerates loose input: string numbers, string booleans, epoch dates, null rows", () => {
+  const posts = [
+    null,
+    post({ id: "strs", views: "5,000", likes: "120", isRepost: "false", isReply: "false" }),
+    post({ id: "epoch", createdAt: NOW - 72 * HOUR }),
+    post({ id: "epoch-s", createdAt: Math.floor((NOW - 72 * HOUR) / 1000) }),
+    post({ id: "rt-str", isRepost: "true" })
+  ];
+  const { kept, dropped } = bmr.clean(posts, { now: NOW });
+  assert.deepEqual(kept.map(p => p.id), ["strs", "epoch", "epoch-s"]);
+  assert.equal(dropped.invalid, 1);
+  assert.equal(dropped.repost, 1);
+  const c = bmr.card(kept[0], { now: NOW });
+  assert.equal(c.views, 5000);
+  assert.equal(c.likes, 120);
 });
 
 test("audit: posts under 200 views and thin bands are listed as unranked with a reason", () => {
@@ -175,5 +209,7 @@ test("engagement mode carries its required subhead", () => {
 
 test("unknown mode is rejected, and C cannot be requested as a sort key", () => {
   assert.throws(() => bmr.rank([post()], { mode: "virality", now: NOW }), /unknown mode/);
-  assert.throws(() => bmr.rank([post()], { mode: "audit", sortBy: "C", now: NOW }), /C is a checklist/);
+  for (const sortBy of ["C", "C.score", "content", "views"]) {
+    assert.throws(() => bmr.rank([post()], { mode: "audit", sortBy, now: NOW }), /fixed order/);
+  }
 });
