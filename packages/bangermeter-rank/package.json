@@ -1,0 +1,18 @@
+{
+  "name": "bangermeter-rank",
+  "version": "0.1.0",
+  "description": "Ranking modes, score cards, weight-sync check and account-audit report for Bangermeter. C is a checklist against X's published weights; E is retrospective.",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "bin": { "bangermeter-rank": "bin/bangermeter-rank.js" },
+  "files": ["bin/", "lib/", "receipts/", "engine/", "README.md"],
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "test": "node --test \"test/*.test.js\"",
+    "sync": "node bin/bangermeter-rank.js sync",
+    "gate": "node bin/bangermeter-rank.js gate",
+    "prepack": "node lib/vendor-engine.js",
+    "postpack": "node -e \"require('fs').rmSync('engine',{recursive:true,force:true})\""
+  },
+  "repository": { "type": "git", "url": "git+https://github.com/itsryanlenk/bangermeter.git", "directory": "packages/bangermeter-rank" }
+}

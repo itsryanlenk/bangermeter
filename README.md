@@ -207,12 +207,13 @@ what the published weights actually say.
 | `extension/content.js` | Badges, breakdown panel, compose meter |
 | `extension/background.js` | Service worker. One listener: open the quick start on first install, never on update |
 | `extension/welcome.html` | The quick start itself — self-contained, loads nothing over the network |
-| `extension/test.html` | Engine self-test — open in any browser (255 assertions) |
+| `extension/test.html` | Engine self-test — open in any browser (257 assertions) |
 | `extension/fixture.html` | X-DOM fixture harness for the content script |
 | `extension/fixture-thread.html` | Reply-detection harness — asserts the conversation, `with_replies` and home-timeline surfaces separately, because X marks a reply differently on each. Needs `serve-fixtures.js` (it reads `location.pathname`) |
 | `extension/serve-fixtures.js` | Tiny static server for the harnesses, including the x.com-shaped paths the reply-detection cases need |
 | `extension/fixture-compose.html` | Compose-meter visibility harness — asserts the draft meter survives X's scrolling, overflow-hidden compose dialog (it prints its own pass count) |
 | `extension/bangermeter.user.js` | Single-file Tampermonkey build (generated — see `store-assets/make-userscript.ps1`) |
+| `packages/bangermeter-rank/` | Ranking modes (account audit, C checklist, E retrospective, stealability), score cards pinned to the `param.rs` sync, the daily weight-sync check, the customer audit report, and the copy and Numbers gates. Zero dependencies. See its README |
 | `skills/audience-readout/` | Claude skill: collect one account's real posts, score them, and write a read-out. Carries the analytical rules (rates not counts, confound checks) and the privacy rule — never commit an archive. Copy to `~/.claude/skills/` to install — see its SKILL.md |
 | `store-assets/weights-export.js` | Emits the weight values the store art needs, straight from `weights.js` |
 | `store-assets/make-*.ps1` | Generators for the userscript, the upload package, and the promo art |
@@ -224,10 +225,12 @@ happened when those numbers were hardcoded.
 
 ## Verification status
 
-- Engine math: **255/255 self-tests pass** (`test.html`). Every one of the 26 published
+- Engine math: **257/257 self-tests pass** (`test.html`). Every one of the 25 published
   weights and its feature-switch parameter name is asserted against `param.rs`
   individually, so a silent transcription error fails the suite rather than shipping.
-  All 26 re-verified unchanged against the live repo on Aug 25, 2026.
+  All 25 re-verified unchanged against the live repo's 2026-09-24T16:24:49Z sync. X
+  deleted a 26th head, `cont_active_secs_5m_residual_norm` (weighted 0.0), on Sept 23.
+  `packages/bangermeter-rank` runs `sync` daily in CI to catch the next change.
 - Locale strings (reply markers and count words for 16 locales) are transcribed from X's
   own production i18n bundles (`abs.twimg.com/responsive-web/client-web/i18n/*`), fetched
   Aug 25, 2026 and cross-checked against Wayback captures of the same bundles. Locales
