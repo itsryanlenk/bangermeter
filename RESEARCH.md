@@ -19,6 +19,16 @@
 > values. "Block −120 / mute −100" is really −31.2 / −58.8. "Reply = 27× a like" is really
 > 10×. "Bookmark 20×" describes a head that does not exist.
 
+## Update — September 24, 2026: X deletes a zero-weight head
+
+The `2026-09-23T16:28:43Z` sync removed `cont_active_secs_5m_residual_norm` from both
+`param.rs` and `ranking_scorer.rs`. It was weighted **0.0**, so no score moves, but the
+published roster is now **25** heads. `weights.js` dropped it and pins
+`paramRsLastSync: 2026-09-24T16:24:49Z`. All 25 remaining values were re-verified
+unchanged against that sync. The earlier "26/26" claims below were true at the time and
+remain as the historical record. `packages/bangermeter-rank` now runs a sync check
+that fails when a head is added, removed, or re-weighted.
+
 ## Update — August 14, 2026: X documents the misreading
 
 One day after publishing the weights, X added an explanatory comment block to both
