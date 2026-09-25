@@ -575,7 +575,7 @@ var BangermeterEngine = (function () {
       smoothingNote: views < K
         ? "Only " + views.toLocaleString() + " views — rates are smoothed toward the median (empirical Bayes, K=" + K.toLocaleString() + "), so small samples can't spike or tank the score."
         : null,
-      excludedNote: "Scored from the three heads a browser can see: likes (0.5), replies (" + replyW + "), reposts (1.0). The other 23 heads — shares (2.0 / 5.0 / 20.0), follows (4.0), clicks, dwell time and the negatives (−43.2 to −234.0) — need Phoenix's predictions, not counts."
+      excludedNote: "Scored from the three heads a browser can see: likes (0.5), replies (" + replyW + "), reposts (1.0). The other 22 heads — shares (2.0 / 5.0 / 20.0), follows (4.0), clicks, dwell time and the negatives (−43.2 to −234.0) — need Phoenix's predictions, not counts."
     };
   }
 

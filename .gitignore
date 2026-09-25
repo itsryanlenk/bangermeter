@@ -28,3 +28,7 @@ dist/
 # OS noise
 Thumbs.db
 desktop.ini
+
+# bangermeter-rank vendors the engine only inside a packed tarball
+packages/bangermeter-rank/engine/
+packages/bangermeter-rank/examples/*.jsonl

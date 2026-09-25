@@ -1,0 +1,46 @@
+name: bangermeter-rank
+
+# Tests and ship gates on every push and PR. Weight sync against X's live
+# param.rs + vm-ranker/params.rs every day: a red scheduled run means X moved a
+# weight, added or removed a head, or the two upstream files disagree.
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "30 18 * * *" # daily, after X's usual ~16:30 UTC sync
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Engine self-test
+        run: node extension/run-tests.js
+      - name: Version and test-count claims
+        run: node store-assets/check-versions.js
+      - name: Package tests
+        working-directory: packages/bangermeter-rank
+        run: npm test
+      - name: Copy + Numbers gates
+        run: node packages/bangermeter-rank/bin/bangermeter-rank.js gate
+
+  # Only on the schedule or by hand: a PR should not go red because X moved a
+  # weight overnight. Drift is its own alarm, handled by updating weights.js.
+  weight-sync:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Live param.rs drift check
+        run: node packages/bangermeter-rank/bin/bangermeter-rank.js sync
