@@ -41,7 +41,7 @@
 
     // ================================================================
     // WEIGHT LAYER — verbatim against xai-org/x-algorithm
-    // home-mixer/params/param.rs (sync 2026-09-24T16:24:49Z)
+    // home-mixer/params/param.rs (sync 2026-09-29T17:02:52Z)
     // Every value below was transcribed from the published file. If any
     // of these fail, the tool is lying about X's algorithm.
     // ================================================================
@@ -49,11 +49,11 @@
 
     var PARAM_RS = {
       favorite: 0.5, reply: 5.0, retweet: 1.0, photo_expand: 0.05, video_open: 0.07,
-      click: 0.4, open_link: 0.2, profile_click: 0.0, vqv: 0.0, share: 2.0,
+      click: 0.3, open_link: 0.2, profile_click: 0.0, vqv: 0.0, share: 2.0,
       share_via_dm: 5.0, share_via_copy_link: 20.0, dwell: 0.05, quote: 5.0,
       quoted_click: 0.05, quoted_vqv: 0.0, follow_author: 4.0, post_unexplored: 0.02,
-      cont_dwell_time: 0.004, cont_click_dwell_time: 0.0,
-      not_interested: -43.2, block_author: -31.2, mute_author: -58.8,
+      cont_dwell_time: 0.004, cont_click_dwell_time: 0.4,
+      not_interested: -47.52, block_author: -31.2, mute_author: -58.8,
       report: -234.0, not_dwelled: -0.02
     };
     Object.keys(PARAM_RS).forEach(function (k) {
@@ -77,7 +77,7 @@
     check("retired head cont_active_secs_5m_residual_norm is gone",
       H.cont_active_secs_5m_residual_norm === undefined);
     check("param.rs last-sync stamp is pinned for score cards",
-      C.paramRsLastSync === "2026-09-24T16:24:49Z", C.paramRsLastSync);
+      C.paramRsLastSync === "2026-09-29T17:02:52Z", C.paramRsLastSync);
 
     // ── Facts X published on Aug 14 2026 ──────────────────────────────
     // The weights themselves did not move; these are the clarifications
@@ -89,8 +89,12 @@
       !!SF.homeTimelineOnly && /no ranking impact/i.test(SF.homeTimelineOnly.note));
     check("brigading-resistance explanation is recorded",
       !!SF.brigadingResistance && /personalized/i.test(SF.brigadingResistance.note));
+    // Counted at 77d431a (Sept 30): numeric literals in the FxHashSet, all unique.
     check("Brazil 2026 election filter recorded with its account count",
-      SF.brazil2026ElectionFilter && SF.brazil2026ElectionFilter.accounts === 2776);
+      SF.brazil2026ElectionFilter && SF.brazil2026ElectionFilter.accounts === 2795,
+      SF.brazil2026ElectionFilter && SF.brazil2026ElectionFilter.accounts);
+    check("Brazil count carries the date it was read",
+      SF.brazil2026ElectionFilter.accountsAsOf === "2026-09-30");
     // The ratio reading X calls incorrect must not reappear as a claim.
     check("the ratio-as-value reading is named as incorrect, not repeated",
       /incorrect/i.test(C.weightsMeaningNote) && /468/.test(C.weightsMeaningNote));
@@ -104,10 +108,31 @@
       SF.conversationRanker && SF.conversationRanker.published === false);
     check("OON reply hard-filter recorded",
       !!SF.oonReplyFilter && /entirely/i.test(SF.oonReplyFilter.note));
-    check("reply quality gate: 200K routing threshold, 0-3 score, label named",
-      SF.replyQualityGate.followerThreshold === 200000 && SF.replyQualityGate.scoreMax === 3 &&
+    check("reply quality gate: 250K routing threshold, 0-3 score, label named",
+      SF.replyQualityGate.followerThreshold === 250000 && SF.replyQualityGate.scoreMax === 3 &&
       SF.replyQualityGate.zeroScoreLabel === "RiskyHighVizReply" &&
-      SF.replyQualityGate.selfRepliesExempt === true);
+      SF.replyQualityGate.selfRepliesExempt === true, SF.replyQualityGate.followerThreshold);
+    // grox/flows/reply_spam/constants.py, traced through every commit that
+    // touched it or task_filter.py. Eleven raises, not eight: the 0.10.2 note
+    // skipped 180,000 (Sept 16) and dated 200,000 a day early.
+    check("reply gate history lists all eleven raises with the right Sept dates",
+      /eleven/i.test(SF.replyQualityGate.note) &&
+      /180,000 \(Sept 16\)/.test(SF.replyQualityGate.note) &&
+      /200,000 \(Sept 17\)/.test(SF.replyQualityGate.note) &&
+      /225,000 \(Sept 23\)/.test(SF.replyQualityGate.note) &&
+      /250,000 \(Sept 24\)/.test(SF.replyQualityGate.note));
+    // classifier_simple_reply_scorer.py: GEMMA_REPLY_SPAM_MIN_FOLLOWERS 125,000
+    // since Sept 26; and a reply that quotes a post goes to the full Grok
+    // scorer whatever the follower counts (Sept 22).
+    check("Gemma reply-spam band is 125,001-250,000",
+      SF.replyQualityGate.gemmaSpamModelMinFollowers === 125000 &&
+      /125,001/.test(SF.replyQualityGate.note));
+    check("quote-replies are routed to the Grok scorer below the gate",
+      SF.replyQualityGate.quoteRepliesAlwaysGrok === true);
+    // task_write.py: the score-0 label is skipped for high-page-rank and
+    // grey-badge authors.
+    check("score-0 label exemption for high-page-rank / grey-badge authors recorded",
+      SF.replyQualityGate.labelExempt && SF.replyQualityGate.labelExempt.length === 2);
     // task_write.py applies the label with NO duration argument; the 30-day
     // TTL in enforcement_post.yaml belongs to the llm_slop_post trigger, a
     // different rule. Claiming 30 days here would be a misattribution.
@@ -120,22 +145,46 @@
       SF.underTheHood.aggregatesOnly === true &&
       SF.underTheHood.postLabelAllowlist.length === 18 &&
       SF.underTheHood.accountLabelAllowlist.length === 12);
+    // Upstream README moved the link to /i/jf/ on Sept 25 (bf7db1b), the same
+    // push that published a page rendering the report.
+    check("Under the Hood path is the current /i/jf/ URL",
+      SF.underTheHood.path === "x.com/i/jf/under_the_hood", SF.underTheHood.path);
+    check("Under the Hood note no longer asserts the page never renders the labels",
+      !/does not render the label data into the DOM/.test(SF.underTheHood.note));
     check("July 13 'mutuals' announcement mapped to the EXISTING boost, still 15.0",
       /July 13/.test(H.reply.note) && C.bidirectionalFollowReplyBoost === 15.0);
 
-    // ── Mechanisms verified against the repo 2026-09-19 ───────────────
-    // Author cold start is DEFAULT ON and promotes exactly one post per
-    // request. home-mixer/scorers/author_cold_start.rs.
+    // ── Mechanisms verified against the repo ───────────────────────────
+    // Author cold start is DEFAULT ON and promotes at most one post per
+    // request. home-mixer/scorers/author_cold_start.rs. Every gate moved in
+    // the 2026-09-29T17:02:52Z sync (published Sept 30, 77d431a).
     check("author cold start recorded, default ON, one post per request",
       SF.authorColdStart && SF.authorColdStart.enabled === true &&
       SF.authorColdStart.postsPromotedPerRequest === 1);
-    check("cold start gates: 1K followers, 1K impressions, 48h, slot 15",
-      SF.authorColdStart.followerCap === 1000 &&
-      SF.authorColdStart.impressionThreshold === 1000 &&
-      SF.authorColdStart.maxPostAgeHours === 48 &&
-      SF.authorColdStart.slotMin === 15);
+    check("cold start enable flag carries its real feature-switch name",
+      SF.authorColdStart.enabledParam === "rust_home_mixer_enable_viewer_cold_start_boost",
+      SF.authorColdStart.enabledParam);
+    check("cold start gates: 50K followers, 200 impressions, 2h, slot 15, top 97%",
+      SF.authorColdStart.followerCap === 50000 &&
+      SF.authorColdStart.impressionThreshold === 200 &&
+      SF.authorColdStart.maxPostAgeHours === 2 &&
+      SF.authorColdStart.slotMin === 15 &&
+      SF.authorColdStart.maxPositionRatio === 0.97);
+    check("cold start gates carry the date they were read",
+      SF.authorColdStart.asOf === "2026-09-29", SF.authorColdStart.asOf);
     check("cold start is original posts only — not replies, not reposts",
       SF.authorColdStart.originalPostsOnly === true);
+    // The winner is no longer simply the highest-scoring eligible post: a
+    // like rate is sampled from Beta(0.75 + likes, 49.25 + views − likes) per
+    // eligible post, the top 2 samples survive, and the higher model score of
+    // those two wins.
+    check("cold start picks by Thompson sampling on like rate, top 2",
+      SF.authorColdStart.selection === "thompson" &&
+      SF.authorColdStart.betaAlpha0 === 0.75 && SF.authorColdStart.betaBeta0 === 49.25 &&
+      SF.authorColdStart.thompsonTopK === 2);
+    check("cold start note no longer says the highest-scoring post wins",
+      !/The winner is the highest-scoring post/.test(SF.authorColdStart.note) &&
+      /Thompson/.test(SF.authorColdStart.note));
     // content_features.rs names the content inputs sent to the model.
     check("published content features recorded (7 fields)",
       SF.contentFeatures && SF.contentFeatures.fields.length === 7);
@@ -170,7 +219,7 @@
       !/one number X uses in two places/.test(SF.dwellMark.note) &&
       /CLIP'S OWN LENGTH/.test(SF.dwellMark.note));
     check("reply gate carries the date its reading was taken",
-      SF.replyQualityGate.thresholdAsOf === "2026-09-18");
+      SF.replyQualityGate.thresholdAsOf === "2026-09-30", SF.replyQualityGate.thresholdAsOf);
     check("reply gate does not claim the old 100K figure was mis-sourced",
       /CORRECT when it shipped/.test(SF.replyQualityGate.note));
     check("cold start promotes AT MOST one post, not exactly one",
@@ -180,13 +229,36 @@
     // ---- weight sums, exactly as ScoringWeights::new builds them ----
     // ranking_scorer.rs:105-128. cont_* terms and the bidirectional boost are
     // deliberately NOT in positive_sum.
-    section("Weight sums (ranking_scorer.rs:105-128)");
-    check("positive_sum = 43.34", approx(C.weightSums.positive, 43.34, 1e-9), C.weightSums.positive);
-    check("negative_sum = 367.22", approx(C.weightSums.negative, 367.22, 1e-9), C.weightSums.negative);
-    check("total_sum = 410.56", approx(C.weightSums.total, 410.56, 1e-9), C.weightSums.total);
+    section("Weight sums (xai-value-model/weights.rs)");
+    check("positive_sum = 43.24", approx(C.weightSums.positive, 43.24, 1e-9), C.weightSums.positive);
+    check("negative_sum = 371.54", approx(C.weightSums.negative, 371.54, 1e-9), C.weightSums.negative);
+    check("total_sum = 414.78", approx(C.weightSums.total, 414.78, 1e-9), C.weightSums.total);
     check("cont_dwell_time excluded from positive_sum",
       C.weightSums.positiveMembers.indexOf("cont_dwell_time") === -1);
+    check("cont_click_dwell_time excluded from positive_sum, though now weighted 0.4",
+      C.weightSums.positiveMembers.indexOf("cont_click_dwell_time") === -1);
     check("NEGATIVE_SCORES_OFFSET = 0.001", C.negativeScoresOffset === 0.001);
+    // The negative-branch ceiling is negative_sum / total_sum × offset.
+    check("negative-offset note quotes the current ceiling (0.000896)",
+      /0\.000896/.test(SF.negativeOffsetRule.note), SF.negativeOffsetRule.note);
+
+    // ---- where the live score is computed (moved Sept 24, 2026) ----
+    // home-mixer's RankingScorer was deleted in 44d37eb; vm-ranker computes
+    // the final score with xai-value-model. Same math at published defaults.
+    check("scorer source points at the live value model, not the deleted file",
+      /xai-value-model\/scoring\.rs$/.test(C.scorerSourceUrl), C.scorerSourceUrl);
+    check("weights source points at the file the live scorer reads",
+      /vm-ranker\/params\.rs$/.test(C.weightsSourceUrl), C.weightsSourceUrl);
+    check("new-user OON factor cites its published param, not the deleted config.rs const",
+      C.rescorers.newUserOutOfNetwork.param === "rust_home_mixer_new_user_oon_weight_factor" &&
+      C.rescorers.newUserOutOfNetwork.provenance === "2026-published" &&
+      C.rescorers.newUserOutOfNetwork.inert === true &&
+      !/config\.rs/.test(C.rescorers.newUserOutOfNetwork.note));
+    // vm-ranker gates VQV on clip duration only (xai-value-model/proto.rs);
+    // the viewer ≥10,000-follower gate survives only in home-mixer's local
+    // fallback score, so it no longer reaches the served ranking.
+    check("vqv note no longer claims the viewer-follower gate zeroes the live weight",
+      !/forces the weight to 0 outright/.test(H.vqv.note), H.vqv.note);
 
     // ================================================================
     // offset_score — ranking_scorer.rs:525-533
@@ -351,6 +423,38 @@
     check("the gate itself still discriminates, it just pays nothing",
       E.vqvEligible({ hasVideo: true, isGif: true }) === false &&
       E.vqvEligible({ hasVideo: true, videoSeconds: 40 }) === true);
+
+    // ================================================================
+    // Click dwell — live at 0.4 since the Sept 28 sync (published Sept 29,
+    // a707cc2). Named cont_* upstream, but the published Phoenix config
+    // trains it as a BINARY head ("click-dwell-binary", threshold 10.0) and
+    // binary heads skip the seconds rescale at inference, so the value the
+    // weight multiplies is a probability, not a duration.
+    // ================================================================
+    section("Click-dwell head");
+    var CD = "cont_click_dwell_time";
+    function contribCD(res) {
+      var row = res.contributions.filter(function (c) { return c.head === CD; })[0];
+      return row ? row.contribution : null;
+    }
+    check("click dwell is not flagged as a continuous (seconds) head",
+      H[CD].continuous !== true);
+    check("click dwell has a probability baseline, not seconds",
+      C.baselineP[CD] > 0 && C.baselineP[CD] < 1, C.baselineP[CD]);
+    // The label needs a click to exist, so it can never be likelier than one.
+    check("click dwell baseline sits below the click baseline",
+      C.baselineP[CD] < C.baselineP.click, C.baselineP[CD] + " vs " + C.baselineP.click);
+    var plainCD = E.contentScore({ text: "a perfectly ordinary post about nothing" }, {});
+    check("click dwell is scored on every post", contribCD(plainCD) != null && contribCD(plainCD) > 0,
+      contribCD(plainCD));
+    var threadCD = E.contentScore({ text: "a perfectly ordinary post about nothing",
+      isThreadStarter: true }, {});
+    check("a thread starter raises click dwell along with clicks",
+      contribCD(threadCD) > contribCD(plainCD), contribCD(threadCD) + " vs " + contribCD(plainCD));
+    check("snapshot records the three Sept 29 weight moves",
+      /click 0\.4→0\.3/.test(C.weightsSnapshot) &&
+      /cont_click_dwell_time 0\.0→0\.4/.test(C.weightsSnapshot) &&
+      /not_interested −43\.2→−47\.52/.test(C.weightsSnapshot), C.weightsSnapshot);
 
     // ================================================================
     // Binary dwell — live at 0.05 since Aug 25 2026. Estimated as the

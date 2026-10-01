@@ -21,7 +21,7 @@ test("acceptance 4: report shows winners, at least one miss, and the C hedge", (
   assert.match(html, /<h2[^>]*>Misses/);
   assert.match(html, /data-id="m1"|data-id="m2"/);
   assert.match(html, /C does not forecast reach or likes/);
-  assert.match(html, /2026-09-24T16:24:49Z/);
+  assert.match(html, /2026-09-29T17:02:52Z/);
   assert.match(html, /@page/);
 });
 

@@ -15,7 +15,7 @@ param!(
     "rust_home_mixer_video_open_weight",
     0.07
 );
-param!(ClickWeight, f64, "rust_home_mixer_click_weight", 0.4);
+param!(ClickWeight, f64, "rust_home_mixer_click_weight", 0.3);
 param!(OpenLinkWeight, f64, "rust_home_mixer_open_link_weight", 0.2);
 param!(
     ProfileClickWeight,
@@ -61,7 +61,7 @@ param!(
     ContClickDwellTimeWeight,
     f64,
     "rust_home_mixer_cont_click_dwell_time_weight",
-    0.0
+    0.4
 );
 param!(
     FollowAuthorWeight,
@@ -79,7 +79,7 @@ param!(
     NotInterestedWeight,
     f64,
     "rust_home_mixer_not_interested_weight",
-    -43.2
+    -47.52
 );
 param!(
     BlockAuthorWeight,
