@@ -7,7 +7,8 @@
    not accept a second upload at an existing version number, so a correction to a live
    release is always a bump, never a re-upload.
 
-2. Rebuild the userscript, which restates the extension version:
+2. Rebuild the userscript, which restates the extension version and derives its own
+   `@version` from it (0.10.x is 1.8.x), so there is nothing to bump by hand:
 
    ```
    pwsh store-assets/make-userscript.ps1
