@@ -238,13 +238,13 @@
     </div>
   </article>
 
-  <!-- 15: CONTROL. No header from X. The long body has "Visibility limited"
-       as a line of its own, past character 200, and a poll offers it as an
-       option. Neither is X's label: the panel must show neither
-       visibility-limited row. -->
+  <!-- 15: CONTROL. No header from X. The short body has "Visibility
+       limited" as a line of its own, and a poll offers it as an option, both
+       inside the first 200 characters. Neither is X's label: the panel must
+       show neither visibility-limited row. The old window showed one. -->
   <article data-testid="tweet" id="t15">
     <div data-testid="User-Name"><span class="name">Omar</span> <a href="/omar/status/1015"><time datetime="2026-08-02T14:40:00.000Z">20m</time></a></div>
-    <div data-testid="tweetText">Three weeks of posting at the same hour, same length, same topics, and my reach dropped by half after the second week. I checked the usual suspects: no strikes, no notices on any post, nothing in the account status page. Then a friend sent me a screenshot of one of my posts with a line under it that said<br>Visibility limited<br>Has anyone else seen that?</div>
+    <div data-testid="tweetText">A friend says my posts show this line:<br>Visibility limited<br>Which is it?</div>
     <div data-testid="card.wrapper">
       <div data-testid="cardPoll">
         <div>Visibility limited</div>
@@ -255,6 +255,28 @@
       <button data-testid="reply" aria-label="12 Replies. Reply">💬 12</button>
       <button data-testid="retweet" aria-label="3 reposts. Repost">🔁 3</button>
       <button data-testid="like" aria-label="20 Likes. Like">❤ 20</button>
+    </div>
+  </article>
+
+  <!-- 16: SHORT post quoting a PHOTO post that carries the header. The quoted
+       post has no text, so its card is recognized by its name block. The
+       panel must show the quoted-post row and not the visibility-limited
+       row. -->
+  <article data-testid="tweet" id="t16">
+    <div data-testid="User-Name"><span class="name">Rui</span> <a href="/rui/status/1016"><time datetime="2026-08-02T14:35:00.000Z">25m</time></a></div>
+    <div data-testid="tweetText">lol</div>
+    <div role="link" tabindex="0" style="border:1px solid #ccc;border-radius:12px;padding:8px;margin-top:6px;">
+      <div data-testid="User-Name"><span class="name">Bea</span> · 3h</div>
+      <div data-testid="tweetPhoto" class="media">quoted photo</div>
+      <div role="link" tabindex="0">
+        <div><b>Visibility Limited</b></div>
+        <div><a href="#">Learn more</a></div>
+      </div>
+    </div>
+    <div role="group" aria-label="1 reply, 6 likes, 500 views">
+      <button data-testid="reply" aria-label="1 Reply. Reply">💬 1</button>
+      <button data-testid="retweet" aria-label="0 reposts. Repost">🔁</button>
+      <button data-testid="like" aria-label="6 Likes. Like">❤ 6</button>
     </div>
   </article>
 

@@ -348,25 +348,32 @@ var BangermeterEngine = (function () {
   // post's, or both. content.js gathers the text; this decides.
   //
   //   articleText  the article's innerText
-  //   quoteTexts   each quote card's innerText
+  //   postText     this post's own tweetText, or "" when it has none
+  //   cutTexts     innerText of each region whose words are not X's: quote
+  //                cards, link previews, polls, Community Notes, the name
+  //                block, the repost line
   //   belowText    text after this post's own text, outside quote cards
   //   quotedText   text after the quoted post's text, inside its card
   //
   // X draws the header after the post's text and media (the soft
-  // intervention, b3296688), and draws the quoted post's own header inside
-  // the quote card. Below the text only a whole line counts. The 200-character
-  // window over the article's start stays, for a notice drawn above the text,
-  // but quote cards are cut out of it first: a label in the card belongs to
-  // the quoted post, and For You treats that case differently (see
-  // sourcedFacts.quotedVisibilityLimited).
+  // intervention, b3296688), so below the text a whole line counts, at any
+  // post length. The 200-character contains-match stays for a notice drawn
+  // ABOVE the text (X's NonCompliant tombstone), and now reads only what is
+  // above the text, minus the cut regions: past that point it could match
+  // nothing but someone else's words. A post with no text keeps the whole
+  // window. A label in a quote card belongs to the quoted post, and For You
+  // treats that case differently (see sourcedFacts.quotedVisibilityLimited).
   function visibilityLimitedVerdict(o) {
     o = o || {};
     var own = String(o.articleText || "");
-    (o.quoteTexts || []).forEach(function (q) {
+    (o.cutTexts || []).forEach(function (q) {
       q = String(q || "");
       var at = q ? own.indexOf(q) : -1;
       if (at !== -1) own = own.slice(0, at) + own.slice(at + q.length);
     });
+    var post = String(o.postText || "");
+    var start = post ? own.indexOf(post.slice(0, 40)) : -1;
+    if (start !== -1) own = own.slice(0, start);
     return {
       own: visibilityLimitedIn(own.slice(0, 200)) || visibilityLimitedLineIn(o.belowText),
       quoted: visibilityLimitedLineIn(o.quotedText)

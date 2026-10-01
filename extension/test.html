@@ -663,7 +663,12 @@
     check("empty/null text has no header line",
       VLL("") === false && VLL(null) === false);
 
-    var VL_HEAD = "Alice\n@alice\n·\n2h\n";
+    // Inputs as content.js builds them: the article's text, the post's own
+    // text, the text of every region whose words are not X's (quote cards,
+    // link previews, polls, Community Notes, the name block, the repost
+    // line), the text below the post, and the text inside quote cards.
+    var VL_NAME = "Alice\n@alice\n·\n2h";
+    var VL_HEAD = VL_NAME + "\n";
     var VL_LONG = "The bridge budget doubled in eighteen months, and the council minutes " +
       "show why. First, the steel contract was re-tendered after the original bidder " +
       "folded. Second, the river survey found softer ground than the 2019 plan assumed. " +
@@ -674,34 +679,62 @@
     var vlLongText = VL_HEAD + VL_LONG + "\nVisibility Limited\nLearn more\n3\n12\n40";
     check("verdict: the old 200-character window misses a long post's header",
       E.visibilityLimitedIn(vlLongText.slice(0, 200)) === false);
-    var vlLong = VLV({ articleText: vlLongText, quoteTexts: [],
+    var vlLong = VLV({ articleText: vlLongText, postText: VL_LONG, cutTexts: [VL_NAME],
       belowText: "Visibility Limited\nLearn more\n3\n12\n40", quotedText: "" });
     check("verdict: a long post's header below the text is its own",
       vlLong.own === true && vlLong.quoted === false);
-    // A post body that names the label is never scanned line by line: only
-    // the text after it is. The body line here sits past character 200.
-    var vlBody = VLV({
-      articleText: VL_HEAD + VL_LONG + "\nVisibility Limited\nIs this what X shows?\n3\n12\n40",
-      quoteTexts: [], belowText: "3\n12\n40", quotedText: "" });
-    check("verdict: a long body that has the label as a line is not limited",
+    // The window stops where the post's own text starts, so a short body
+    // that says the words, as a line or inside one, is not the label.
+    var vlBodyLine = "Is this what X shows?\nVisibility Limited\nAnyone else?";
+    var vlBody = VLV({ articleText: VL_HEAD + vlBodyLine + "\n3\n12\n40",
+      postText: vlBodyLine, cutTexts: [VL_NAME], belowText: "3\n12\n40", quotedText: "" });
+    check("verdict: a short body with the label as a line is not limited",
       vlBody.own === false && vlBody.quoted === false);
+    var vlSentence = VLV({ articleText: VL_HEAD + "is my visibility limited again\n3\n4",
+      postText: "is my visibility limited again", cutTexts: [VL_NAME], belowText: "3\n4", quotedText: "" });
+    check("verdict: a short body that says the words is not limited",
+      vlSentence.own === false);
     // A short post quoting a labeled post. Its 200 characters reach into the
     // quote card, which the old window counted as the post's own label.
     var vlCard = "Bea\n@bea\n·\n3h\nThe original claim.\nVisibility Limited\nLearn more";
     var vlQuote = VLV({ articleText: VL_HEAD + "This take aged well.\n" + vlCard + "\n2\n1\n9",
-      quoteTexts: [vlCard], belowText: "2\n1\n9", quotedText: "Visibility Limited\nLearn more" });
+      postText: "This take aged well.", cutTexts: [VL_NAME, vlCard], belowText: "2\n1\n9",
+      quotedText: "Visibility Limited\nLearn more" });
     check("verdict: a label in the quote card is the quoted post's, not this one's",
       vlQuote.own === false && vlQuote.quoted === true);
     var vlBoth = VLV({
       articleText: VL_HEAD + VL_LONG + "\nVisibility Limited\nLearn more\n" + vlCard + "\n2\n1\n9",
-      quoteTexts: [vlCard], belowText: "Visibility Limited\nLearn more\n2\n1\n9",
+      postText: VL_LONG, cutTexts: [VL_NAME, vlCard], belowText: "Visibility Limited\nLearn more\n2\n1\n9",
       quotedText: "Visibility Limited\nLearn more" });
     check("verdict: a labeled post quoting a labeled post has both",
       vlBoth.own === true && vlBoth.quoted === true);
+    // Cutting a long quote card must not pull later text into the window.
+    var vlNote = "Readers added context: the visibility limited claim is false.";
+    var vlLongCard = "Bea\n@bea\n·\n3h\n" + VL_LONG;
+    var vlAfterCard = VLV({ articleText: VL_HEAD + "ok\n" + vlLongCard + "\n" + vlNote + "\n2\n1",
+      postText: "ok", cutTexts: [VL_NAME, vlLongCard, vlNote], belowText: "2\n1", quotedText: "" });
+    check("verdict: text after a long quote card does not reach the window",
+      vlAfterCard.own === false);
+    // A post with no text of its own: the window still covers it, minus
+    // the words that are not X's.
+    var vlCardTitle = "Visibility limited: what X is not telling you\nexample.com";
+    var vlLinkOnly = VLV({ articleText: VL_HEAD + vlCardTitle + "\n3\n4", postText: "",
+      cutTexts: [VL_NAME, vlCardTitle], belowText: "3\n4", quotedText: "" });
+    check("verdict: a link preview's title is not the label",
+      vlLinkOnly.own === false);
+    var vlPhotoOnly = VLV({ articleText: VL_HEAD + "photo\nVisibility Limited\nLearn more\n3", postText: "",
+      cutTexts: [VL_NAME], belowText: "", quotedText: "" });
+    check("verdict: a post with no text still has its header found in the window",
+      vlPhotoOnly.own === true);
+    var vlName = "Visibility Limited Fan\n@vlfan\n·\n2h";
+    var vlByName = VLV({ articleText: vlName + "\nhello\n3", postText: "hello",
+      cutTexts: [vlName], belowText: "3", quotedText: "" });
+    check("verdict: a display name is not the label",
+      vlByName.own === false);
     // What the 200-character window caught before must still be caught:
     // a notice drawn above the text, matched inside a longer line.
-    var vlAbove = VLV({ articleText: VL_HEAD + "Visibility limited by X\nA post carrying X's notice.",
-      quoteTexts: [], belowText: "1\n4", quotedText: "" });
+    var vlAbove = VLV({ articleText: VL_HEAD + "Visibility limited by X\nA post carrying X's notice.\n1\n4",
+      postText: "A post carrying X's notice.", cutTexts: [VL_NAME], belowText: "1\n4", quotedText: "" });
     check("verdict: a notice above the text is still found",
       vlAbove.own === true && vlAbove.quoted === false);
     var vlNone = VLV(undefined);

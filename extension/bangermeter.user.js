@@ -365,18 +365,24 @@ var BANGERMETER_CONFIG = {
       provenance: "2026-published",
       verifiedAt: "77d431a", verifiedAsOf: "2026-09-30",
       sources: [
-        "home-mixer/candidate_hydrators/vf_candidate_hydrator.rs@77d431a (lines 79-80, 100-106: every candidate's quoted post is checked at TimelineHomeRecommendations; lines 109-110: a post that is also checked in-network keeps that verdict; lines 140-170: should_drop_ancillary flags a post whose quoted post is dropped)",
+        "home-mixer/candidate_hydrators/vf_candidate_hydrator.rs@77d431a (lines 79-80, 100-106: a candidate's quoted post is checked at TimelineHomeRecommendations; lines 109-110: a post that is also checked in-network keeps that verdict; lines 119-120: a post whose own check errors is not updated; lines 140-170: should_drop_ancillary flags a post whose quoted post is dropped)",
         "home-mixer/filters/ancillary_vf_filter.rs@77d431a (line 15: every flagged post is removed)",
-        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs@77d431a (lines 425, 445: wired into For You)",
+        "home-mixer/filters/vf_filter.rs@77d431a (lines 22-27: NotEvaluated counts as a drop)",
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs@77d431a (lines 425, 445: the check and the filter are in the Phoenix pipeline)",
+        "home-mixer/scored_posts_server.rs@77d431a (line 56: ScoredPostsSource runs the Phoenix pipeline)",
+        "home-mixer/candidate_pipeline/for_you_candidate_pipeline.rs@77d431a (lines 195-197: For You takes its posts from ScoredPostsSource; lines 203-212, 233-234, 295-297: PushToHomeSource posts get no VF filter)",
+        "home-mixer/candidate_pipeline/ranked_following_candidate_pipeline.rs@77d431a (lines 122-125: so does the ranked Following feed)",
+        "home-mixer/candidate_hydrators/quote_hydrator.rs@77d431a (lines 224-239: a failed quote lookup leaves no quoted post, and is cached)",
+        "candidate-pipeline/hydrator.rs@77d431a (lines 60-65: a hydrator error leaves the post as it was)",
+        "visibility-filtering-client/vf_client.rs@77d431a (lines 426-433: a post missing from a response is NotEvaluated; lines 438-451: an RPC error gives no verdict)",
         "visibility-filtering/rules/tweet_rules.rs@77d431a (lines 159-161: each drop exempts the post's author; lines 163-185, 574-580: the five FOSNR labels)",
         "visibility-filtering/rules/registry.rs@77d431a (lines 134-164, 268-271: four labels drop at TimelineHome, all five at TimelineHomeRecommendations)",
         "home-mixer/candidate_hydrators/vf_following_candidate_hydrator.rs@77d431a (lines 49-50, 63: the chronological Following feed checks quoted posts at TimelineHome)",
         "home-mixer/candidate_pipeline/reverse_chron_posts_pipeline.rs@77d431a (lines 169, 182: and removes flagged posts)",
-        "home-mixer/candidate_pipeline/for_you_candidate_pipeline.rs@77d431a (lines 203-212: PushToHomeSource posts get no VF filter)",
         "under-the-hood/strato/lib/underTheHoodLabels.strato@77d431a (lines 69-98: the five FOSNR labels come with a label all users can see)"
       ],
-      panel: "Quotes a post X limited — For You removes this post too",
-      note: "X's own descriptions say five FOSNR labels come with a notice that the post has limited visibility (underTheHoodLabels.strato). For You checks every candidate's quoted post at the TimelineHomeRecommendations safety level, where all five are dropped. When the quoted post is dropped, should_drop_ancillary flags the quoting post and AncillaryVFFilter removes it, whether or not it has a label of its own. The drops exempt the quoted post's author, who can still be shown the quoting post. Three paths skip the removal: a quoted post whose visibility check fails gets no verdict; a quoted post that is also checked in-network keeps that verdict, and FOSNR_ABUSE_INSULTS is not dropped in-network; and posts from PushToHomeSource pass through no VF filter. The chronological Following feed checks quoted posts at TimelineHome, so it removes a post that quotes one with any of the other four labels. Where and how X renders the notice is not in the published code." }
+      panel: "Quotes a post X limited — X's published code removes posts like this from For You",
+      note: "X's own descriptions say five FOSNR labels come with a notice that the post has limited visibility (underTheHoodLabels.strato). That the notice shown here is one of them is an inference: where and how X renders it is not in the published code. For You checks each candidate's quoted post at the TimelineHomeRecommendations safety level, where all five are dropped. When the quoted post is dropped, should_drop_ancillary flags the quoting post and AncillaryVFFilter removes it, whether or not it has a label of its own. That holds even when the quoted post itself would be shown: a FOSNR_ABUSE_INSULTS post from an account the viewer follows. The drops exempt the quoted post's author, who can still be shown the quoting post. At least five paths skip the removal: the quote lookup fails, so there is no quoted post to check; the quoted post's check fails with an RPC error (a post missing from a successful response counts as dropped); the quoting post's own check errors, so it is never flagged; the quoted post is also checked in-network in the same request and keeps that verdict, where FOSNR_ABUSE_INSULTS is not dropped; or the post arrives from PushToHomeSource, which passes through no VF filter. The ranked Following feed runs the same pipeline as For You. The chronological Following feed checks quoted posts at TimelineHome, so it removes a post quoting one with any of the four labels other than FOSNR_ABUSE_INSULTS." }
   },
 
   // ── MEASURED RATES (retrospective score only) ───────────────────────────────
@@ -896,25 +902,32 @@ var BangermeterEngine = (function () {
   // post's, or both. content.js gathers the text; this decides.
   //
   //   articleText  the article's innerText
-  //   quoteTexts   each quote card's innerText
+  //   postText     this post's own tweetText, or "" when it has none
+  //   cutTexts     innerText of each region whose words are not X's: quote
+  //                cards, link previews, polls, Community Notes, the name
+  //                block, the repost line
   //   belowText    text after this post's own text, outside quote cards
   //   quotedText   text after the quoted post's text, inside its card
   //
   // X draws the header after the post's text and media (the soft
-  // intervention, b3296688), and draws the quoted post's own header inside
-  // the quote card. Below the text only a whole line counts. The 200-character
-  // window over the article's start stays, for a notice drawn above the text,
-  // but quote cards are cut out of it first: a label in the card belongs to
-  // the quoted post, and For You treats that case differently (see
-  // sourcedFacts.quotedVisibilityLimited).
+  // intervention, b3296688), so below the text a whole line counts, at any
+  // post length. The 200-character contains-match stays for a notice drawn
+  // ABOVE the text (X's NonCompliant tombstone), and now reads only what is
+  // above the text, minus the cut regions: past that point it could match
+  // nothing but someone else's words. A post with no text keeps the whole
+  // window. A label in a quote card belongs to the quoted post, and For You
+  // treats that case differently (see sourcedFacts.quotedVisibilityLimited).
   function visibilityLimitedVerdict(o) {
     o = o || {};
     var own = String(o.articleText || "");
-    (o.quoteTexts || []).forEach(function (q) {
+    (o.cutTexts || []).forEach(function (q) {
       q = String(q || "");
       var at = q ? own.indexOf(q) : -1;
       if (at !== -1) own = own.slice(0, at) + own.slice(at + q.length);
     });
+    var post = String(o.postText || "");
+    var start = post ? own.indexOf(post.slice(0, 40)) : -1;
+    if (start !== -1) own = own.slice(0, start);
     return {
       own: visibilityLimitedIn(own.slice(0, 200)) || visibilityLimitedLineIn(o.belowText),
       quoted: visibilityLimitedLineIn(o.quotedText)
@@ -1566,14 +1579,20 @@ var BangermeterEngine = (function () {
     return null;
   }
 
+  // Link previews, polls and Community Notes: their wording is chosen by
+  // someone else, and X draws the "Visibility limited" header outside them.
+  var NOT_X_WORDING = '[data-testid="card.wrapper"], [data-testid="cardPoll"], [data-testid="birdwatch-pivot"]';
+
   // The text BangermeterEngine.visibilityLimitedVerdict reads. X draws the
-  // "Visibility limited" header after the post's text and media, and draws a
-  // quoted post's header inside the quote card. Quote cards are collected up
-  // front because X wraps the quoted header in a link of its own, where
-  // closest('div[role="link"]') would stop short of the card.
+  // header after the post's text and media, and draws a quoted post's
+  // header inside the quote card.
   function visibilityLimitedText(article) {
+    // A quote card is a div[role="link"] holding the quoted post's text, or
+    // only its name block when that post has none (a photo, say). Cards are
+    // collected up front because X wraps the quoted header in a link of its
+    // own, where closest('div[role="link"]') would stop short of the card.
     var cards = [].filter.call(article.querySelectorAll('div[role="link"]'), function (l) {
-      return !!l.querySelector('[data-testid="tweetText"]');
+      return !!l.querySelector('[data-testid="tweetText"], [data-testid="User-Name"]');
     });
     function inCard(node) {
       for (var i = 0; i < cards.length; i++) if (cards[i].contains(node)) return true;
@@ -1586,21 +1605,31 @@ var BangermeterEngine = (function () {
     }
     // The header follows this post's own text, or its name block if it has
     // no text. In that case the article's first tweetText is the quoted post's.
-    var anchor = firstOutsideCards('[data-testid="tweetText"]') ||
-      firstOutsideCards('[data-testid="User-Name"]');
+    var ownText = firstOutsideCards('[data-testid="tweetText"]');
+    var anchor = ownText || firstOutsideCards('[data-testid="User-Name"]');
+    // Cut from the 200-character window: the cards, then the outermost of
+    // the other regions whose words are not X's, outside the cards.
+    var cut = cards.slice();
+    [].forEach.call(article.querySelectorAll(NOT_X_WORDING +
+        ', [data-testid="User-Name"], [data-testid="socialContext"]'), function (r) {
+      if (inCard(r) || (r.parentElement && r.parentElement.closest(NOT_X_WORDING))) return;
+      cut.push(r);
+    });
     return {
       articleText: article.innerText,
-      quoteTexts: cards.map(function (c) { return c.innerText; }),
+      postText: ownText ? ownText.innerText : "",
+      cutTexts: cut.map(function (r) { return r.innerText; }),
       belowText: anchor ? textAfter(article, anchor, inCard) : "",
       quotedText: cards.map(function (c) {
-        return textAfter(c, c.querySelector('[data-testid="tweetText"]'), function () { return false; });
+        var start = c.querySelector('[data-testid="tweetText"]') ||
+          c.querySelector('[data-testid="User-Name"]');
+        return textAfter(c, start, function () { return false; });
       }).join("\n")
     };
   }
 
-  // Text nodes after `anchor` inside `root`, one per line. Link previews,
-  // polls and Community Notes are skipped: their wording is chosen by
-  // someone else, and X draws the header outside them.
+  // Text nodes after `anchor` inside `root`, one per line, minus any node
+  // `skip` rejects and anything in a link preview, poll or Community Note.
   function textAfter(root, anchor, skip) {
     var out = [];
     var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -1608,8 +1637,7 @@ var BangermeterEngine = (function () {
       if (anchor.contains(n) ||
           !(anchor.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING)) continue;
       if (skip(n)) continue;
-      if (n.parentElement && n.parentElement.closest(
-          '[data-testid="card.wrapper"], [data-testid="cardPoll"], [data-testid="birdwatch-pivot"]')) continue;
+      if (n.parentElement && n.parentElement.closest(NOT_X_WORDING)) continue;
       out.push(n.nodeValue);
     }
     return out.join("\n");
