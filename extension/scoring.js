@@ -333,6 +333,47 @@ var BangermeterEngine = (function () {
     return false;
   }
 
+  // Is one of these lines, on its own, the label? Trimmed, any case. X's
+  // client draws the header as its own bold line, so a whole-line match finds
+  // it and a sentence that merely contains the words does not.
+  function visibilityLimitedLineIn(text) {
+    if (!text) return false;
+    var lines = String(text).split("\n");
+    for (var i = 0; i < lines.length; i++) {
+      if (VISIBILITY_LIMITED_LOWER.indexOf(lines[i].trim().toLowerCase()) !== -1) return true;
+    }
+    return false;
+  }
+
+  // Whose "Visibility limited" header is on screen: this post's, the quoted
+  // post's, or both. content.js gathers the text; this decides.
+  //
+  //   articleText  the article's innerText
+  //   quoteTexts   each quote card's innerText
+  //   belowText    text after this post's own text, outside quote cards
+  //   quotedText   text after the quoted post's text, inside its card
+  //
+  // X draws the header after the post's text and media (the soft
+  // intervention, b3296688), and draws the quoted post's own header inside
+  // the quote card. Below the text only a whole line counts. The 200-character
+  // window over the article's start stays, for a notice drawn above the text,
+  // but quote cards are cut out of it first: a label in the card belongs to
+  // the quoted post, and For You treats that case differently (see
+  // sourcedFacts.quotedVisibilityLimited).
+  function visibilityLimitedVerdict(o) {
+    o = o || {};
+    var own = String(o.articleText || "");
+    (o.quoteTexts || []).forEach(function (q) {
+      q = String(q || "");
+      var at = q ? own.indexOf(q) : -1;
+      if (at !== -1) own = own.slice(0, at) + own.slice(at + q.length);
+    });
+    return {
+      own: visibilityLimitedIn(own.slice(0, 200)) || visibilityLimitedLineIn(o.belowText),
+      quoted: visibilityLimitedLineIn(o.quotedText)
+    };
+  }
+
   // ---- score history (pure list/entry logic; storage stays in content.js) ----
   var HISTORY_SNIPPET_CHARS = 80;
 
@@ -858,6 +899,8 @@ var BangermeterEngine = (function () {
     parseActionBarLabel: parseActionBarLabel,
     replyMarkerIn: replyMarkerIn,
     visibilityLimitedIn: visibilityLimitedIn,
+    visibilityLimitedLineIn: visibilityLimitedLineIn,
+    visibilityLimitedVerdict: visibilityLimitedVerdict,
     replyVerdict: replyVerdict,
     surfaceFromPath: surfaceFromPath,
     makeHistoryEntry: makeHistoryEntry,

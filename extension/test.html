@@ -823,6 +823,88 @@
       E.visibilityLimitedIn("") === false && E.visibilityLimitedIn(null) === false);
 
     // ================================================================
+    // The same header BELOW the post text. X's client draws the soft
+    // intervention after the post's text and media, as its own bold line,
+    // so on a long post it falls outside the 200-character window. Below
+    // the text only a whole line counts; a quote card's header belongs to
+    // the quoted post and is reported separately.
+    // ================================================================
+    section("Visibility-limited header below the text");
+    var VLL = function (t) {
+      return typeof E.visibilityLimitedLineIn === "function" ? E.visibilityLimitedLineIn(t) : undefined;
+    };
+    var VLV = function (o) {
+      return typeof E.visibilityLimitedVerdict === "function" ? E.visibilityLimitedVerdict(o) : {};
+    };
+    check("visibilityLimitedLineIn is exported", typeof E.visibilityLimitedLineIn === "function");
+    Object.keys(VL_LABELS).forEach(function (loc) {
+      check(loc + " header found as its own line",
+        VLL("0:42\n" + VL_LABELS[loc] + "\nLearn more") === true);
+    });
+    check("a header line with surrounding spaces, any case",
+      VLL("Photo\n  VISIBILITY LIMITED  \nLearn more") === true);
+    check("the words inside a longer line are not the header",
+      VLL("Turns out my visibility limited reach was a myth") === false &&
+      VLL("Visibility Limited: a thread") === false);
+    check("empty/null text has no header line",
+      VLL("") === false && VLL(null) === false);
+
+    var VL_HEAD = "Alice\n@alice\n·\n2h\n";
+    var VL_LONG = "The bridge budget doubled in eighteen months, and the council minutes " +
+      "show why. First, the steel contract was re-tendered after the original bidder " +
+      "folded. Second, the river survey found softer ground than the 2019 plan assumed. " +
+      "Third, nobody priced the detour for the bus routes.";
+    check("verdict: visibilityLimitedVerdict is exported",
+      typeof E.visibilityLimitedVerdict === "function");
+    // The bug: a long post's header sits past character 200.
+    var vlLongText = VL_HEAD + VL_LONG + "\nVisibility Limited\nLearn more\n3\n12\n40";
+    check("verdict: the old 200-character window misses a long post's header",
+      E.visibilityLimitedIn(vlLongText.slice(0, 200)) === false);
+    var vlLong = VLV({ articleText: vlLongText, quoteTexts: [],
+      belowText: "Visibility Limited\nLearn more\n3\n12\n40", quotedText: "" });
+    check("verdict: a long post's header below the text is its own",
+      vlLong.own === true && vlLong.quoted === false);
+    // A post body that names the label is never scanned line by line: only
+    // the text after it is. The body line here sits past character 200.
+    var vlBody = VLV({
+      articleText: VL_HEAD + VL_LONG + "\nVisibility Limited\nIs this what X shows?\n3\n12\n40",
+      quoteTexts: [], belowText: "3\n12\n40", quotedText: "" });
+    check("verdict: a long body that has the label as a line is not limited",
+      vlBody.own === false && vlBody.quoted === false);
+    // A short post quoting a labeled post. Its 200 characters reach into the
+    // quote card, which the old window counted as the post's own label.
+    var vlCard = "Bea\n@bea\n·\n3h\nThe original claim.\nVisibility Limited\nLearn more";
+    var vlQuote = VLV({ articleText: VL_HEAD + "This take aged well.\n" + vlCard + "\n2\n1\n9",
+      quoteTexts: [vlCard], belowText: "2\n1\n9", quotedText: "Visibility Limited\nLearn more" });
+    check("verdict: a label in the quote card is the quoted post's, not this one's",
+      vlQuote.own === false && vlQuote.quoted === true);
+    var vlBoth = VLV({
+      articleText: VL_HEAD + VL_LONG + "\nVisibility Limited\nLearn more\n" + vlCard + "\n2\n1\n9",
+      quoteTexts: [vlCard], belowText: "Visibility Limited\nLearn more\n2\n1\n9",
+      quotedText: "Visibility Limited\nLearn more" });
+    check("verdict: a labeled post quoting a labeled post has both",
+      vlBoth.own === true && vlBoth.quoted === true);
+    // What the 200-character window caught before must still be caught:
+    // a notice drawn above the text, matched inside a longer line.
+    var vlAbove = VLV({ articleText: VL_HEAD + "Visibility limited by X\nA post carrying X's notice.",
+      quoteTexts: [], belowText: "1\n4", quotedText: "" });
+    check("verdict: a notice above the text is still found",
+      vlAbove.own === true && vlAbove.quoted === false);
+    var vlNone = VLV(undefined);
+    check("verdict: no input -> neither",
+      vlNone.own === false && vlNone.quoted === false);
+
+    // For You removes a post whose quoted post is dropped. Sourced, so the
+    // panel row for the quoted case can cite it.
+    var QVL = C.sourcedFacts.quotedVisibilityLimited;
+    check("quoted-label removal is sourced at 77d431a",
+      !!QVL && QVL.verifiedAt === "77d431a" &&
+      QVL.sources.some(function (s) { return /vf_candidate_hydrator\.rs@77d431a.*should_drop_ancillary/.test(s); }) &&
+      QVL.sources.some(function (s) { return /ancillary_vf_filter\.rs@77d431a/.test(s); }));
+    check("quoted-label note names the author exemption and PushToHomeSource",
+      !!QVL && /author/.test(QVL.note) && /PushToHomeSource/.test(QVL.note) && !!QVL.panel);
+
+    // ================================================================
     // Engagement-bait detection, Hinglish. Patterns supplied by a native
     // speaker (2026-08-25) rather than transliterated by us. Scope is
     // deliberately the IMPERATIVE CTA family — "do X if you Y" — which is
