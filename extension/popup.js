@@ -132,7 +132,7 @@
 
   // ── Under the Hood report import ───────────────────────────────────────
   // The pilot's report is a JSON file the user downloads themselves from
-  // x.com/i/under_the_hood — it is never fetched, and the parsed summary
+  // x.com/i/jf/under_the_hood — it is never fetched, and the parsed summary
   // lives in chrome.storage.local only. Rendering is textContent-only:
   // every string here came out of a user-supplied file.
   (function () {
@@ -319,7 +319,7 @@
 
   var footer = document.getElementById("footerNote");
   if (footer) {
-    footer.textContent = "Score = Σ(weight × P(action)) per home-mixer/scorers/ranking_scorer.rs. " +
+    footer.textContent = "Score = Σ(weight × P(action)) per xai-value-model/scoring.rs. " +
       C.weightsMeaningNote + " Bangermeter estimates the probabilities; only likes, replies and " +
       "reposts come from real counts. Relative score, not predicted reach.";
   }
