@@ -86,8 +86,11 @@ Two things the audit did not cover:
   non-follower drop of `FOSNR_ABUSE_INSULTS` behind a client switch that defaults on, a
   fallback drop of all five behind a client switch that defaults off, and four groups of
   limited-engagement rules, none of them FOSNR (`registry.rs@77d431a`, lines 166-183;
-  `tweet_rules.rs@77d431a`, lines 582-623 and 749-757). No published code calls this
-  level. Whether anything does is not in source.
+  `tweet_rules.rs@77d431a`, lines 582-623 and 749-757). No published For You code calls
+  this level. The one published caller is `visibility-filtering/reference/tweetypie.rs`,
+  which evaluates it to compare against tweetypie's production `getTweetFields`, so it
+  appears to mirror X's production tweet hydration. Whether For You candidates pass
+  through that hydration is not in source.
 
 **What changed in Bangermeter.** The panel now says "For You removes it for everyone but
 the author". A second line names the `FOSNR_ABUSE_INSULTS` exception, reposts included,
@@ -97,6 +100,16 @@ score is unchanged. It still assumes the post can reach For You. The tooltip now
 that, apart from the two paths above, a post carrying this notice reaches only its author
 in For You, plus, under `FOSNR_ABUSE_INSULTS`, the author's followers and anyone
 following an account that reposts it.
+
+**Revised Oct 1, 2026, before 0.10.3 shipped.** An adversary pass on the store notes
+found the repost path contested. At `TimelineHomeHydration`,
+`fosnr_abuse_insults_non_follower` drops `FOSNR_ABUSE_INSULTS` for every non-follower of
+the author (its switch defaults on, and X's golden corpus expects the drop:
+`rules/golden_corpus/oon_tweet_label.rs@77d431a`, lines 136-153), and `merge_verdict`
+copies an original's drop onto its repost (`retweet.rs@77d431a`, lines 147-170). So the
+panel no longer claims the repost path. It says X's published code *usually* removes the
+post, matching the quoted-post row, since the two skip paths above are real. The tooltip
+keeps the repost path and names the level that contests it.
 
 ## Update — September 30, 2026: three weights move, cold start is rewritten, scoring changes services
 

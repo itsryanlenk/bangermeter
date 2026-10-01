@@ -78,7 +78,7 @@ Everything runs locally in your browser. The source is public and reviewable.
 
 OPEN SOURCE
 
-MIT licensed, with the full research record and 354 automated tests that check every published weight against X's source individually.
+MIT licensed, with the full research record and 356 automated tests that check every published weight against X's source individually.
 
 github.com/itsryanlenk/bangermeter
 
@@ -93,7 +93,11 @@ WHAT'S NEW IN 0.10.3
 
 • The reply quality gate is now over 250,000 followers, as of 30 September. And a correction: 0.10.2 said X had raised that gate eight times. It was nine; our trace had missed a 180,000 step on 16 September. Since then it went to 225,000 on 23 September and 250,000 on the 24th, so eleven raises in all. Also new: a reply that quotes a post is always scored by the Grok model, whatever the follower counts.
 
-• Smaller corrections. The Brazil electoral filter covers 2,795 accounts as of 30 September. The Under the Hood link moved to x.com/i/jf/under_the_hood. And 0.10.2 overstated two things: it said the model reads a post's bookmark count and its seven content features. X sends both to the model with every post, but none of its published model code reads them. The panel now says exactly that.
+• The "Visibility Limited" notice is described correctly. The breakdown used to say these posts' reach was "suppressed (magnitude unpublished)", citing a 2023 file, and that was wrong. X's own label descriptions tie a limited-visibility notice to five FOSNR labels, and X's published code usually removes posts carrying them from For You for everyone except the author. The exception is FOSNR_ABUSE_INSULTS, removed only out-of-network, so the author's followers can still get the post. A post that quotes a limited one gets its own row, since X's code usually removes the quoting post too. The score does not change: it still assumes the post can reach For You.
+
+• The notice is detected in more places: in all 16 interface languages the extension supports, using the header text from X's own translation files (read in September), and below long posts, where it used to be missed. It no longer triggers on a post that only contains the words, such as a poll option or a link title.
+
+• Smaller corrections. The Brazil electoral filter covers 2,795 accounts as of 30 September. The Under the Hood link moved to x.com/i/jf/under_the_hood. And 0.10.2 overstated two things: it said the model reads a post's bookmark count and its seven content features. X sends both to the model with every post, but none of its published model code reads them. The panel now says exactly that. And the "Show the math" table now shows the estimated dwell time in seconds; it used to print an estimate of three seconds as "P 300.0%".
 
 
 WHAT'S NEW IN 0.10.2

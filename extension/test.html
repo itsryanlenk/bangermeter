@@ -198,8 +198,18 @@
     // You: a repost by a followed account (checked at TimelineHome), a failed
     // visibility check (no verdict, so VFFilter keeps it), and PushToHomeSource
     // (no VF filter in its pipeline). The record must not hide them.
-    check("the FOSNR_ABUSE_INSULTS exception covers reposts by followed accounts",
-      /reposts it/.test(VL.panelDetail || ""), VL.panelDetail);
+    // A later pass found the repost path contested: TimelineHomeHydration,
+    // the level X compares against production getTweetFields, drops
+    // FOSNR_ABUSE_INSULTS for non-followers, and merge_verdict copies an
+    // original's drop onto its repost. So the short panel text no longer
+    // asserts it, and the tooltip carries both sides.
+    check("panel detail does not assert the contested repost path",
+      !/reposts it/.test(VL.panelDetail || ""), VL.panelDetail);
+    check("the note keeps the repost path and names the hydration level that contests it",
+      /reposts it/.test(VL.note || "") && /TimelineHomeHydration/.test(VL.note || ""));
+    check("both visibility rows hedge 'removes' the same way",
+      /usually removes/.test(VL.panel || "") &&
+      /usually removes/.test((SF.quotedVisibilityLimited || {}).panel || ""), VL.panel);
     check("the note names both published paths that skip the check",
       /check fails/.test(VL.note || "") && /PushToHomeSource/.test(VL.note || ""));
     check("the removal of quoting posts and replies is cited where it happens",
