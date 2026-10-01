@@ -654,7 +654,7 @@
           worth: "the baseline unit",
           tip: "Weight 0.5 (param.rs, Aug 2026)" },
         { icon: "bookmark", n: counts.bookmarks, one: "bookmark", many: "bookmarks",
-          worth: "not a scored action at all — no bookmark head exists",
+          worth: "not a scored action — X publishes no bookmark weight",
           tip: BANGERMETER_CONFIG.unweightedSignals.bookmark.note }
       ].forEach(function (r) {
         if (r.n == null) return;
@@ -792,8 +792,9 @@
         "h old and still under " + F.authorColdStart.impressionThreshold.toLocaleString() +
         " Home impressions. Among the posts that qualify, early likes per impression decide which " +
         "one gets the lift. One post per request, not per author.",
-      "· The model reads seven things about your content: video, longest video length, photo, " +
-        "media count, weighted text length, NEWLINE COUNT, and whether there's a link. A link " +
+      "· X sends the ranker seven facts about your content: video, longest video length, photo, " +
+        "media count, weighted text length, NEWLINE COUNT, and whether there's a link — though " +
+        "no published model code reads them yet. A link " +
         "counts as " + F.contentFeatures.urlWeightedLen + " characters no matter how long it is, " +
         "and an image's own t.co doesn't count as a link at all.",
       "· Brazil's 2026 election: For You hard-filters " +

@@ -198,16 +198,24 @@
       SF.valueModelMode.removedParam === "rust_home_mixer_value_model_mode" &&
       /only/i.test(SF.valueModelMode.note));
     // The claim is "no bookmark WEIGHT", not "bookmarks are absent from the
-    // model": bookmark_count is sent to Phoenix in the same struct literal that
-    // carries content_features. An adversary review caught the stronger version
-    // of this claim, so the narrower one is pinned here.
+    // model". But 0.10.2 overcorrected to "bookmark_count is a model input":
+    // it is SENT to Phoenix in the candidate's TweetInfo (candidate.rs), and no
+    // published model code reads it — recsys_feature_prep.py and util.rs take
+    // five counts (fav, reply, repost, quote, view). What the published model
+    // does read is the viewer's own bookmark actions, in their history.
     var bmNote = C.unweightedSignals.bookmark.note;
     check("bookmark note no longer points at the deleted dwell-regret gate",
       !/survive only as a user-history feature/i.test(bmNote));
-    check("bookmark note concedes bookmark_count IS a model input",
-      /bookmark_count/.test(bmNote) && /model input/i.test(bmNote));
+    check("bookmark note: bookmark_count is sent to Phoenix, not read by published model code",
+      /bookmark_count/.test(bmNote) && /sent to Phoenix/i.test(bmNote) &&
+      /no published model code reads it/i.test(bmNote) && !/as a model input/i.test(bmNote));
     check("bookmark claim is scoped to the WEIGHT, not to the model",
       /NO bookmark WEIGHT/.test(bmNote));
+    // Same finding for the seven content features: sent with every candidate,
+    // read by no published Phoenix code.
+    check("content features note does not claim the model reads them",
+      !/model sees exactly/i.test(SF.contentFeatures.note) &&
+      /no published model code reads/i.test(SF.contentFeatures.note));
     // Dates: the weights moved Aug 25; the dwell-regret deletion was Sept 18.
     // Collapsing the two into one push was a shipped error in a 0.10.2 draft.
     check("dwell-regret deletion dated to Sept 18, not the Aug 25 weight push",
