@@ -6,8 +6,8 @@
 
 A Chrome extension that scores posts on x.com using the real For You weights and the real
 scorer arithmetic from [xai-org/x-algorithm](https://github.com/xai-org/x-algorithm) —
-`home-mixer/params/param.rs` for the values, `home-mixer/scorers/ranking_scorer.rs` for the
-math. Full source-traced findings: [RESEARCH.md](RESEARCH.md).
+`vm-ranker/params.rs` (mirrored in `home-mixer/params/param.rs`) for the values,
+`xai-value-model/scoring.rs` for the math. Full source-traced findings: [RESEARCH.md](RESEARCH.md).
 
 ## What you actually do with it
 
@@ -69,7 +69,8 @@ what the published weights actually say.
   the compose meter previously missed — and the breakdown panel gets a reply-scoring
   section: out-of-network replies never reach For You at all (`OONRetweetReplyFilter`),
   replies are ineligible for the +15.0 mutual-follow boost, and replies to accounts over
-  200K followers are scored 0–3 by a Grok model whose rubric X withholds (the published
+  250K followers (as of Sept 30, 2026 — X has raised that gate eleven times since August)
+  are scored 0–3 by a Grok model whose rubric X withholds (the published
   *inputs* are listed; no invented direction — and no duration for the score-0 label,
   because none is published). Where a reply sorts inside a thread is disclosed as
   unpublished rather than guessed.
@@ -86,7 +87,7 @@ what the published weights actually say.
   ×0.44, to a ×0.25 floor — wherever in the slate they sit. Reported as context, not
   applied to the score (it is slate-relative and viewer-specific).
 - **Under the Hood import.** Pilot-cohort users can import the JSON report X lets them
-  download from `x.com/i/under_the_hood`; the popup summarizes the visibility labels X
+  download from `x.com/i/jf/under_the_hood`; the popup summarizes the visibility labels X
   itself applied (monthly aggregates — the report carries no post IDs). Parsed locally,
   stored locally, validated against the published label allowlist.
 
@@ -94,18 +95,26 @@ what the published weights actually say.
 
 - **Formula:** `Σ(weight × P(action))` over the Phoenix head set, then `offset_score` —
   positive posts get `+0.001`, and any post whose weighted sum goes **net-negative** is
-  rescaled into `[0, 0.000894)`, which drops it below every positive-scoring post no matter
+  rescaled into `[0, 0.000896)`, which drops it below every positive-scoring post no matter
   what else it earned. Then the post-hoc factors: author diversity
   `(1 − floor) × decay^k + floor`, and the ×0.75 out-of-network factor. This is a direct
-  port of `ranking_scorer.rs`, not an approximation of it.
+  port of X's value model (`xai-value-model/scoring.rs`, which replaced `ranking_scorer.rs`
+  when X moved scoring into its vm-ranker service on Sept 24, 2026 — same math), not an
+  approximation of it.
 - **Weights:** the published production set. Likes 0.5 · replies 5.0 (**20.0** on an
   original post from a mutual follow) · reposts 1.0 · quotes 5.0 · shares 2.0 · DM shares
-  5.0 · **copy-link shares 20.0** · follow-author 4.0 · post clicks 0.4 · link opens 0.2 ·
+  5.0 · **copy-link shares 20.0** · follow-author 4.0 · **post clicks 0.3** · **click dwell 0.4** · link opens 0.2 ·
   photo expand / quoted click 0.05 · **video open 0.07** · **binary dwell 0.05** · dwell
-  time 0.004 per second · not-dwelled −0.02 · not-interested −43.2 · block −31.2 · mute
+  time 0.004 per second · not-dwelled −0.02 · **not-interested −47.52** · block −31.2 · mute
   −58.8 · report −234.0. Profile clicks, **video-quality-view** and quoted-vqv ship at
   **0.0** — X zeroed them, and the tool shows that rather than hiding it.
-- **Three weights moved on 25 August 2026**, and this is the release that catches up.
+- **Three more weights moved on 29 September 2026.** Post clicks went 0.4 → **0.3**, click
+  dwell went 0.0 → **0.4**, and not-interested went −43.2 → **−47.52** — the first negative
+  weight X has touched since publishing the table. The click itself now pays less, and a
+  reader who clicks in *and stays* pays more. Click dwell is named like a per-second term,
+  but X's model config trains it as a yes/no head with a 10.0 threshold, so the 0.4
+  multiplies a probability. A browser cannot see clicks, so it is estimated.
+- **Three weights moved on 25 August 2026**, caught up in v0.10.2.
   Video-quality-view went 0.05 → **0.0**, binary dwell went 0.0 → **0.05**, video open went
   0.05 → **0.07**. Finishing a clip stopped paying; *stopping the scroll* started. Versions
   through v0.10.0 said binary dwell paid nothing — that claim was true when written and is
@@ -122,8 +131,8 @@ what the published weights actually say.
 - **Brigading is structurally weak.** Predictions are per-viewer and personalized, so mass
   block/report campaigns mostly shift what gets recommended to users similar to the
   brigaders rather than burying the post for everyone.
-- **Hard filters sit outside scoring.** `Brazil2026ElectionFilter` removes 2,776 accounts
-  reported to Brazil's Electoral Court from For You unless you follow them. It runs before
+- **Hard filters sit outside scoring.** `Brazil2026ElectionFilter` removes 2,795 accounts (as of
+  Sept 30, 2026; the list grows most weeks) reported to Brazil's Electoral Court from For You unless you follow them. It runs before
   ranking, so no weight offsets it — a reminder that the weighted sum is not the whole
   system.
 - **The honest boundary.** The weights are X's. The probabilities are ours. X predicts them
@@ -133,9 +142,9 @@ what the published weights actually say.
   as `from counts`, `estimated`, `zeroed by X` or `viewer-specific`.
 - **Gates we can see and gates we can't.** Video-quality-view needs duration strictly over
   10s, so GIFs and short clips are excluded — the extension reads the duration overlay
-  where X renders one. A second vqv gate (the *viewer* having under 10,000 followers) is
-  viewer state a page script cannot read; it is disclosed, not modeled. Both gates now
-  decide whether to add **nothing**, since the weight behind them is 0.0 — the machinery is
+  where X renders one. A second gate (the *viewer* having under 10,000 followers)
+  stopped reaching the served score on Sept 24, 2026: X's vm-ranker checks duration only.
+  Either way the gate decides whether to add **nothing**, since the weight behind them is 0.0 — the machinery is
   kept because X can re-enable it by moving one number.
 - **Ten seconds is the bar that matters now.** The binary dwell head is not "looked at it":
   X's reference implementation marks it when a viewer *engaged* **and** dwelled **≥10
@@ -143,14 +152,18 @@ what the published weights actually say.
   a post read for four seconds and scrolled past fires neither. `MinVideoDurationMs` is
   10,000 too, but it is a different rule — it gates on the **clip's own length**, not on how
   long anyone watched, and it is a strict greater-than.
-- **There is a published small-account lane, and it ships on.** On every For You request
-  **at most one** post is lifted to around **slot 15**: the best-scoring original post whose
-  author has **≤1,000 followers**, which is under **48h** old and still under **1,000**
-  Home impressions. One post per request — not per author, not per session. Bangermeter
+- **There is a published fresh-post lane, and it ships on.** On every For You request
+  **at most one** post is lifted to around **slot 15**. To qualify it must be an original
+  post whose author has **≤50,000 followers**, no more than **2 hours** old, and still
+  under **200** Home impressions. Among the qualifiers, X now picks by Thompson sampling on
+  the like rate: early likes per impression decide who gets the lift, with some luck in
+  it. One post per request — not per author, not per session. Every one of those gates
+  moved on Sept 30, 2026; until then it was ≤1,000 followers, 48 hours, 1,000 impressions,
+  and the highest score won. Bangermeter
   cannot tell whether a given post *was* promoted (the slate is server-side), so it reports
   the eligibility rules and refuses to claim credit for the outcome.
-- **The content features are published now too.** The model receives exactly seven things
-  about a post's content: has-video, longest video duration, has-photo, media count,
+- **The content features are published now too.** X sends Phoenix seven things about a
+  post's content with every candidate (no published model code reads them yet): has-video, longest video duration, has-photo, media count,
   weighted text length, **newline count**, and has-URL. A link counts as 23 characters
   whatever its real length, CJK and emoji count 2, and a media attachment's own `t.co` is
   subtracted before has-URL is decided — so posting an image does **not** make your post
@@ -158,7 +171,7 @@ what the published weights actually say.
   does not score them.
 - **No folklore numbers.** "Bookmark 20×", "links −30–50%", "3+ hashtags −40%", "block
   −120 / mute −100" all failed source-tracing before the release — and none of them matched
-  the real values when those arrived. Bookmarks turn out to have **no head at all**.
+  the real values when those arrived. Bookmarks turn out to have **no weight at all**.
 - **Two archival factors, opt-in or sourced.** The 2023-era **×4 / ×2** verified-author
   multiplier (archived commit `ec83d01dca`; absent from the 2026 release) is behind a
   default-off toggle. Posts with a displayed **Community Note** get ×0.5 on the prospective
@@ -191,8 +204,7 @@ what the published weights actually say.
   localized "Replying to" marker; reply *drafts* are detected structurally (dialog order,
   status-page URL), which is locale-independent.
 - The E score needs a visible view count (hidden on some surfaces).
-- Viewer-specific factors can't be observed: in-network status, mutual-follow status and
-  the vqv follower gate. Out-of-network and mutual-follow are popup toggles instead.
+- Viewer-specific factors can't be observed: in-network status and mutual-follow status. Out-of-network and mutual-follow are popup toggles instead.
 - Quote counts aren't exposed in the timeline DOM, so the quote head (5.0) is estimated
   rather than measured.
 - X changes its DOM without notice; selectors have documented fallbacks.
@@ -203,7 +215,7 @@ what the published weights actually say.
 |---|---|
 | `extension/` | The Chrome extension (MV3, vanilla JS, no build step) |
 | `extension/weights.js` | Single source of truth: weight layer + estimator layer, all provenance-tagged |
-| `extension/scoring.js` | Pure scoring engine (direct port of `ranking_scorer.rs`) |
+| `extension/scoring.js` | Pure scoring engine (direct port of X's value model, `xai-value-model/scoring.rs`) |
 | `extension/content.js` | Badges, breakdown panel, compose meter |
 | `extension/background.js` | Service worker. One listener: open the quick start on first install, never on update |
 | `extension/welcome.html` | The quick start itself — self-contained, loads nothing over the network |
@@ -228,8 +240,10 @@ happened when those numbers were hardcoded.
 - Engine math: **281/281 self-tests pass** (`test.html`). Every one of the 25 published
   weights and its feature-switch parameter name is asserted against `param.rs`
   individually, so a silent transcription error fails the suite rather than shipping.
-  All 25 re-verified unchanged against the live repo's 2026-09-24T16:24:49Z sync. X
-  deleted a 26th head, `cont_active_secs_5m_residual_norm` (weighted 0.0), on Sept 23.
+  All 25 re-verified against the live repo's 2026-09-29T17:02:52Z sync, in both
+  `param.rs` and `vm-ranker/params.rs`; three moved in it (click, click dwell,
+  not-interested). X deleted a 26th head, `cont_active_secs_5m_residual_norm` (weighted
+  0.0), on Sept 23.
   `packages/bangermeter-rank` runs `sync` daily in CI to catch the next change.
 - Locale strings (reply markers and count words for 16 locales) are transcribed from X's
   own production i18n bundles (`abs.twimg.com/responsive-web/client-web/i18n/*`), fetched
