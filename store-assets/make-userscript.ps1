@@ -19,8 +19,14 @@ $out = Join-Path $ext "bangermeter.user.js"
 $manifest = Get-Content (Join-Path $ext "manifest.json") -Raw -Encoding UTF8 | ConvertFrom-Json
 $extVersion = $manifest.version
 
-# Userscript versioning is independent of the extension's; bump the minor in step.
-$userVersion = "1.8.0"
+# The userscript's @version runs on an offset from the extension's (0.9.x was
+# 1.7.x, 0.10.x is 1.8.x) and is derived here so it cannot lag. It used to be typed
+# by hand and sat at 1.8.0 through 0.10.1 and 0.10.2, and Tampermonkey only installs
+# an update when @version goes up. check-versions.js applies the same mapping.
+if ($extVersion -notmatch '^0\.(\d+)\.(\d+)$') {
+    throw "manifest version $extVersion is outside the 0.minor.patch -> 1.(minor-2).patch mapping; choose a new one here and in check-versions.js"
+}
+$userVersion = "1.$([int]$Matches[1] - 2).$($Matches[2])"
 
 function Read-Src($name) {
     return (Get-Content (Join-Path $ext $name) -Raw -Encoding UTF8)
