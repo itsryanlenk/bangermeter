@@ -98,14 +98,20 @@
     return null;
   }
 
+  // Link previews, polls and Community Notes: their wording is chosen by
+  // someone else, and X draws the "Visibility limited" header outside them.
+  var NOT_X_WORDING = '[data-testid="card.wrapper"], [data-testid="cardPoll"], [data-testid="birdwatch-pivot"]';
+
   // The text BangermeterEngine.visibilityLimitedVerdict reads. X draws the
-  // "Visibility limited" header after the post's text and media, and draws a
-  // quoted post's header inside the quote card. Quote cards are collected up
-  // front because X wraps the quoted header in a link of its own, where
-  // closest('div[role="link"]') would stop short of the card.
+  // header after the post's text and media, and draws a quoted post's
+  // header inside the quote card.
   function visibilityLimitedText(article) {
+    // A quote card is a div[role="link"] holding the quoted post's text, or
+    // only its name block when that post has none (a photo, say). Cards are
+    // collected up front because X wraps the quoted header in a link of its
+    // own, where closest('div[role="link"]') would stop short of the card.
     var cards = [].filter.call(article.querySelectorAll('div[role="link"]'), function (l) {
-      return !!l.querySelector('[data-testid="tweetText"]');
+      return !!l.querySelector('[data-testid="tweetText"], [data-testid="User-Name"]');
     });
     function inCard(node) {
       for (var i = 0; i < cards.length; i++) if (cards[i].contains(node)) return true;
@@ -118,21 +124,31 @@
     }
     // The header follows this post's own text, or its name block if it has
     // no text. In that case the article's first tweetText is the quoted post's.
-    var anchor = firstOutsideCards('[data-testid="tweetText"]') ||
-      firstOutsideCards('[data-testid="User-Name"]');
+    var ownText = firstOutsideCards('[data-testid="tweetText"]');
+    var anchor = ownText || firstOutsideCards('[data-testid="User-Name"]');
+    // Cut from the 200-character window: the cards, then the outermost of
+    // the other regions whose words are not X's, outside the cards.
+    var cut = cards.slice();
+    [].forEach.call(article.querySelectorAll(NOT_X_WORDING +
+        ', [data-testid="User-Name"], [data-testid="socialContext"]'), function (r) {
+      if (inCard(r) || (r.parentElement && r.parentElement.closest(NOT_X_WORDING))) return;
+      cut.push(r);
+    });
     return {
       articleText: article.innerText,
-      quoteTexts: cards.map(function (c) { return c.innerText; }),
+      postText: ownText ? ownText.innerText : "",
+      cutTexts: cut.map(function (r) { return r.innerText; }),
       belowText: anchor ? textAfter(article, anchor, inCard) : "",
       quotedText: cards.map(function (c) {
-        return textAfter(c, c.querySelector('[data-testid="tweetText"]'), function () { return false; });
+        var start = c.querySelector('[data-testid="tweetText"]') ||
+          c.querySelector('[data-testid="User-Name"]');
+        return textAfter(c, start, function () { return false; });
       }).join("\n")
     };
   }
 
-  // Text nodes after `anchor` inside `root`, one per line. Link previews,
-  // polls and Community Notes are skipped: their wording is chosen by
-  // someone else, and X draws the header outside them.
+  // Text nodes after `anchor` inside `root`, one per line, minus any node
+  // `skip` rejects and anything in a link preview, poll or Community Note.
   function textAfter(root, anchor, skip) {
     var out = [];
     var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -140,8 +156,7 @@
       if (anchor.contains(n) ||
           !(anchor.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING)) continue;
       if (skip(n)) continue;
-      if (n.parentElement && n.parentElement.closest(
-          '[data-testid="card.wrapper"], [data-testid="cardPoll"], [data-testid="birdwatch-pivot"]')) continue;
+      if (n.parentElement && n.parentElement.closest(NOT_X_WORDING)) continue;
       out.push(n.nodeValue);
     }
     return out.join("\n");
