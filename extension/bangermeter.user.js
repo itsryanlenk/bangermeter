@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bangermeter — X Algorithm Scorer
 // @namespace    bangermeter
-// @version      1.8.2
+// @version      1.8.3
 // @description  Scores posts with X's actual published For You ranking weights (xai-org/x-algorithm, Aug 13 2026 release) using the real Phoenix weighted-sum arithmetic.
 // @match        https://x.com/*
 // @match        https://twitter.com/*
