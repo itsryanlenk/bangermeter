@@ -11,7 +11,7 @@ const vmParams = fx("vm-params.rs");
 
 test("parse reads the last-sync stamp and numeric defaults (including 10_000 literals)", () => {
   const p = sync.parse(paramRs);
-  assert.equal(p.lastSync, "2026-09-24T16:24:49Z");
+  assert.equal(p.lastSync, "2026-09-29T17:02:52Z");
   assert.equal(p.params.rust_home_mixer_favorite_weight, 0.5);
   assert.equal(p.params.rust_home_mixer_report_weight, -234.0);
   assert.equal(p.params.rust_home_mixer_min_video_duration_ms, 10000);
@@ -25,7 +25,11 @@ test("acceptance 6: repo weights match the pinned live table", () => {
   assert.equal(r.live.rust_home_mixer_video_open_weight, 0.07);
   assert.equal(r.live.rust_home_mixer_vqv_weight, 0.0);
   assert.equal(r.live.rust_home_mixer_dwell_weight, 0.05);
-  assert.equal(r.lastSync, "2026-09-24T16:24:49Z");
+  // The Sept 28 sync (published Sept 29, a707cc2) moved three heads.
+  assert.equal(r.live.rust_home_mixer_click_weight, 0.3);
+  assert.equal(r.live.rust_home_mixer_cont_click_dwell_time_weight, 0.4);
+  assert.equal(r.live.rust_home_mixer_not_interested_weight, -47.52);
+  assert.equal(r.lastSync, "2026-09-29T17:02:52Z");
   assert.equal(r.stampMatchesPin, true);
 });
 
@@ -67,10 +71,10 @@ test("the two upstream files disagreeing is drift", () => {
 });
 
 test("an advanced stamp with unchanged values passes but is reported", () => {
-  const r = sync.check({ paramRs: paramRs.replace("2026-09-24T16:24:49Z", "2026-09-30T00:00:00Z"), vmParams });
+  const r = sync.check({ paramRs: paramRs.replace("2026-09-29T17:02:52Z", "2026-10-05T00:00:00Z"), vmParams });
   assert.equal(r.ok, true);
   assert.equal(r.stampMatchesPin, false);
-  assert.equal(r.lastSync, "2026-09-30T00:00:00Z");
+  assert.equal(r.lastSync, "2026-10-05T00:00:00Z");
 });
 
 test("an unparseable file is an error, not a pass", () => {

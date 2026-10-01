@@ -597,7 +597,7 @@
         { mark: "·", text: "No mutual-follow boost here: the +15.0 reply boost needs an " +
             "ORIGINAL post — replies are ineligible.",
           tip: "bidirectional_boost_eligible requires in_reply_to_tweet_id to be none " +
-            "(ranking_scorer.rs). " + BANGERMETER_CONFIG.heads.reply.note },
+            "(bidirectional_boost_eligible, xai-value-model/inputs.rs). " + BANGERMETER_CONFIG.heads.reply.note },
         { mark: "·", text: "Replying to an account over " + (RQ.followerThreshold / 1000) + "K " +
             "followers? A Grok model scores the reply " + RQ.scoreMin + "–" + RQ.scoreMax + "; a " +
             RQ.scoreMin + " applies the " + RQ.zeroScoreLabel + " label (duration unpublished).",
@@ -619,11 +619,14 @@
 
     var d1 = mathDetails();
     d1.appendChild(el("div", "bangermeter-fineprint",
-      "Score = Σ(weight × P) over the Phoenix heads, then offset_score (ranking_scorer.rs), " +
+      "Score = Σ(weight × P) over the Phoenix heads, then offset_score (xai-value-model/scoring.rs), " +
       "× rescorers, normalized so a median post = 50 (√ curve, capped at 100). " +
       "Raw: " + result.content.raw.toFixed(4) +
       (result.content.netNegative
-        ? " — NET NEGATIVE: X rescales any post whose weighted sum goes below zero into [0, 0.000894), which puts it under every positive-scoring post in the feed."
+        ? " — NET NEGATIVE: X rescales any post whose weighted sum goes below zero into [0, " +
+          (BANGERMETER_CONFIG.weightSums.negative / BANGERMETER_CONFIG.weightSums.total *
+            BANGERMETER_CONFIG.negativeScoresOffset).toFixed(6) +
+          "), which puts it under every positive-scoring post in the feed."
         : "")));
     contributionList(d1, result.content.contributions);
     sec1.appendChild(d1);
@@ -714,7 +717,7 @@
         "▼ Posting cadence: post #" + (slateK + 1) + " from this author in the loaded stretch of " +
         "feed — production attenuates it ×" + dmul.toFixed(2) + " (author diversity)");
       drow.title = "diversity_multiplier(k=" + slateK + ") = (1 − floor) × decay^k + floor, with " +
-        "decay 0.5 and floor 0.25 (ranking_scorer.rs; flag-gated behind EnableAuthorDiversity, " +
+        "decay 0.5 and floor 0.25 (xai-value-model/scoring.rs; flag-gated behind EnableAuthorDiversity, " +
         "which ships true — when enabled it applies to every candidate). Only currently rendered " +
         "posts are counted, so the true rank can be higher. Not applied to the score above — it " +
         "is slate-relative and viewer-specific.";
@@ -787,7 +790,8 @@
         "at most one original post per request can be lifted to about slot " + F.authorColdStart.slotMin +
         " of the feed — but only while it is under " + F.authorColdStart.maxPostAgeHours +
         "h old and still under " + F.authorColdStart.impressionThreshold.toLocaleString() +
-        " impressions. One post per request, not per author.",
+        " Home impressions. Among the posts that qualify, early likes per impression decide which " +
+        "one gets the lift. One post per request, not per author.",
       "· The model reads seven things about your content: video, longest video length, photo, " +
         "media count, weighted text length, NEWLINE COUNT, and whether there's a link. A link " +
         "counts as " + F.contentFeatures.urlWeightedLen + " characters no matter how long it is, " +
@@ -1152,7 +1156,7 @@
     if (feats.isReply) {
       var replyChip = el("span", "bangermeter-down", "▼ Reply ×0.75");
       replyChip.title = "This draft is a reply. In-network replies take the same ×0.75 rescoring " +
-        "factor as out-of-network posts (oon_applies, ranking_scorer.rs) — already reflected in " +
+        "factor as out-of-network posts (oon_applies, xai-value-model/scoring.rs) — already reflected in " +
         "the score. Replies are also excluded from the mutual-follow reply boost and from Grok's " +
         "banger pipeline.";
       hintsEl.appendChild(replyChip);

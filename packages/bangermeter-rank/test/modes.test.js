@@ -64,7 +64,7 @@ test("acceptance 2: 5,000-view post has usable E and ranks inside its view band"
 // Acceptance 3 — score card pins the param.rs sync timestamp.
 test("acceptance 3: every card pins param.rs sync, weights version, mode, lowSample", () => {
   const c = bmr.card(post(), { mode: "checklist" });
-  assert.equal(c.paramRsSync, "2026-09-24T16:24:49Z");
+  assert.equal(c.paramRsSync, "2026-09-29T17:02:52Z");
   assert.match(c.weightsVersion, /^\d+\.\d+\.\d+$/);
   assert.equal(c.mode, "checklist");
   assert.equal(typeof c.lowSample, "boolean");

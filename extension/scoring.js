@@ -1,7 +1,8 @@
 // Bangermeter — scoring engine (pure functions, no DOM access)
 //
 // Implements the Phoenix weighted-value-model math from
-// xai-org/x-algorithm, home-mixer/scorers/ranking_scorer.rs:
+// xai-org/x-algorithm, xai-org's value model (xai-value-model/scoring.rs, run by
+// vm-ranker since Sept 24 2026; before that home-mixer/scorers/ranking_scorer.rs):
 //   Score = offset_score( Σ(weight_i × P(action_i)) )
 // plus the post-hoc rescoring chain (author diversity, then the OON factor).
 //
@@ -298,8 +299,8 @@ var BangermeterEngine = (function () {
   }
 
   // ---- Under the Hood report parsing ----------------------------------------
-  // Parses the JSON a pilot-cohort user downloads from x.com/i/under_the_hood
-  // and imports by hand (the page never renders the labels into the DOM, and a
+  // Parses the JSON a pilot-cohort user downloads from x.com/i/jf/under_the_hood
+  // and imports by hand (we have not verified that X's report page exposes the labels, and a
   // zero-network extension will not fetch them). User-supplied input, so:
   // strict shape validation, whitelisted label characters, capped string and
   // array sizes, and a null on anything that does not look like the report.
@@ -375,7 +376,8 @@ var BangermeterEngine = (function () {
 
   // ---- published weight lookups ---------------------------------------------
 
-  // reply_weight_for(candidate) — ranking_scorer.rs:186-193.
+  // reply_weight_for(candidate) — xai-value-model/weights.rs; eligibility is
+  // bidirectional_boost_eligible in xai-value-model/inputs.rs.
   // The +15.0 boost lands only on an ORIGINAL post whose author you mutually
   // follow. Replies and reposts are explicitly ineligible.
   function replyWeightFor(ctx) {
@@ -387,7 +389,7 @@ var BangermeterEngine = (function () {
     return base;
   }
 
-  // oon_applies(candidate) — ranking_scorer.rs:747-754. A boolean gate, so the
+  // oon_applies(candidate) — xai-value-model/scoring.rs. A boolean gate, so the
   // 0.75 factor lands exactly once. EnableOonRescoreForInNetworkRepliesRetweets
   // defaults true, which is why an in-network reply or repost is discounted too.
   function oonApplies(ctx) {
@@ -397,15 +399,15 @@ var BangermeterEngine = (function () {
     return false;
   }
 
-  // diversity_multiplier(decay, floor, k) — ranking_scorer.rs:614-616
+  // diversity_multiplier(decay, floor, k) — xai-value-model/scoring.rs
   function diversityMultiplier(k) {
     var d = C.rescorers.authorDiversity;
     return (1.0 - d.floor) * Math.pow(d.decay, k) + d.floor;
   }
 
-  // offset_score(combined) — ranking_scorer.rs:525-533.
+  // offset_score(combined) — xai-value-model/scoring.rs.
   // The sums come from the FULL published weight table, exactly as
-  // ScoringWeights::new builds them — not from the subset of heads we happen to
+  // ValueModelWeights builds them — not from the subset of heads we happen to
   // be able to estimate. That is what makes the negative branch faithful: any
   // net-negative post is squashed into (0, offset), below every positive post.
   function offsetScore(combined) {
@@ -457,7 +459,7 @@ var BangermeterEngine = (function () {
   }
 
   // ---- shared rescoring chain ----------------------------------------------
-  // Production order: author diversity, then the OON factor (ranking_scorer.rs:832-853).
+  // Production order: author diversity, then the OON factor (xai-value-model/scoring.rs).
   // Author diversity is slate-relative (needs the whole timeline), so it is
   // reported as context rather than applied to a single post's score.
   function applyRescorers(raw, features, settings, opts) {
@@ -575,7 +577,7 @@ var BangermeterEngine = (function () {
       smoothingNote: views < K
         ? "Only " + views.toLocaleString() + " views — rates are smoothed toward the median (empirical Bayes, K=" + K.toLocaleString() + "), so small samples can't spike or tank the score."
         : null,
-      excludedNote: "Scored from the three heads a browser can see: likes (0.5), replies (" + replyW + "), reposts (1.0). The other 22 heads — shares (2.0 / 5.0 / 20.0), follows (4.0), clicks, dwell time and the negatives (−43.2 to −234.0) — need Phoenix's predictions, not counts."
+      excludedNote: "Scored from the three heads a browser can see: likes (0.5), replies (" + replyW + "), reposts (1.0). The other 22 heads — shares (2.0 / 5.0 / 20.0), follows (4.0), clicks, dwell time and the negatives (−31.2 to −234.0) — need Phoenix's predictions, not counts."
     };
   }
 
@@ -700,7 +702,7 @@ var BangermeterEngine = (function () {
 
   // Heads scored for every post, regardless of media.
   var ALWAYS_ON = ["favorite", "reply", "retweet", "quote", "share", "share_via_dm",
-    "share_via_copy_link", "follow_author", "click", "cont_dwell_time",
+    "share_via_copy_link", "follow_author", "click", "cont_dwell_time", "cont_click_dwell_time",
     "dwell", "not_dwelled", "not_interested", "block_author", "mute_author", "report"];
 
   function contentScore(features, settings) {
