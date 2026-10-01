@@ -715,6 +715,13 @@
       postText: "ok", cutTexts: [VL_NAME, vlLongCard, vlNote], belowText: "2\n1", quotedText: "" });
     check("verdict: text after a long quote card does not reach the window",
       vlAfterCard.own === false);
+    // A link preview showing only a domain the post also names. Cutting it
+    // must not cut the post's own text and lose where the window stops.
+    var vlDomainPost = "nytimes.com says visibility limited posts lose reach";
+    var vlDomain = VLV({ articleText: VL_HEAD + vlDomainPost + "\nnytimes.com\n1",
+      postText: vlDomainPost, cutTexts: [VL_NAME, "nytimes.com"], belowText: "nytimes.com\n1", quotedText: "" });
+    check("verdict: a preview naming the post's own words does not move the window",
+      vlDomain.own === false);
     // A post with no text of its own: the window still covers it, minus
     // the words that are not X's.
     var vlCardTitle = "Visibility limited: what X is not telling you\nexample.com";
