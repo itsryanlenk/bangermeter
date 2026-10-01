@@ -412,7 +412,28 @@ var BANGERMETER_CONFIG = {
         "NsfwHighRecall", "NsfwHighPrecision", "NsfwAvatarImage", "NsfwNearPerfect",
         "NsfwBannerImage", "NsfwAdmin", "ImpersonationHighPrecision",
         "AbusiveHighRecall", "DoNotAmplify"]
-    }
+    },
+
+    // ── A post that quotes a "Visibility limited" post (verified 2026-09-30) ──
+    // X's client draws the quoted post's notice inside the quote card (its
+    // soft-intervention component takes an inQuoteTweet prop). The label is
+    // the quoted post's, so the panel gives this case its own row.
+    quotedVisibilityLimited: {
+      provenance: "2026-published",
+      verifiedAt: "77d431a", verifiedAsOf: "2026-09-30",
+      sources: [
+        "home-mixer/candidate_hydrators/vf_candidate_hydrator.rs@77d431a (lines 79-80, 100-106: every candidate's quoted post is checked at TimelineHomeRecommendations; lines 109-110: a post that is also checked in-network keeps that verdict; lines 140-170: should_drop_ancillary flags a post whose quoted post is dropped)",
+        "home-mixer/filters/ancillary_vf_filter.rs@77d431a (line 15: every flagged post is removed)",
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs@77d431a (lines 425, 445: wired into For You)",
+        "visibility-filtering/rules/tweet_rules.rs@77d431a (lines 159-161: each drop exempts the post's author; lines 163-185, 574-580: the five FOSNR labels)",
+        "visibility-filtering/rules/registry.rs@77d431a (lines 134-164, 268-271: four labels drop at TimelineHome, all five at TimelineHomeRecommendations)",
+        "home-mixer/candidate_hydrators/vf_following_candidate_hydrator.rs@77d431a (lines 49-50, 63: the chronological Following feed checks quoted posts at TimelineHome)",
+        "home-mixer/candidate_pipeline/reverse_chron_posts_pipeline.rs@77d431a (lines 169, 182: and removes flagged posts)",
+        "home-mixer/candidate_pipeline/for_you_candidate_pipeline.rs@77d431a (lines 203-212: PushToHomeSource posts get no VF filter)",
+        "under-the-hood/strato/lib/underTheHoodLabels.strato@77d431a (lines 69-98: the five FOSNR labels come with a label all users can see)"
+      ],
+      panel: "Quotes a post X limited — For You removes this post too",
+      note: "X's own descriptions say five FOSNR labels come with a notice that the post has limited visibility (underTheHoodLabels.strato). For You checks every candidate's quoted post at the TimelineHomeRecommendations safety level, where all five are dropped. When the quoted post is dropped, should_drop_ancillary flags the quoting post and AncillaryVFFilter removes it, whether or not it has a label of its own. The drops exempt the quoted post's author, who can still be shown the quoting post. Three paths skip the removal: a quoted post whose visibility check fails gets no verdict; a quoted post that is also checked in-network keeps that verdict, and FOSNR_ABUSE_INSULTS is not dropped in-network; and posts from PushToHomeSource pass through no VF filter. The chronological Following feed checks quoted posts at TimelineHome, so it removes a post that quotes one with any of the other four labels. Where and how X renders the notice is not in the published code." }
   },
 
   // ── MEASURED RATES (retrospective score only) ───────────────────────────────

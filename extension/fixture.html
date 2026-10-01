@@ -208,6 +208,72 @@
     </div>
   </article>
 
+  <!-- 13: LONG post, X's "Visibility limited" header below it. X's client
+       draws the header after the post's text and media, as its own bold
+       line, followed by server text and "Learn more" (d7e50a66). Here the
+       header starts past character 200 of the article's text, which the old
+       window missed. The server text is left out. The panel must show the
+       visibility-limited row. -->
+  <article data-testid="tweet" id="t13">
+    <div data-testid="User-Name"><span class="name">Lena</span> <a href="/lena/status/1013"><time datetime="2026-08-02T14:50:00.000Z">10m</time></a></div>
+    <div data-testid="tweetText">The bridge budget doubled in eighteen months, and the council minutes show why. First, the steel contract was re-tendered after the original bidder folded. Second, the river survey found softer ground than the 2019 plan assumed. Third, nobody priced the detour for the bus routes, which runs for two years.</div>
+    <div data-testid="tweetPhoto" class="media">photo</div>
+    <div role="link" tabindex="0">
+      <div><b>Visibility Limited</b></div>
+      <div><a href="#">Learn more</a></div>
+    </div>
+    <div role="group" aria-label="4 replies, 2 reposts, 31 likes, 1 bookmark, 2400 views">
+      <button data-testid="reply" aria-label="4 Replies. Reply">💬 4</button>
+      <button data-testid="retweet" aria-label="2 reposts. Repost">🔁 2</button>
+      <button data-testid="like" aria-label="31 Likes. Like">❤ 31</button>
+      <button data-testid="bookmark" aria-label="1 bookmark. Bookmark">🔖 1</button>
+    </div>
+  </article>
+
+  <!-- 14: SHORT post quoting a post that carries the header. X draws the
+       quoted post's header inside the quote card, in a link of its own. The
+       label is the quoted post's: the panel must NOT show the
+       visibility-limited row, and must show the quoted-post row instead,
+       because For You removes a post whose quoted post is dropped. The old
+       200-character window reached into the card and showed the wrong row. -->
+  <article data-testid="tweet" id="t14">
+    <div data-testid="User-Name"><span class="name">Cole</span> <a href="/cole/status/1014"><time datetime="2026-08-02T14:45:00.000Z">15m</time></a></div>
+    <div data-testid="tweetText">This take aged well.</div>
+    <div role="link" tabindex="0" style="border:1px solid #ccc;border-radius:12px;padding:8px;margin-top:6px;">
+      <div><span class="name">Bea</span> · 3h</div>
+      <div data-testid="tweetText">The original claim, quoted.</div>
+      <div role="link" tabindex="0">
+        <div><b>Visibility Limited</b></div>
+        <div><a href="#">Learn more</a></div>
+      </div>
+    </div>
+    <div role="group" aria-label="2 replies, 1 repost, 9 likes, 700 views">
+      <button data-testid="reply" aria-label="2 Replies. Reply">💬 2</button>
+      <button data-testid="retweet" aria-label="1 repost. Repost">🔁 1</button>
+      <button data-testid="like" aria-label="9 Likes. Like">❤ 9</button>
+    </div>
+  </article>
+
+  <!-- 15: CONTROL. No header from X. The long body has "Visibility limited"
+       as a line of its own, past character 200, and a poll offers it as an
+       option. Neither is X's label: the panel must show neither
+       visibility-limited row. -->
+  <article data-testid="tweet" id="t15">
+    <div data-testid="User-Name"><span class="name">Omar</span> <a href="/omar/status/1015"><time datetime="2026-08-02T14:40:00.000Z">20m</time></a></div>
+    <div data-testid="tweetText">Three weeks of posting at the same hour, same length, same topics, and my reach dropped by half after the second week. I checked the usual suspects: no strikes, no notices on any post, nothing in the account status page. Then a friend sent me a screenshot of one of my posts with a line under it that said<br>Visibility limited<br>Has anyone else seen that?</div>
+    <div data-testid="card.wrapper">
+      <div data-testid="cardPoll">
+        <div>Visibility limited</div>
+        <div>Just a slow week</div>
+      </div>
+    </div>
+    <div role="group" aria-label="12 replies, 3 reposts, 20 likes, 3100 views">
+      <button data-testid="reply" aria-label="12 Replies. Reply">💬 12</button>
+      <button data-testid="retweet" aria-label="3 reposts. Repost">🔁 3</button>
+      <button data-testid="like" aria-label="20 Likes. Like">❤ 20</button>
+    </div>
+  </article>
+
   <script src="weights.js"></script>
   <script src="scoring.js"></script>
   <script src="content.js"></script>
