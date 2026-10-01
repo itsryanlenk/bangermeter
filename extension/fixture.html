@@ -169,6 +169,29 @@
     </div>
   </article>
 
+  <!-- 12: SPANISH locale, X's "Visibility limited" label. "Visibilidad
+       limitada" is message key b3296688 in the es bundle; "Más información"
+       is d7e50a66. X's client draws them as the header and link of a soft
+       intervention below the post text. The explanation between them comes
+       from X's server, not the bundles, so it is left out. Detection reads
+       the first 200 characters of the article's text, so the post is short.
+       The panel must show the visibility-limited row, as it does for an
+       English UI. (Numbered 12 because PR #5 adds an English case as 11.) -->
+  <article data-testid="tweet" id="t12">
+    <div data-testid="User-Name"><span class="name">Ana</span> <a href="/ana/status/1012"><time datetime="2026-08-02T14:58:00.000Z">2m</time></a></div>
+    <div data-testid="tweetText">Un post corto que lleva la etiqueta de X.</div>
+    <div>
+      <div><b>Visibilidad limitada</b></div>
+      <div><a href="#">Más información</a></div>
+    </div>
+    <div role="group" aria-label="5 respuestas, 3 reposts, 12 Me gusta, 2 elementos guardados, 900 reproducciones">
+      <button data-testid="reply">💬 5</button>
+      <button data-testid="retweet">🔁 3</button>
+      <button data-testid="like">❤ 12</button>
+      <button data-testid="bookmark">🔖 2</button>
+    </div>
+  </article>
+
   <script src="weights.js"></script>
   <script src="scoring.js"></script>
   <script src="content.js"></script>

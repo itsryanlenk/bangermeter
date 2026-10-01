@@ -262,7 +262,7 @@
     var hasCommunityNote = !!article.querySelector('[data-testid="birdwatch-pivot"]');
 
     // FOSNR restricted-reach interstitial (qualitative flag; magnitude unpublished)
-    var visibilityLimited = /visibility limited/i.test(firstDivs);
+    var visibilityLimited = BangermeterEngine.visibilityLimitedIn(firstDivs);
 
     var idLink = article.querySelector('a[href*="/status/"] time');
     var tweetId = null;

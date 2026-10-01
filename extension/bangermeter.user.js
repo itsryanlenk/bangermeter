@@ -727,6 +727,48 @@ var BangermeterEngine = (function () {
     { t: "回覆給", m: "p" }, { t: "回覆 ", m: "p" }          // zh-Hant
   ];
 
+  // X's "Visibility limited" label: message key b3296688, the header X's
+  // client gives a soft intervention whose type is "Fosnr" (one of five
+  // headers in that component; the others are Misleading, Legally Required
+  // Notice, Stay informed, Get the latest). No other string in the en bundle
+  // contains "visibility limited", so there is one wording per locale.
+  // Verbatim, so each line can be checked against its bundle; matching
+  // lowercases both sides.
+  //
+  // Bundles: the ones named by the chunk manifest in the 2026-09-12 Wayback
+  // capture of x.com/i/flow/login, fetched from abs.twimg.com 2026-09-30.
+  // The live logged-out page now serves X's new x-web client, which carries
+  // no responsive-web manifest. en and es were re-read from the 2026-09-30
+  // and 2026-09-18 bundles: identical.
+  //
+  // Two things these strings do not cover. X renders the header only when
+  // its fosnrSoftInterventionsEnabled switch is on (the client's default is
+  // off). And X's other notice for restricted posts, a "NonCompliant"
+  // tombstone drawn above the post text, takes its wording from the server,
+  // not the bundles. In a non-English UI it matches here only if the server
+  // text contains the same words.
+  var VISIBILITY_LIMITED_LABELS = [
+    "Visibility Limited",             // en       b3296688
+    "Visibilidad limitada",           // es       b3296688
+    "Visibilidade limitada",          // pt       b3296688
+    "Visibilité limitée",             // fr       b3296688
+    "Sichtbarkeit eingeschränkt",     // de       b3296688
+    "Visibilità limitata",            // it       b3296688
+    "Zichtbaarheid beperkt",          // nl       b3296688
+    "Görünürlük Kısıtlandı",          // tr       b3296688
+    "Visibilitas Terbatas",           // id       b3296688
+    "表示制限中",                      // ja       b3296688
+    "노출 범위 제한됨",                  // ko       b3296688
+    "الظهور مقيّد",                    // ar       b3296688
+    "Видимость ограничена",           // ru       b3296688
+    "दृश्यता सीमित है",                  // hi       b3296688
+    "展示受限",                        // zh       b3296688
+    "可見度受限"                        // zh-Hant  b3296688
+  ];
+  var VISIBILITY_LIMITED_LOWER = VISIBILITY_LIMITED_LABELS.map(function (s) {
+    return s.toLowerCase();
+  });
+
   // "1 reply, 5 reposts, 30 likes, 2 bookmarks, 1034 views" -> counts object.
   // Also: "3件の返信、30件のいいね…", "5 ردود، 10 إعجابات…", etc. Zero-count
   // metrics are omitted from X's label; missing keys stay absent here too.
@@ -800,6 +842,19 @@ var BangermeterEngine = (function () {
       var mk = REPLY_MARKERS[i];
       var idx = t.indexOf(mk.t);
       if (mk.m === "p" ? idx === 0 : idx !== -1) return true;
+    }
+    return false;
+  }
+
+  // Does this text carry X's "Visibility limited" label, in any of the 16
+  // locales? Contains, not prefix: the English check this replaces
+  // (/visibility limited/i over the same text) matched anywhere, and the
+  // English behavior must not change.
+  function visibilityLimitedIn(text) {
+    if (!text) return false;
+    var t = String(text).toLowerCase();
+    for (var i = 0; i < VISIBILITY_LIMITED_LOWER.length; i++) {
+      if (t.indexOf(VISIBILITY_LIMITED_LOWER[i]) !== -1) return true;
     }
     return false;
   }
@@ -1327,6 +1382,7 @@ var BangermeterEngine = (function () {
     parseCount: parseCount,
     parseActionBarLabel: parseActionBarLabel,
     replyMarkerIn: replyMarkerIn,
+    visibilityLimitedIn: visibilityLimitedIn,
     replyVerdict: replyVerdict,
     surfaceFromPath: surfaceFromPath,
     makeHistoryEntry: makeHistoryEntry,
@@ -1610,7 +1666,7 @@ var BangermeterEngine = (function () {
     var hasCommunityNote = !!article.querySelector('[data-testid="birdwatch-pivot"]');
 
     // FOSNR restricted-reach interstitial (qualitative flag; magnitude unpublished)
-    var visibilityLimited = /visibility limited/i.test(firstDivs);
+    var visibilityLimited = BangermeterEngine.visibilityLimitedIn(firstDivs);
 
     var idLink = article.querySelector('a[href*="/status/"] time');
     var tweetId = null;
