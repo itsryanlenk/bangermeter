@@ -47,9 +47,10 @@ was deleted. home-mixer now sends each slate to a separate `vm-ranker`, which sc
 the new `xai-value-model` crate using `vm-ranker/params.rs`. It then applies the cold-start
 lift, author diversity × OON, and DPP. Line by line, the head sum, offset, diversity and OON
 gate are the same math at published defaults. `vm-ranker/params.rs` first appeared Sept 23
-(`1b3fec2`) as a full duplicate. On Sept 24 `param.rs` dropped only the rescoring,
-perturbation and DPP parameters, so the 25 head weights are still declared in both files,
-and they agree at every commit. Three consequences:
+(`1b3fec2`) as a full duplicate. On Sept 24 `param.rs` lost 22 parameters — the rescoring,
+perturbation and DPP settings, the vm-ranker switches, the deleted head, and scorer options
+that lived only in the deleted file — but kept the 25 head weights, so those are still
+declared in both files, and they agree at every commit. Three consequences:
 
 - The *viewer* ≥10,000-follower vqv gate no longer reaches the served score. vm-ranker
   checks clip duration only.
@@ -72,7 +73,7 @@ and they agree at every commit. Three consequences:
 
 Thompson sampling draws a like rate from Beta(0.75 + likes, 49.25 + Home impressions −
 likes) for each qualifier, keeps the two highest draws, and promotes whichever of those
-the model scored higher. It is still at most one post per request, and still a score
+the model scored higher, so with one or two qualifiers the sampling changes nothing. It is still at most one post per request, and still a score
 floor at rank 15 rather than a seat. In the same push `PhoenixColdStartMaxResults` went
 0 → 200, feeding a new `ForYouPhoenixRetrievalCold` lane. On the Phoenix side, the HOME_COLD
 slice (Sept 24) is posts with fewer than 8 likes and 500 views, at most 2 hours old
@@ -81,9 +82,9 @@ slice (Sept 24) is posts with fewer than 8 likes and 500 views, at most 2 hours 
 **Grok reply gate: 200,000 → 225,000 (Sept 23) → 250,000 (Sept 24).** The value is
 `GROK_GEMMA_FOLLOWER_SPLIT` in `grox/flows/reply_spam/constants.py`; a diff of
 `task_filter.py` alone no longer shows it moving. Re-tracing it through every commit that
-touched either file corrected the history 0.10.2 shipped: 150,000 held until Sept 16, when
-the named constant arrived at **180,000**, and 200,000 came Sept 17. That makes eleven
-raises since Aug 13, not eight. Three related findings:
+touched either file corrected the count 0.10.2 shipped: 150,000 held until Sept 16, when
+the named constant arrived at **180,000**, and 200,000 came Sept 17, so 0.10.2's "eight
+raises" was nine. With 225,000 and 250,000, that makes eleven since Aug 13. Three related findings:
 
 - The Gemma reply-spam model's floor dropped from 150,000 to 125,000 (Sept 26), so it now
   covers 125,001–250,000.
@@ -99,7 +100,8 @@ raises since Aug 13, not eight. Three related findings:
 report. The downloaded JSON's shape is unchanged, so the import still works. Whether the new
 page exposes labels to an extension has not been checked live.
 
-**Visibility filtering.** Most of the ~17,000 changed lines are a rule-engine rewrite,
+**Visibility filtering.** Most of the change (about 17,100 lines added, 8,800 removed) is a
+rule-engine rewrite,
 checked verdict-for-verdict against the golden corpus. One For You verdict changed: posts
 labelled `NSFW_TEXT` are no longer dropped for out-of-network adult viewers
 (`NsfwTextTweetLabelDropRule`, removed Sept 24). Underage, logged-out and no-stated-age

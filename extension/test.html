@@ -113,8 +113,8 @@
       SF.replyQualityGate.zeroScoreLabel === "RiskyHighVizReply" &&
       SF.replyQualityGate.selfRepliesExempt === true, SF.replyQualityGate.followerThreshold);
     // grox/flows/reply_spam/constants.py, traced through every commit that
-    // touched it or task_filter.py. Eleven raises, not eight: the 0.10.2 note
-    // skipped 180,000 (Sept 16) and dated 200,000 a day early.
+    // touched it or task_filter.py. Eleven raises: 0.10.2 counted eight when
+    // there were nine, having skipped 180,000 (Sept 16).
     check("reply gate history lists all eleven raises with the right Sept dates",
       /eleven/i.test(SF.replyQualityGate.note) &&
       /180,000 \(Sept 16\)/.test(SF.replyQualityGate.note) &&
@@ -185,6 +185,12 @@
     check("cold start note no longer says the highest-scoring post wins",
       !/The winner is the highest-scoring post/.test(SF.authorColdStart.note) &&
       /Thompson/.test(SF.authorColdStart.note));
+    // ColdStartTsTopK = 2: likes only pick a shortlist; the model score picks
+    // the winner, so with one or two qualifiers sampling changes nothing. An
+    // adversary pass caught "early likes decide who gets the lift".
+    check("cold start note says likes pick a shortlist, not the winner",
+      /shortlist of two/.test(SF.authorColdStart.note) &&
+      !/likes per impression now decide who gets the lift/.test(SF.authorColdStart.note));
     // content_features.rs names the content inputs sent to the model.
     check("published content features recorded (7 fields)",
       SF.contentFeatures && SF.contentFeatures.fields.length === 7);

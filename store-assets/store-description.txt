@@ -47,7 +47,6 @@ SOME OF WHAT THE WEIGHTS SAY
 • A reply carries 5. From someone you mutually follow, on an original post, 20.
 • Sharing to DMs carries 5, and nothing in the visible counts shows you it happened.
 • Profile clicks are worth nothing. That head used to pay, and X zeroed it.
-• Clicking into a post and staying pays more than the click itself: 0.4 against 0.3.
 • Muting hurts nearly twice as much as blocking.
 • Scrolling straight past is a scored penalty.
 • Bookmarks are not a scored action at all.
@@ -79,22 +78,22 @@ Everything runs locally in your browser. The source is public and reviewable.
 
 OPEN SOURCE
 
-MIT licensed, with the full research record and 281 automated tests that check every published weight against X's source individually.
+MIT licensed, with the full research record and 282 automated tests that check every published weight against X's source individually.
 
 github.com/itsryanlenk/bangermeter
 
 
 WHAT'S NEW IN 0.10.3
 
-• Three weights changed on 29 September. A click on a post now carries 0.3, down from 0.4. Clicking in and staying past X's click-dwell mark now carries 0.4, up from nothing. And "not interested" got 10% harsher, −43.2 to −47.52, the first time X has moved a negative weight since publishing the table. The click itself pays less; a reader who clicks in and stays pays more. The extension cannot see clicks, so it estimates the new term, and threads get credit for it.
+• Three weights changed, published by X on 29 September from its 28 September config sync. A click on a post now carries 0.3, down from 0.4. Clicking in and staying past X's click-dwell mark now carries 0.4, up from nothing. And "not interested" got 10% harsher, −43.2 to −47.52, the first negative weight X has moved since publishing the table. The extension cannot see clicks, so it estimates the click-dwell term, and threads get credit for it.
 
-• The fresh-post lane was rewritten on 30 September. X can still lift at most one post per For You request to around slot 15, but the rules changed. The author can now have up to 50,000 followers (it was 1,000). The post must be no more than two hours old (it was 48) and have fewer than 200 Home impressions (it was 1,000). Among the posts that qualify, X no longer just takes the highest score: it samples on early likes per impression, so early likes decide who gets the lift, with some luck in it. The panel shows the new rules.
+• The fresh-post lane was rewritten, published 30 September from X's 29 September sync. X can still lift at most one post per For You request to around slot 15, but the rules changed. The author can now have up to 50,000 followers (it was 1,000). The post must be no more than two hours old (it was 48) and have fewer than 200 Home impressions (it was 1,000). And X no longer simply takes the highest-scoring qualifier: it samples on early likes per impression to pick a shortlist of two, then the higher model score wins. With only one or two posts qualifying, likes change nothing. The panel shows the new rules.
 
-• X moved its scoring into a separate service. The file every earlier version cited was deleted on 24 September, and the same math now runs in X's value model. Every citation in the extension points at the new files. The move itself changes no scores.
+• X moved its scoring into a separate service on 24 September. The scorer file earlier versions cited for the math was deleted, and the same math now runs in X's value model. Every citation in the extension points at the new files. At X's published defaults, the move itself changes no scores.
 
-• The reply quality gate is now over 250,000 followers, as of 30 September. And a correction: 0.10.2 said X had raised that gate eight times and reached 200,000 on 16 September. Tracing it again found a step we had missed — 180,000 on the 16th, 200,000 on the 17th — so it is eleven raises. Also new: a reply that quotes a post is always scored by the Grok model, whatever the follower counts.
+• The reply quality gate is now over 250,000 followers, as of 30 September. And a correction: 0.10.2 said X had raised that gate eight times. It was nine; our trace had missed a 180,000 step on 16 September. Since then it went to 225,000 on 23 September and 250,000 on the 24th, so eleven raises in all. Also new: a reply that quotes a post is always scored by the Grok model, whatever the follower counts.
 
-• Smaller corrections. The Brazil electoral filter now covers 2,795 accounts. The Under the Hood link moved to x.com/i/jf/under_the_hood. And 0.10.2 overstated two things: it said the model reads a post's bookmark count and its seven content features. X sends both to the model with every post, but none of its published model code reads them. The panel now says exactly that.
+• Smaller corrections. The Brazil electoral filter covers 2,795 accounts as of 30 September. The Under the Hood link moved to x.com/i/jf/under_the_hood. And 0.10.2 overstated two things: it said the model reads a post's bookmark count and its seven content features. X sends both to the model with every post, but none of its published model code reads them. The panel now says exactly that.
 
 
 WHAT'S NEW IN 0.10.2
@@ -123,7 +122,7 @@ WHAT'S NEW IN 0.10.0
 
 NEW
 
-• Reply scoring. The breakdown panel gains a reply section built from X's published code: out-of-network replies are hard-filtered from For You rather than down-weighted, replies never get the mutual-follow boost, and replies to accounts over 200K followers are scored 0-3 by a Grok model. X withholds that model's rubric to reduce gameability, so this extension lists the published inputs and refuses to fake the score. Where a reply ranks inside a thread is not something anyone outside X can score, and it says so instead of guessing.
+• Reply scoring. The breakdown panel gains a reply section built from X's published code: out-of-network replies are hard-filtered from For You rather than down-weighted, replies never get the mutual-follow boost, and replies to accounts over 100K followers are scored 0-3 by a Grok model. X withholds that model's rubric to reduce gameability, so this extension lists the published inputs and refuses to fake the score. Where a reply ranks inside a thread is not something anyone outside X can score, and it says so instead of guessing.
 
 • Draft comparison. Save up to three draft variants and compare their scores side by side before posting.
 
