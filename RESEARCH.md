@@ -19,6 +19,85 @@
 > values. "Block −120 / mute −100" is really −31.2 / −58.8. "Reply = 27× a like" is really
 > 10×. "Bookmark 20×" describes a head that does not exist.
 
+## Update — September 30, 2026: what For You does with "Visibility limited" posts
+
+Through v0.10.2 the breakdown panel answered X's "Visibility limited" notice with "reach
+suppressed (magnitude unpublished)". Its tooltip cited `FreedomOfSpeechNotReach.scala`,
+which is from the 2023 archive. An upstream audit said the 2026 code does something else.
+Every point below was re-checked against `xai-org/x-algorithm` at `77d431a` (Sept 30), and
+an adversary pass over the first draft added the qualifications it was missing.
+
+- **For You checks posts at two safety levels.** In-network posts and reposted originals
+  go to `TimelineHome`. Out-of-network posts, and every candidate's ancestors and quoted
+  post, go to `TimelineHomeRecommendations`
+  (`home-mixer/candidate_hydrators/vf_candidate_hydrator.rs@77d431a`, lines 67-106). The
+  For You pipeline wires that hydrator, `VFFilter` and `AncillaryVFFilter`
+  (`home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs@77d431a`, lines 425 and
+  444-445).
+- **Drop verdicts are removed, not down-ranked.** `should_drop_action` removes `Drop`,
+  `Tombstone` and `NotEvaluated`, and keeps `Allow`, `Interstitial`, `Avoid` and
+  `Downrank` (`home-mixer/filters/vf_filter.rs@77d431a`, lines 14-27). A post whose quoted
+  post, reposted original or ancestor is dropped is removed too
+  (`vf_candidate_hydrator.rs@77d431a`, lines 140-170). An in-network reply's ancestors are
+  its parent and thread root (`home-mixer/sources/thunder_source.rs@77d431a`, lines 92-98).
+- **Four FOSNR labels are dropped for everyone but the author.** `FOSNR_HATEFUL_CONDUCT`,
+  `FOSNR_VIOLENT_SPEECH`, `FOSNR_ABUSE` and `FOSNR_CIVIC_INTEGRITY` are each an
+  `except_author` drop (`visibility-filtering/rules/tweet_rules.rs@77d431a`, lines
+  163-185), run at both levels (`visibility-filtering/rules/registry.rs@77d431a`, lines
+  134-149 and 265-275). Following the author does not exempt a viewer.
+- **`FOSNR_ABUSE_INSULTS` is dropped out-of-network only** (`tweet_rules.rs@77d431a`, lines
+  574-580, wired at `TimelineHomeRecommendations` alone by `registry.rs@77d431a`, lines
+  151-164). Because reposted originals are checked at `TimelineHome`
+  (`vf_candidate_hydrator.rs@77d431a`, lines 82-83), a viewer who does not follow the
+  author still gets the post when an account they follow reposts it.
+- **Two published paths skip the check.** If the visibility call fails, the post gets no
+  verdict (`vf_candidate_hydrator.rs@77d431a`, lines 119-120) and `VFFilter` keeps it
+  (`vf_filter.rs@77d431a`, line 16). Posts from `PushToHomeSource` pass through no VF
+  filter (`home-mixer/candidate_pipeline/for_you_candidate_pipeline.rs@77d431a`, lines
+  203-212).
+- **No rule emits a FOSNR limited-engagement verdict.** `LimitedEngagementReason` has five
+  variants and none is FOSNR (`visibility-filtering/models/verdict.rs@77d431a`, lines
+  84-90). `visibility-filtering-client/graphql_results.rs@77d431a` (lines 186-203) can
+  decode a `FosnrReason`. Nothing in the published code calls that function.
+- **The notice itself is not in the published code.** Only X's label descriptions mention
+  it. For all five labels they say "All users can see a label explaining that the post has
+  limited visibility" (`under-the-hood/strato/lib/underTheHoodLabels.strato@77d431a`,
+  lines 69-98). For the four labels above they also say discoverability "is restricted to
+  the author's profile". The on-screen words "Visibility limited" appear nowhere in source,
+  and where and how the notice renders is not published.
+- **Not new.** The same rules are at `8b25829` (Sept 18) and in `47c1bcd` (Aug 13), the
+  first release to publish the visibility-filtering rules. (The repo itself was first
+  published Jan 20, at `aaa167b`.) The Aug 13 tests include
+  `fosnr_level3_drops_non_author_including_follower`. The panel line, added Aug 5
+  (`6ee9255`), was wrong from the day X published the rules.
+
+Two things the audit did not cover:
+
+- **The chronological Following feed removes the same four labels.** It checks every
+  post, with its ancestors, quoted post and reposted post, at `TimelineHome` only
+  (`home-mixer/candidate_hydrators/vf_following_candidate_hydrator.rs@77d431a`, line 63),
+  then runs the same `VFFilter` and `AncillaryVFFilter`
+  (`home-mixer/candidate_pipeline/reverse_chron_posts_pipeline.rs@77d431a`, lines 181-182).
+  `FOSNR_ABUSE_INSULTS` is not dropped there. The ranked Following feed sets
+  `in_network_only` and runs the For You pipeline, checks included
+  (`home-mixer/server.rs@77d431a`, line 548).
+- **A third home level exists, and home-mixer does not call it.** `TimelineHomeHydration`
+  was published Sept 22 (`3aa0fa3`). At `77d431a` it wires the four drops, a
+  non-follower drop of `FOSNR_ABUSE_INSULTS` behind a client switch that defaults on, a
+  fallback drop of all five behind a client switch that defaults off, and four groups of
+  limited-engagement rules, none of them FOSNR (`registry.rs@77d431a`, lines 166-183;
+  `tweet_rules.rs@77d431a`, lines 582-623 and 749-757). No published code calls this
+  level. Whether anything does is not in source.
+
+**What changed in Bangermeter.** The panel now says "For You removes it for everyone but
+the author". A second line names the `FOSNR_ABUSE_INSULTS` exception, reposts included,
+and says the notice's rendering is not in X's published code. Both strings and every
+citation above live in `sourcedFacts.visibilityLimited` in `extension/weights.js`. The
+score is unchanged. It still assumes the post can reach For You. The tooltip now says
+that, apart from the two paths above, a post carrying this notice reaches only its author
+in For You, plus, under `FOSNR_ABUSE_INSULTS`, the author's followers and anyone
+following an account that reposts it.
+
 ## Update — September 30, 2026: three weights move, cold start is rewritten, scoring changes services
 
 X pushed seven times between Sept 22 and Sept 30 (`3aa0fa3` through `77d431a`). Every
@@ -512,7 +591,10 @@ any French trial record.
   three years before the release.
 - **Restricted-reach interstitials are detectable**: FreedomOfSpeechNotReach.scala
   publishes the label-to-action taxonomy (no magnitudes); Bangermeter flags
-  visibility-limited posts qualitatively instead of scoring them.
+  visibility-limited posts qualitatively instead of scoring them. *Superseded for the 2026
+  code:* that file is the 2023 archive. In the published 2026 code For You removes these
+  posts rather than down-ranking them, except that one label is removed only
+  out-of-network. See the September 30, 2026 update at the top of this file.
 
 **Debunked for the record:** Grok "reveals" of ranking weights are confabulations by
 construction (the weights are redacted from every release Grok could read, and xAI's own

@@ -331,6 +331,41 @@ var BANGERMETER_CONFIG = {
       source: "home-mixer/filters/oon_retweet_reply_filter.rs",
       note: "OONRetweetReplyFilter removes replies (and reposts) from unfollowed accounts from For You candidates entirely — an out-of-network reply is not down-weighted, it is gone. Replies with a missing parent are dropped too." },
 
+    // ── The "Visibility limited" notice (verified against 77d431a, 2026-09-30) ──
+    // Through v0.10.2 the panel said "reach suppressed (magnitude unpublished)"
+    // and cited FreedomOfSpeechNotReach.scala. That file is the 2023 archive.
+    // The 2026 code has no reach magnitude to withhold: For You drops these
+    // posts. Unchanged at 8b25829 (Sept 18), and present in 47c1bcd (Aug 13),
+    // the first release to publish the visibility-filtering rules. (The repo
+    // itself was first published Jan 20, at aaa167b.)
+    visibilityLimited: {
+      provenance: "2026-published",
+      verifiedAt: "77d431a", verifiedAsOf: "2026-09-30",
+      forYouLevels: ["TimelineHome", "TimelineHomeRecommendations"],
+      droppedExceptAuthor: ["FOSNR_HATEFUL_CONDUCT", "FOSNR_VIOLENT_SPEECH",
+        "FOSNR_ABUSE", "FOSNR_CIVIC_INTEGRITY"],
+      droppedOutOfNetwork: ["FOSNR_ABUSE_INSULTS"],
+      fosnrLimitedEngagementRule: false,
+      noticeRenderingPublished: false,
+      sources: [
+        "home-mixer/candidate_hydrators/vf_candidate_hydrator.rs@77d431a (lines 67-106: in-network posts and reposted originals at TimelineHome; out-of-network posts, ancestors and quoted posts at TimelineHomeRecommendations)",
+        "home-mixer/candidate_hydrators/vf_candidate_hydrator.rs@77d431a (lines 140-170: a post whose quoted post, reposted original or ancestor is dropped is flagged, and AncillaryVFFilter removes it)",
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs@77d431a (lines 425, 444-445: wired into For You)",
+        "home-mixer/filters/vf_filter.rs@77d431a (lines 14-27: Drop, Tombstone and NotEvaluated are removed; a post with no verdict is kept)",
+        "home-mixer/candidate_pipeline/for_you_candidate_pipeline.rs@77d431a (lines 203-212: PushToHomeSource posts get no VF filter)",
+        "home-mixer/sources/thunder_source.rs@77d431a (lines 92-98: an in-network reply's ancestors are its parent and thread root)",
+        "visibility-filtering/rules/tweet_rules.rs@77d431a (lines 163-185: four labels dropped except for the author; lines 574-580: FOSNR_ABUSE_INSULTS)",
+        "visibility-filtering/rules/registry.rs@77d431a (lines 134-164, 265-275: the four drops run at both levels, FOSNR_ABUSE_INSULTS at the out-of-network level only)",
+        "visibility-filtering/models/verdict.rs@77d431a (lines 84-90: no FOSNR limited-engagement reason)",
+        "visibility-filtering-client/graphql_results.rs@77d431a (lines 186-203: decodes a FosnrReason that no published rule emits)",
+        "home-mixer/candidate_hydrators/vf_following_candidate_hydrator.rs@77d431a (line 63: the chronological Following feed checks every post at TimelineHome)",
+        "home-mixer/server.rs@77d431a (line 548: the ranked Following feed sets in_network_only and runs the For You pipeline)",
+        "under-the-hood/strato/lib/underTheHoodLabels.strato@77d431a (lines 69-98: X's own description of the notice)"
+      ],
+      panel: "Visibility limited by X — For You removes it for everyone but the author",
+      panelDetail: "One exception: a post labeled FOSNR_ABUSE_INSULTS is removed only out-of-network, so followers can still get it, and so can anyone who follows an account that reposts it. Where the post still appears, as here, X shows this notice. That rendering is not in X's published code.",
+      note: "X's own descriptions say five FOSNR labels come with 'a label explaining that the post has limited visibility', shown to all users (underTheHoodLabels.strato). The on-screen words 'Visibility limited' are not in source. For You checks in-network posts and reposted originals at the TimelineHome safety level, and out-of-network posts, plus every candidate's ancestors and quoted post, at TimelineHomeRecommendations. FOSNR_HATEFUL_CONDUCT, FOSNR_VIOLENT_SPEECH, FOSNR_ABUSE and FOSNR_CIVIC_INTEGRITY are dropped at both levels for every viewer except the author. FOSNR_ABUSE_INSULTS is dropped at the out-of-network level only. vf_filter.rs removes every Drop verdict, so these posts are gone from For You, not ranked lower. A post that quotes one, or whose parent or thread root is one, is removed with it. Two published paths skip all of this: a post whose visibility check fails gets no verdict and is kept, and posts from PushToHomeSource pass through no VF filter. The chronological Following feed checks every post at TimelineHome, so it removes the same four labels. The ranked Following feed runs the For You checks. No published rule emits a FOSNR limited-engagement verdict. Where and how X renders the notice is not in the published code. Bangermeter's score assumes the post can reach For You. Apart from those two paths, a post carrying this notice reaches only its author in For You, plus, when the label is FOSNR_ABUSE_INSULTS, the author's followers and anyone following an account that reposts it." },
+
     replyQualityGate: {
       followerThreshold: 250000, scoreMin: 0, scoreMax: 3,
       // Traced commit by commit through every commit touching task_filter.py
@@ -1662,7 +1697,8 @@ var BangermeterEngine = (function () {
     // Community Note attached (Birdwatch pivot element)
     var hasCommunityNote = !!article.querySelector('[data-testid="birdwatch-pivot"]');
 
-    // FOSNR restricted-reach interstitial (qualitative flag; magnitude unpublished)
+    // X's "Visibility limited" notice (FOSNR labels). For You drops these
+    // posts rather than down-ranking them — see sourcedFacts.visibilityLimited.
     var visibilityLimited = /visibility limited/i.test(firstDivs);
 
     var idLink = article.querySelector('a[href*="/status/"] time');
@@ -1977,10 +2013,14 @@ var BangermeterEngine = (function () {
       sec1.appendChild(rrow);
     });
     if (result.features.visibilityLimited) {
-      var vl = el("div", "bangermeter-rescorer",
-        "▼ Visibility limited by X — reach suppressed (magnitude unpublished)");
-      vl.title = "FOSNR restricted-reach interstitial detected (FreedomOfSpeechNotReach.scala label taxonomy; numeric penalty never released)";
+      var VL = BANGERMETER_CONFIG.sourcedFacts.visibilityLimited;
+      var vl = el("div", "bangermeter-rescorer", "▼ " + VL.panel);
+      vl.title = VL.note + " (xai-org/x-algorithm at " + VL.verifiedAt + ", " +
+        VL.verifiedAsOf + ": " + VL.sources.map(function (s) {
+          return s.split(" (")[0];
+        }).join(", ") + ")";
       sec1.appendChild(vl);
+      sec1.appendChild(el("div", "bangermeter-fineprint", VL.panelDetail));
     }
     if (result.features.hasCommunityNote) {
       sec1.appendChild(el("div", "bangermeter-fineprint",

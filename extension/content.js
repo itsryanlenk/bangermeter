@@ -261,7 +261,8 @@
     // Community Note attached (Birdwatch pivot element)
     var hasCommunityNote = !!article.querySelector('[data-testid="birdwatch-pivot"]');
 
-    // FOSNR restricted-reach interstitial (qualitative flag; magnitude unpublished)
+    // X's "Visibility limited" notice (FOSNR labels). For You drops these
+    // posts rather than down-ranking them — see sourcedFacts.visibilityLimited.
     var visibilityLimited = /visibility limited/i.test(firstDivs);
 
     var idLink = article.querySelector('a[href*="/status/"] time');
@@ -576,10 +577,14 @@
       sec1.appendChild(rrow);
     });
     if (result.features.visibilityLimited) {
-      var vl = el("div", "bangermeter-rescorer",
-        "▼ Visibility limited by X — reach suppressed (magnitude unpublished)");
-      vl.title = "FOSNR restricted-reach interstitial detected (FreedomOfSpeechNotReach.scala label taxonomy; numeric penalty never released)";
+      var VL = BANGERMETER_CONFIG.sourcedFacts.visibilityLimited;
+      var vl = el("div", "bangermeter-rescorer", "▼ " + VL.panel);
+      vl.title = VL.note + " (xai-org/x-algorithm at " + VL.verifiedAt + ", " +
+        VL.verifiedAsOf + ": " + VL.sources.map(function (s) {
+          return s.split(" (")[0];
+        }).join(", ") + ")";
       sec1.appendChild(vl);
+      sec1.appendChild(el("div", "bangermeter-fineprint", VL.panelDetail));
     }
     if (result.features.hasCommunityNote) {
       sec1.appendChild(el("div", "bangermeter-fineprint",
