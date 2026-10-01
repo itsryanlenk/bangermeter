@@ -120,7 +120,7 @@ var BANGERMETER_CONFIG = {
       provenance: "2026-published", label: "Follow author" },
     click: { weight: 0.3, param: "rust_home_mixer_click_weight",
       provenance: "2026-published", label: "Post click",
-      note: "Cut from 0.4 to 0.3 in the Sept 28, 2026 sync (published Sept 29). The same push turned on click DWELL at 0.4 — so X now pays less for the click itself and more for the reader staying once they have clicked." },
+      note: "Cut from 0.4 to 0.3 in the Sept 28, 2026 sync (published Sept 29). The same push turned on click DWELL at 0.4: the click itself now carries less, and a reader who clicks in and stays now carries something where before it carried nothing. (0.4 against 0.3 does not make staying 'worth more' than clicking — click dwell multiplies a smaller probability.)" },
     open_link: { weight: 0.2, param: "rust_home_mixer_open_link_weight",
       provenance: "2026-published", label: "Open link",
       note: "Links ARE rewarded, contradicting the long-standing 'links are punished' folklore — though at 0.2 the reward is small, and low-context link posts still lose more on likes/replies/dwell than they gain here." },
@@ -133,7 +133,7 @@ var BANGERMETER_CONFIG = {
       provenance: "2026-published", label: "Quoted-post click" },
     post_unexplored: { weight: 0.02, param: "rust_home_mixer_post_unexplored_weight",
       provenance: "2026-published", label: "Post unexplored",
-      note: "In-network only (PostUnexploredWeightInNetworkOnly = true). Viewer-specific novelty — excluded from the content score." },
+      note: "In-network only — hard-wired in xai-value-model since Sept 24, 2026 (until then the PostUnexploredWeightInNetworkOnly switch, default true). Viewer-specific novelty — excluded from the content score." },
     cont_dwell_time: { weight: 0.004, param: "rust_home_mixer_cont_dwell_time_weight",
       provenance: "2026-published", label: "Dwell time",
       continuous: true,
@@ -143,7 +143,7 @@ var BANGERMETER_CONFIG = {
       note: "TURNED ON August 25, 2026, at 0.05. Through v0.10.0 this head shipped at 0.0 and this tool said binary dwell paid nothing — that is no longer true. X now pays a flat amount for the reader dwelling at all, on TOP of the continuous dwell-time term (cont_dwell_time, 0.004/second). Stopping the scroll is the cheapest thing a post can win." },
     cont_click_dwell_time: { weight: 0.4, param: "rust_home_mixer_cont_click_dwell_time_weight",
       provenance: "2026-published", label: "Click dwell",
-      note: "TURNED ON in the Sept 28, 2026 sync (published Sept 29), from 0.0 to 0.4 — more than the click itself now pays (0.3), and exactly what a click paid before that push. Despite the cont_ prefix it is NOT paid per second: X's published model config trains this head as 'click-dwell-binary' with a 10.0 threshold, and binary heads skip the seconds rescale at inference, so the 0.4 multiplies a PROBABILITY — the chance a reader clicks into the post and stays past that mark. (The serving-side mapping from model output to this field is not in the repo; the training config is the published evidence.) Like cont_dwell_time it is kept out of positive_sum, so it does not move the negative-offset scale. Bangermeter cannot see a click or what follows it, so this head is scored from a baseline estimate." },
+      note: "TURNED ON in the Sept 28, 2026 sync (published Sept 29), from 0.0 to 0.4 — the coefficient a click carried before that push. Because it needs a click AND a stay, its probability is always below a click's, so comparing the two coefficients says nothing about which is worth more. Despite the cont_ prefix it is NOT paid per second: X's published model config trains this head as 'click-dwell-binary' with a 10.0 threshold, and binary heads skip the seconds rescale at inference, so the 0.4 multiplies a PROBABILITY — the chance a reader clicks into the post and stays past that mark. (The serving-side mapping from model output to this field is not in the repo; the training config is the published evidence.) Like cont_dwell_time it is kept out of positive_sum, so it does not move the negative-offset scale. Bangermeter cannot see a click or what follows it, so this head is scored from a baseline estimate." },
 
     // Heads X ships with an explicit 0.0 — they exist, they are wired in, and they
     // currently contribute exactly nothing. That is a finding, not an omission.
@@ -308,7 +308,7 @@ var BANGERMETER_CONFIG = {
       asOf: "2026-09-29",
       provenance: "2026-published",
       source: "home-mixer/scorers/author_cold_start.rs",
-      note: "Ships ON. On each For You request AT MOST ONE candidate is promoted — if nothing qualifies, scores are returned untouched. To qualify, a post must be an original post (not a reply, not a repost) from an author with 50,000 or fewer followers, be no more than 2 hours old, have fewer than 200 Home impressions so far, and already rank inside the top 97% of the candidates that scored above zero. Among the qualifiers the pick is no longer simply the highest score: X runs Thompson sampling on the like rate — for each post it draws a plausible like rate from Beta(0.75 + likes, 49.25 + Home impressions − likes), keeps the two highest draws, and promotes whichever of those two the model scored higher. So early likes per impression now decide who gets the lift, and there is luck in it. What the winner gets is a score FLOOR, not a seat: its score is raised to whatever the post at rank 15 scored (max(own, target)), so it lands ABOUT slot 15 of 35 — later rescoring can still move it, and a post already scoring higher gains nothing. All of these gates moved in the Sept 29, 2026 sync (published Sept 30): until then the cap was 1,000 followers, the window 48 hours, the impression ceiling 1,000, the position ratio 85%, and the highest-scoring qualifier won outright. The window is now the first two hours. One post per request, not per author and not per session — a narrow lane, not a small-account boost." },
+      note: "Ships ON. On each For You request AT MOST ONE candidate is promoted — if nothing qualifies, scores are returned untouched. To qualify, a post must be an original post (not a reply, not a repost) from an author with 50,000 or fewer followers, be no more than 2 hours old, have fewer than 200 Home impressions so far, and already rank inside the top 97% of the candidates that scored above zero. Among the qualifiers the pick is no longer simply the highest score: X runs Thompson sampling on the like rate — for each post it draws a plausible like rate from Beta(0.75 + likes, 49.25 + Home impressions − likes), keeps the two highest draws, and promotes whichever of those two the model scored higher. So early likes per impression pick a shortlist of two, with some luck in the draw, and the model's score picks the winner; with only one or two qualifiers, likes change nothing. What the winner gets is a score FLOOR, not a seat: its score is raised to whatever the post at rank 15 scored (max(own, target)), so it lands ABOUT slot 15 of 35 — later rescoring can still move it, and a post already scoring higher gains nothing. All of these gates moved in the Sept 29, 2026 sync (published Sept 30): until then the cap was 1,000 followers, the window 48 hours, the impression ceiling 1,000, the position ratio 85%, and the highest-scoring qualifier won outright. The window is now the first two hours. One post per request, not per author and not per session — a narrow lane, not a small-account boost." },
 
     // ── Content features the model actually receives (repo 2026-09-19) ────
     // New file upstream. This is the layer Bangermeter's estimator approximates,
@@ -339,8 +339,9 @@ var BANGERMETER_CONFIG = {
       // 30,000 (Aug 14), 40,000 (Aug 17), 60,000 (Aug 18), 80,000 (Aug 21),
       // 100,000 (Aug 24), 120,000 (Aug 25), 150,000 (Sep 8), 180,000 (Sep 16,
       // first as the named constant GROK_GEMMA_FOLLOWER_SPLIT), 200,000
-      // (Sep 17), 225,000 (Sep 23), 250,000 (Sep 24). 0.10.2 shipped "200,000
-      // (Sep 16)" — it had skipped the 180,000 step. Read the value below as a
+      // (Sep 17), 225,000 (Sep 23), 250,000 (Sep 24). 0.10.2 counted eight raises (there
+      // had been nine) and this comment dated 200,000 to Sep 16 — the trace had
+      // skipped the 180,000 step. Read the value below as a
       // dated reading, not a rule — and re-trace it, because `git diff` of
       // task_filter.py alone no longer shows the gate moving at all.
       thresholdParam: "GROK_GEMMA_FOLLOWER_SPLIT",
@@ -371,7 +372,7 @@ var BANGERMETER_CONFIG = {
       // its own llm_slop_post trigger — that TTL belongs to that rule, not
       // to the reply score. A 30-day figure shipped here briefly during
       // development and was caught by the provenance review before release.
-      note: "Replies are routed to the Grok reply-ranking scorer (GROK_4_MINI_CRITICAL, 0-3) when the DIRECT PARENT author or the THREAD-ROOT author has strictly more than 250,000 followers, as of Sept 30, 2026. Treat that as a dated reading: X has raised the gate eleven times since publishing it — 15,000 (Aug 13), 30,000 (Aug 14), 40,000 (Aug 17), 60,000 (Aug 18), 80,000 (Aug 21), 100,000 (Aug 24), 120,000 (Aug 25), 150,000 (Sept 8), 180,000 (Sept 16), 200,000 (Sept 17), 225,000 (Sept 23), 250,000 (Sept 24). Version 0.10.2 said 200,000 and dated it Sept 16; Sept 16 was in fact 180,000, a step our trace had missed. Versions through v0.10.0 said 100,000. That figure was CORRECT when it shipped — the gate stood at exactly 100,000 from Aug 24 — and it went stale within a day, the same way the weights did. (A 0.10.2 draft of this note claimed the 100,000 had been mis-sourced from the model's prompt string. That self-correction was itself wrong and was caught in review: the prompt does carry 100,000, and it still does, so anyone re-deriving this number TODAY would land on the wrong one — but that is a live trap, not what happened here.) A score of 0 applies the RiskyHighVizReply safety label — unless the replier is a high-page-rank or grey-badge account, which X exempts; the duration of that application is not published (a separate enforcement rule applies the same label for 30 days on a different trigger, llm_slop_post). Self-replies are exempt — the filter skips a reply whose author is the parent author or the root author. The scoring rubric itself is withheld by X 'to reduce gameability', so no tool can honestly claim to reproduce it, this one included. Below the gate a reply goes to a lighter Gemma scorer instead, which switches to a reply-spam-tuned model above 125,000 thread followers (150,000 until Sept 26) — so that model covers the 125,001-250,000 band. One exception since Sept 22: a reply that QUOTES a post skips Gemma and is scored by the full Grok scorer, whatever the follower counts." },
+      note: "Replies are routed to the Grok reply-ranking scorer (GROK_4_MINI_CRITICAL, 0-3) when the DIRECT PARENT author or the THREAD-ROOT author has strictly more than 250,000 followers, as of Sept 30, 2026. Treat that as a dated reading: X has raised the gate eleven times since publishing it — 15,000 (Aug 13), 30,000 (Aug 14), 40,000 (Aug 17), 60,000 (Aug 18), 80,000 (Aug 21), 100,000 (Aug 24), 120,000 (Aug 25), 150,000 (Sept 8), 180,000 (Sept 16), 200,000 (Sept 17), 225,000 (Sept 23), 250,000 (Sept 24). Version 0.10.2 said eight raises; there had been nine — our trace had missed the 180,000 step on Sept 16. Versions through v0.10.0 said 100,000. That figure was CORRECT when it shipped — the gate stood at exactly 100,000 from Aug 24 — and it went stale within a day, the same way the weights did. (A 0.10.2 draft of this note claimed the 100,000 had been mis-sourced from the model's prompt string. That self-correction was itself wrong and was caught in review: the prompt does carry 100,000, and it still does, so anyone re-deriving this number TODAY would land on the wrong one — but that is a live trap, not what happened here.) A score of 0 applies the RiskyHighVizReply safety label — unless the replier is a high-page-rank or grey-badge account, which X exempts; the duration of that application is not published (a separate enforcement rule applies the same label for 30 days on a different trigger, llm_slop_post). Self-replies are exempt — the filter skips a reply whose author is the parent author or the root author. The scoring rubric itself is withheld by X 'to reduce gameability', so no tool can honestly claim to reproduce it, this one included. Below the gate a reply goes to a lighter Gemma scorer instead, which switches to a reply-spam-tuned model above 125,000 thread followers (150,000 until Sept 26) — so that model covers the 125,001-250,000 band. One exception since Sept 22: a reply that QUOTES a post skips Gemma and is scored by the full Grok scorer, whatever the follower counts." },
 
     // ── "Under the Hood" transparency pilot (announced Aug 13, 2026) ──────
     underTheHood: {
@@ -505,7 +506,7 @@ var BANGERMETER_CONFIG = {
       why: "Longer posts hold attention, and attention is now paid three ways: continuously (0.004/second), as a penalty for scrolling past (−0.02), and since Aug 25 2026 as a flat 0.05 for clearing a TEN-SECOND dwell mark. That mark is a threshold, not a slope, so length helps it more than it helps mean dwell time — which is why this modifier moves the binary head harder than the continuous one." },
     { id: "thread_starter", label: "Thread starter", applies: "click,quote,cont_click_dwell_time",
       factor: 1.3, provenance: "estimate",
-      why: "Threads drive post clicks (0.3) and give people something to quote (5.0). Since Sept 29 2026 X also pays 0.4 when a reader clicks in AND stays past the click-dwell mark — which a thread, read on its own page, is built to earn." },
+      why: "Threads drive post clicks (0.3) and give people something to quote (5.0). Since X's Sept 28 2026 sync it also pays 0.4 when a reader clicks in AND stays past the click-dwell mark — which a thread, read on its own page, is built to earn." },
     { id: "media_image", label: "Has image", applies: "favorite", factor: 1.1,
       provenance: "estimate", why: "Images raise like rates mildly and enable the photo-expand head (0.05)." },
     { id: "has_video", label: "Has video", applies: "", factor: 1.0,
@@ -524,7 +525,7 @@ var BANGERMETER_CONFIG = {
       why: "Earlybird's HAS_MULTIPLE_HASHTAGS_OR_TRENDS penalty exists in code; magnitude never published. Mild directional." },
     { id: "engagement_bait", label: "Engagement-bait phrasing",
       applies: "not_interested,mute_author", factor: 3.0, provenance: "estimate",
-      why: "'Like if / RT if / follow me' phrasing — plus Hinglish ('karo agar', '1 likho agar', 'sach batao') and Devanagari ('…तो लाइक करें', 'कमेंट बॉक्स में जरूर', 'सच सच बताओ') — invites the not-interested (−47.52 since Sept 29 2026, up from −43.2) and mute (−58.8) heads, and a net-negative post is rescaled below every positive post. Detection covers imperative calls to action ONLY; the rhetorical-question genre ('Kya …?', 'X ya Y?') is deliberately not claimed, because no pattern separates it from a sincere question. Note the Devanagari patterns are not transliterations: Hindi puts the call to action last, so 'like karo agar X' is an English calque that barely occurs, and every Devanagari pattern anchors on तो / जरूर / मुझे instead. That anchor is load-bearing — on X the bare verb phrase is usually an argument ('पहले पढ़ो, फिर कमेंट करो'), not a solicitation. Validated against real Hindi posts: zero false positives, and deliberately conservative recall." },
+      why: "'Like if / RT if / follow me' phrasing — plus Hinglish ('karo agar', '1 likho agar', 'sach batao') and Devanagari ('…तो लाइक करें', 'कमेंट बॉक्स में जरूर', 'सच सच बताओ') — invites the not-interested (−47.52 since X's Sept 28 2026 sync, up from −43.2) and mute (−58.8) heads, and a net-negative post is rescaled below every positive post. Detection covers imperative calls to action ONLY; the rhetorical-question genre ('Kya …?', 'X ya Y?') is deliberately not claimed, because no pattern separates it from a sincere question. Note the Devanagari patterns are not transliterations: Hindi puts the call to action last, so 'like karo agar X' is an English calque that barely occurs, and every Devanagari pattern anchors on तो / जरूर / मुझे instead. That anchor is load-bearing — on X the bare verb phrase is usually an argument ('पहले पढ़ो, फिर कमेंट करो'), not a solicitation. Validated against real Hindi posts: zero false positives, and deliberately conservative recall." },
     { id: "all_caps_shout", label: "Mostly ALL-CAPS", applies: "not_interested",
       factor: 1.5, provenance: "estimate", why: "Shouting correlates with 'show less' feedback." }
   ],
@@ -1154,7 +1155,7 @@ var BangermeterEngine = (function () {
       smoothingNote: views < K
         ? "Only " + views.toLocaleString() + " views — rates are smoothed toward the median (empirical Bayes, K=" + K.toLocaleString() + "), so small samples can't spike or tank the score."
         : null,
-      excludedNote: "Scored from the three heads a browser can see: likes (0.5), replies (" + replyW + "), reposts (1.0). The other 22 heads — shares (2.0 / 5.0 / 20.0), follows (4.0), clicks, dwell time and the negatives (−31.2 to −234.0) — need Phoenix's predictions, not counts."
+      excludedNote: "Scored from the three heads a browser can see: likes (0.5), replies (" + replyW + "), reposts (1.0). The other 22 heads — shares (2.0 / 5.0 / 20.0), follows (4.0), clicks, dwell time and the negatives (−0.02 to −234.0) — need Phoenix's predictions, not counts."
     };
   }
 
@@ -1869,8 +1870,11 @@ var BangermeterEngine = (function () {
       var bar = el("div", "bangermeter-contrib-bar" + (c.contribution < 0 ? " bangermeter-neg" : ""));
       bar.style.width = maxAbs > 0 ? Math.round(Math.abs(c.contribution) / maxAbs * 100) + "%" : "0";
       row.appendChild(bar);
+      // A continuous head multiplies predicted SECONDS, not a probability —
+      // formatting 3.0s of dwell as "P 300.0%" read as an impossible chance.
       var lbl = el("div", "bangermeter-contrib-label",
-        (head ? head.label : c.head) + "  ·  w " + c.weight + " × P " + fmtP(c.p));
+        (head ? head.label : c.head) + "  ·  w " + c.weight +
+        (head && head.continuous ? " × " + c.p.toFixed(1) + " s predicted" : " × P " + fmtP(c.p)));
       row.appendChild(lbl);
       var val = el("div", "bangermeter-contrib-val", c.contribution.toFixed(4));
       row.appendChild(val);
@@ -2190,8 +2194,8 @@ var BangermeterEngine = (function () {
         "at most one original post per request can be lifted to about slot " + F.authorColdStart.slotMin +
         " of the feed — but only while it is under " + F.authorColdStart.maxPostAgeHours +
         "h old and still under " + F.authorColdStart.impressionThreshold.toLocaleString() +
-        " Home impressions. Among the posts that qualify, early likes per impression decide which " +
-        "one gets the lift. One post per request, not per author.",
+        " Home impressions. Among the posts that qualify, early likes per impression pick a " +
+        "shortlist of two and the model's score picks the winner. One post per request, not per author.",
       "· X sends the ranker seven facts about your content: video, longest video length, photo, " +
         "media count, weighted text length, NEWLINE COUNT, and whether there's a link — though " +
         "no published model code reads them yet. A link " +
