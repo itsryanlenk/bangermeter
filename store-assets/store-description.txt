@@ -29,13 +29,13 @@ WHAT YOU GET
 
 • A weight table in the popup. All 25 ranking heads, their published values, and which ones the extension can measure versus estimate.
 
-• Reply mode. Reply drafts are scored as replies (they take a ×0.75 factor in the published math), and the breakdown explains what X publishes about replies: out-of-network replies never reach For You at all, replies never get the mutual-follow boost, and replies to accounts over 200K followers are quality-scored by a Grok model whose rubric X withholds.
+• Reply mode. Reply drafts are scored as replies (they take a ×0.75 factor in the published math), and the breakdown explains what X publishes about replies: out-of-network replies never reach For You at all, replies never get the mutual-follow boost, and replies to accounts over 250K followers (as of 30 September) are quality-scored by a Grok model whose rubric X withholds.
 
 • Draft comparison. Save up to three variants of a draft and pick the best-scoring one before posting. Variants live in memory only.
 
 • Local score history. Opt in from the popup and opening a breakdown logs the scores, the post's link and a short text snippet to a list in your browser, so you can see which formats score higher over time. Off by default, capped, local-only, one-click clear.
 
-• Under the Hood import. In X's transparency pilot? Import the report you download from x.com/i/under_the_hood and see the visibility labels X itself applied — parsed locally, stored locally.
+• Under the Hood import. In X's transparency pilot? Import the report you download from x.com/i/jf/under_the_hood and see the visibility labels X itself applied — parsed locally, stored locally.
 
 • A posting-cadence note. Post twice into the same stretch of feed and the panel shows the author-diversity attenuation production applies (second post ×0.625, decaying to a ×0.25 floor).
 
@@ -47,6 +47,7 @@ SOME OF WHAT THE WEIGHTS SAY
 • A reply carries 5. From someone you mutually follow, on an original post, 20.
 • Sharing to DMs carries 5, and nothing in the visible counts shows you it happened.
 • Profile clicks are worth nothing. That head used to pay, and X zeroed it.
+• Clicking into a post and staying pays more than the click itself: 0.4 against 0.3.
 • Muting hurts nearly twice as much as blocking.
 • Scrolling straight past is a scored penalty.
 • Bookmarks are not a scored action at all.
@@ -81,6 +82,19 @@ OPEN SOURCE
 MIT licensed, with the full research record and 281 automated tests that check every published weight against X's source individually.
 
 github.com/itsryanlenk/bangermeter
+
+
+WHAT'S NEW IN 0.10.3
+
+• Three weights changed on 29 September. A click on a post now carries 0.3, down from 0.4. Clicking in and staying past X's click-dwell mark now carries 0.4, up from nothing. And "not interested" got 10% harsher, −43.2 to −47.52, the first time X has moved a negative weight since publishing the table. The click itself pays less; a reader who clicks in and stays pays more. The extension cannot see clicks, so it estimates the new term, and threads get credit for it.
+
+• The fresh-post lane was rewritten on 30 September. X can still lift at most one post per For You request to around slot 15, but the rules changed. The author can now have up to 50,000 followers (it was 1,000). The post must be no more than two hours old (it was 48) and have fewer than 200 Home impressions (it was 1,000). Among the posts that qualify, X no longer just takes the highest score: it samples on early likes per impression, so early likes decide who gets the lift, with some luck in it. The panel shows the new rules.
+
+• X moved its scoring into a separate service. The file every earlier version cited was deleted on 24 September, and the same math now runs in X's value model. Every citation in the extension points at the new files. The move itself changes no scores.
+
+• The reply quality gate is now over 250,000 followers, as of 30 September. And a correction: 0.10.2 said X had raised that gate eight times and reached 200,000 on 16 September. Tracing it again found a step we had missed — 180,000 on the 16th, 200,000 on the 17th — so it is eleven raises. Also new: a reply that quotes a post is always scored by the Grok model, whatever the follower counts.
+
+• Smaller corrections. The Brazil electoral filter now covers 2,795 accounts. The Under the Hood link moved to x.com/i/jf/under_the_hood. And 0.10.2 overstated two things: it said the model reads a post's bookmark count and its seven content features. X sends both to the model with every post, but none of its published model code reads them. The panel now says exactly that.
 
 
 WHAT'S NEW IN 0.10.2
