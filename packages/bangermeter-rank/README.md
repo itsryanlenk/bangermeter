@@ -44,7 +44,7 @@ posts with no views.
 ## Score card
 
 ```json
-{ "id": "…", "mode": "audit", "weightsVersion": "0.10.2", "paramRsSync": "2026-09-24T16:24:49Z",
+{ "id": "…", "mode": "audit", "weightsVersion": "0.10.3", "paramRsSync": "2026-09-29T17:02:52Z",
   "lowSample": false, "band": "2k–10k",
   "rates": { "like": 0.0813, "bookmark": 0.0125, "saveToLike": 0.154 },
   "C": { "kind": "checklist", "score": 71, "modifiers": [{ "id": "question", "provenance": "estimate" }] },

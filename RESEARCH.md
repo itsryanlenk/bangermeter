@@ -19,6 +19,98 @@
 > values. "Block −120 / mute −100" is really −31.2 / −58.8. "Reply = 27× a like" is really
 > 10×. "Bookmark 20×" describes a head that does not exist.
 
+## Update — September 30, 2026: three weights move, cold start is rewritten, scoring changes services
+
+X pushed seven times between Sept 22 and Sept 30 (`3aa0fa3` through `77d431a`). Every
+claim below was read from source at the named commit. Dates are the commit's UTC date;
+"sync" means the stamp on `param.rs` line 1, now `2026-09-29T17:02:52Z`.
+
+**Three weights (Sept 28 sync, published Sept 29, `a707cc2`).** Identical in `param.rs`
+and `vm-ranker/params.rs`:
+
+| Head | Was | Now |
+|---|---|---|
+| `click` | 0.4 | **0.3** |
+| `cont_click_dwell_time` | 0.0 | **0.4** |
+| `not_interested` | −43.2 | **−47.52** |
+
+`not_interested` is the first negative weight X has moved since Aug 13. Click dwell carries
+the `cont_` prefix, but `phoenix/xrex/configs/xrecsys.py` trains `CLICK_DWELL_TIME` as
+`click-dwell-binary` with `binary_threshold=10.0`, and `_rescale_sigmoid_heads_for_inference`
+(`recsys_model.py`) skips binary heads, so the value the 0.4 multiplies is a probability.
+The serving-side mapping (`candidate_scores()`) is not in the repo, so that is the published
+evidence, not proof. Like the other `cont_*` heads it is outside `positive_sum`, so the sums
+are now 43.24 / 371.54 / 414.78 and the negative-branch ceiling is 0.000896.
+
+**Scoring moved to another service (Sept 24, `44d37eb`).** `home-mixer/scorers/ranking_scorer.rs`
+was deleted. home-mixer now sends each slate to a separate `vm-ranker`, which scores it with
+the new `xai-value-model` crate using `vm-ranker/params.rs`. It then applies the cold-start
+lift, author diversity × OON, and DPP. Line by line, the head sum, offset, diversity and OON
+gate are the same math at published defaults. `vm-ranker/params.rs` first appeared Sept 23
+(`1b3fec2`) as a full duplicate. On Sept 24 `param.rs` dropped only the rescoring,
+perturbation and DPP parameters, so the 25 head weights are still declared in both files,
+and they agree at every commit. Three consequences:
+
+- The *viewer* ≥10,000-follower vqv gate no longer reaches the served score. vm-ranker
+  checks clip duration only.
+- The new-user OON factor is now a published switch
+  (`rust_home_mixer_new_user_oon_weight_factor`, 0.00001). It is still inert.
+- vm-ranker resolves a live feature-switch file per viewer (`config_sync.rs`,
+  `ranking_config.rs`), so the weights actually served can differ from the defaults copied
+  into the repo. X's README statement that those defaults are the primary production
+  values remains the only basis for treating them as current.
+
+**Author cold start (Sept 29 sync, published Sept 30, `77d431a`).** Every gate moved:
+
+| Gate | Was | Now |
+|---|---|---|
+| Author followers | ≤1,000 | **≤50,000** |
+| Home impressions | <1,000 | **<200** |
+| Post age | ≤48h | **≤2h** |
+| Must already rank in | top 85% | **top 97%** |
+| Pick among qualifiers | highest score | **Thompson sampling** |
+
+Thompson sampling draws a like rate from Beta(0.75 + likes, 49.25 + Home impressions −
+likes) for each qualifier, keeps the two highest draws, and promotes whichever of those
+the model scored higher. It is still at most one post per request, and still a score
+floor at rank 15 rather than a seat. In the same push `PhoenixColdStartMaxResults` went
+0 → 200, feeding a new `ForYouPhoenixRetrievalCold` lane. On the Phoenix side, the HOME_COLD
+slice (Sept 24) is posts with fewer than 8 likes and 500 views, at most 2 hours old
+(`cold_pool_filter.py`). An extension cannot see either lane.
+
+**Grok reply gate: 200,000 → 225,000 (Sept 23) → 250,000 (Sept 24).** The value is
+`GROK_GEMMA_FOLLOWER_SPLIT` in `grox/flows/reply_spam/constants.py`; a diff of
+`task_filter.py` alone no longer shows it moving. Re-tracing it through every commit that
+touched either file corrected the history 0.10.2 shipped: 150,000 held until Sept 16, when
+the named constant arrived at **180,000**, and 200,000 came Sept 17. That makes eleven
+raises since Aug 13, not eight. Three related findings:
+
+- The Gemma reply-spam model's floor dropped from 150,000 to 125,000 (Sept 26), so it now
+  covers 125,001–250,000.
+- Since Sept 22, a reply that quotes a post bypasses Gemma and goes to the full Grok
+  scorer.
+- High-page-rank and grey-badge repliers are exempt from the score-0 RiskyHighVizReply
+  label (`task_write.py`). That exemption predates this range; we had not recorded it.
+
+**Brazil filter: 2,776 → 2,786 (Sept 25) → 2,795 (Sept 30).** Logic unchanged.
+
+**Under the Hood.** The README link moved to `x.com/i/jf/under_the_hood` (Sept 25,
+`bf7db1b`). The same push published `under-the-hood/jetfuel/`, a page that renders the label
+report. The downloaded JSON's shape is unchanged, so the import still works. Whether the new
+page exposes labels to an extension has not been checked live.
+
+**Visibility filtering.** Most of the ~17,000 changed lines are a rule-engine rewrite,
+checked verdict-for-verdict against the golden corpus. One For You verdict changed: posts
+labelled `NSFW_TEXT` are no longer dropped for out-of-network adult viewers
+(`NsfwTextTweetLabelDropRule`, removed Sept 24). Underage, logged-out and no-stated-age
+viewers in gating countries still lose them.
+
+**A correction to 0.10.2 found along the way.** `bookmark_count` and the seven content
+features are *sent* to Phoenix with every candidate, but no published model code reads
+either. The feature prep takes five counts (likes, replies, reposts, quotes, views). 0.10.2
+called `bookmark_count` "a model input" and said "the model sees exactly seven things". Both
+are now worded as what the code shows.
+
 ## Update — September 24, 2026: X deletes a zero-weight head
 
 The `2026-09-23T16:28:43Z` sync removed `cont_active_secs_5m_residual_norm` from both
@@ -290,19 +382,20 @@ inventions ("block −75", "−1000×"). None cites a code path.
 
 ## The weight set Bangermeter uses (extension/weights.js)
 
-**Current** — the published production set, transcribed verbatim from
-`home-mixer/params/param.rs`:
+**Current** (sync `2026-09-29T17:02:52Z`) — the published production set, transcribed
+verbatim from `vm-ranker/params.rs` and identical in `home-mixer/params/param.rs`:
 
 favorite 0.5 · reply 5.0 (**20.0** with the +15.0 bidirectional-follow boost on original
 posts) · retweet 1.0 · quote 5.0 · share 2.0 · share_via_dm 5.0 · **share_via_copy_link
-20.0** · follow_author 4.0 · click 0.4 · open_link 0.2 · photo_expand 0.05 · video_open
-0.05 · vqv 0.05 · quoted_click 0.05 · post_unexplored 0.02 · cont_dwell_time 0.004/s ·
-**profile_click 0.0 · dwell 0.0 · quoted_vqv 0.0 · cont_click_dwell_time 0.0 ·
-cont_active_secs_5m_residual_norm 0.0** · not_dwelled −0.02 · not_interested −43.2 ·
-block_author −31.2 · mute_author −58.8 · report −234.0.
+20.0** · follow_author 4.0 · click 0.3 · open_link 0.2 · photo_expand 0.05 · video_open
+0.07 · quoted_click 0.05 · post_unexplored 0.02 · dwell 0.05 · cont_dwell_time 0.004/s ·
+cont_click_dwell_time 0.4 (a probability, not per second) · **profile_click 0.0 · vqv 0.0 ·
+quoted_vqv 0.0** · not_dwelled −0.02 · not_interested −47.52 · block_author −31.2 ·
+mute_author −58.8 · report −234.0.
 
-Sums as `ScoringWeights::from_params` builds them: positive 43.32, negative 367.22, total
-410.54. Offset 0.001. Rescorers: OON ×0.75 (applied once, and also to in-network replies
+Sums as `ValueModelWeights` builds them (`xai-value-model/weights.rs`): positive 43.24,
+negative 371.54, total 414.78. Offset 0.001. (This list still showed the Aug 13 values —
+vqv 0.05, dwell 0.0, video_open 0.05 — through v0.10.2.) Rescorers: OON ×0.75 (applied once, and also to in-network replies
 and reposts), topic-request OON ×0.5, author diversity 0.5/0.25.
 
 Superseded (v0.8.0 and earlier): fav 0.5 · retweet 1.0 · reply 13.5 · good_profile_click
