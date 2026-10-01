@@ -263,7 +263,7 @@
 
     // X's "Visibility limited" notice (FOSNR labels). For You drops these
     // posts rather than down-ranking them — see sourcedFacts.visibilityLimited.
-    var visibilityLimited = /visibility limited/i.test(firstDivs);
+    var visibilityLimited = BangermeterEngine.visibilityLimitedIn(firstDivs);
 
     var idLink = article.querySelector('a[href*="/status/"] time');
     var tweetId = null;

@@ -222,7 +222,7 @@ what the published weights actually say.
 | `extension/content.js` | Badges, breakdown panel, compose meter |
 | `extension/background.js` | Service worker. One listener: open the quick start on first install, never on update |
 | `extension/welcome.html` | The quick start itself — self-contained, loads nothing over the network |
-| `extension/test.html` | Engine self-test — open in any browser (297 assertions) |
+| `extension/test.html` | Engine self-test — open in any browser (318 assertions) |
 | `extension/fixture.html` | X-DOM fixture harness for the content script |
 | `extension/fixture-thread.html` | Reply-detection harness — asserts the conversation, `with_replies` and home-timeline surfaces separately, because X marks a reply differently on each. Needs `serve-fixtures.js` (it reads `location.pathname`) |
 | `extension/serve-fixtures.js` | Tiny static server for the harnesses, including the x.com-shaped paths the reply-detection cases need |
@@ -240,7 +240,7 @@ happened when those numbers were hardcoded.
 
 ## Verification status
 
-- Engine math: **297/297 self-tests pass** (`test.html`). Every one of the 25 published
+- Engine math: **318/318 self-tests pass** (`test.html`). Every one of the 25 published
   weights and its feature-switch parameter name is asserted against `param.rs`
   individually, so a silent transcription error fails the suite rather than shipping.
   All 25 re-verified against the live repo's 2026-09-29T17:02:52Z sync, in both
@@ -253,6 +253,10 @@ happened when those numbers were hardcoded.
   own production i18n bundles (`abs.twimg.com/responsive-web/client-web/i18n/*`), fetched
   Aug 25, 2026 and cross-checked against Wayback captures of the same bundles. Locales
   join the table only with a sourced string — the same rule the weight layer follows.
+  The "Visibility limited" label (message key `b3296688`, all 16 locales) was added
+  Sept 30, 2026 from the bundles named in the Sept 12 Wayback capture of the
+  `x.com/i/flow/login` chunk manifest. The live logged-out page now serves X's x-web
+  client, which carries no such manifest.
 - Adversarially reviewed at v0.9.0 by three independent passes — weight transcription,
   Rust-to-JS arithmetic fidelity, and a stale-claim sweep. The arithmetic pass swept
   ~654k generated inputs for NaN, out-of-range and non-monotonic scores and found none,
