@@ -5,7 +5,12 @@
 #   - Get-Content without -Encoding UTF8 mangles the non-ASCII characters in the copy.
 #   - Piping a string into ConvertTo-Json serializes PSPath metadata instead of the
 #     string, so the CSS payload must be passed via -InputObject.
+#   - 5.1 reads a BOM-less .ps1 as ANSI, so a non-ASCII literal in THIS file turns
+#     into mojibake (an em dash became "a-circumflex, euro, right-quote"). Keep this
+#     file pure ASCII and build any such character from its code point, as $emDash is.
 $ErrorActionPreference = "Stop"
+
+$emDash = [char]0x2014
 
 $root = Split-Path -Parent $PSScriptRoot
 $ext = Join-Path $root "extension"
@@ -26,7 +31,7 @@ $cssJson = ConvertTo-Json -InputObject "$css"
 
 $header = @"
 // ==UserScript==
-// @name         Bangermeter — X Algorithm Scorer
+// @name         Bangermeter $emDash X Algorithm Scorer
 // @namespace    bangermeter
 // @version      $userVersion
 // @description  Scores posts with X's actual published For You ranking weights (xai-org/x-algorithm, Aug 13 2026 release) using the real Phoenix weighted-sum arithmetic.
@@ -40,7 +45,7 @@ $header = @"
 // (weights.js + scoring.js + content.js + styles.css) at extension v$extVersion.
 // The settings popup is not available in the userscript version; defaults apply
 // (badges ON, draft meter ON, theme AUTO, out-of-network OFF, mutual-follow OFF,
-// 2023 verified boost OFF — edit BANGERMETER_DEFAULT_SETTINGS below to change).
+// 2023 verified boost OFF $emDash edit BANGERMETER_DEFAULT_SETTINGS below to change).
 (function () {
   var s = document.createElement('style');
   s.textContent = $cssJson;
