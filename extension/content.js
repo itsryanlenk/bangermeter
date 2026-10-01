@@ -469,8 +469,11 @@
       var bar = el("div", "bangermeter-contrib-bar" + (c.contribution < 0 ? " bangermeter-neg" : ""));
       bar.style.width = maxAbs > 0 ? Math.round(Math.abs(c.contribution) / maxAbs * 100) + "%" : "0";
       row.appendChild(bar);
+      // A continuous head multiplies predicted SECONDS, not a probability —
+      // formatting 3.0s of dwell as "P 300.0%" read as an impossible chance.
       var lbl = el("div", "bangermeter-contrib-label",
-        (head ? head.label : c.head) + "  ·  w " + c.weight + " × P " + fmtP(c.p));
+        (head ? head.label : c.head) + "  ·  w " + c.weight +
+        (head && head.continuous ? " × " + c.p.toFixed(1) + " s predicted" : " × P " + fmtP(c.p)));
       row.appendChild(lbl);
       var val = el("div", "bangermeter-contrib-val", c.contribution.toFixed(4));
       row.appendChild(val);
@@ -790,8 +793,8 @@
         "at most one original post per request can be lifted to about slot " + F.authorColdStart.slotMin +
         " of the feed — but only while it is under " + F.authorColdStart.maxPostAgeHours +
         "h old and still under " + F.authorColdStart.impressionThreshold.toLocaleString() +
-        " Home impressions. Among the posts that qualify, early likes per impression decide which " +
-        "one gets the lift. One post per request, not per author.",
+        " Home impressions. Among the posts that qualify, early likes per impression pick a " +
+        "shortlist of two and the model's score picks the winner. One post per request, not per author.",
       "· X sends the ranker seven facts about your content: video, longest video length, photo, " +
         "media count, weighted text length, NEWLINE COUNT, and whether there's a link — though " +
         "no published model code reads them yet. A link " +

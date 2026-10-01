@@ -99,7 +99,7 @@ what the published weights actually say.
   what else it earned. Then the post-hoc factors: author diversity
   `(1 − floor) × decay^k + floor`, and the ×0.75 out-of-network factor. This is a direct
   port of X's value model (`xai-value-model/scoring.rs`, which replaced `ranking_scorer.rs`
-  when X moved scoring into its vm-ranker service on Sept 24, 2026 — same math), not an
+  when X moved scoring into its vm-ranker service on Sept 24, 2026 — same math at published defaults), not an
   approximation of it.
 - **Weights:** the published production set. Likes 0.5 · replies 5.0 (**20.0** on an
   original post from a mutual follow) · reposts 1.0 · quotes 5.0 · shares 2.0 · DM shares
@@ -108,12 +108,14 @@ what the published weights actually say.
   time 0.004 per second · not-dwelled −0.02 · **not-interested −47.52** · block −31.2 · mute
   −58.8 · report −234.0. Profile clicks, **video-quality-view** and quoted-vqv ship at
   **0.0** — X zeroed them, and the tool shows that rather than hiding it.
-- **Three more weights moved on 29 September 2026.** Post clicks went 0.4 → **0.3**, click
-  dwell went 0.0 → **0.4**, and not-interested went −43.2 → **−47.52** — the first negative
-  weight X has touched since publishing the table. The click itself now pays less, and a
-  reader who clicks in *and stays* pays more. Click dwell is named like a per-second term,
-  but X's model config trains it as a yes/no head with a 10.0 threshold, so the 0.4
-  multiplies a probability. A browser cannot see clicks, so it is estimated.
+- **Three more weights moved**, published 29 September 2026 from X's 28 September sync.
+  Post clicks went 0.4 → **0.3**, click dwell went 0.0 → **0.4**, and not-interested went
+  −43.2 → **−47.52** — the first negative weight X has touched since publishing the table.
+  Click dwell is named like a per-second term, but X's model config trains it as a yes/no
+  head with a 10.0 threshold, so the 0.4 multiplies a probability: the chance a reader
+  clicks in *and* stays. That is always smaller than the chance of a click, so 0.4 against
+  0.3 does not mean staying is worth more than clicking. A browser cannot see clicks, so
+  it is estimated.
 - **Three weights moved on 25 August 2026**, caught up in v0.10.2.
   Video-quality-view went 0.05 → **0.0**, binary dwell went 0.0 → **0.05**, video open went
   0.05 → **0.07**. Finishing a clip stopped paying; *stopping the scroll* started. Versions
@@ -155,10 +157,11 @@ what the published weights actually say.
 - **There is a published fresh-post lane, and it ships on.** On every For You request
   **at most one** post is lifted to around **slot 15**. To qualify it must be an original
   post whose author has **≤50,000 followers**, no more than **2 hours** old, and still
-  under **200** Home impressions. Among the qualifiers, X now picks by Thompson sampling on
-  the like rate: early likes per impression decide who gets the lift, with some luck in
-  it. One post per request — not per author, not per session. Every one of those gates
-  moved on Sept 30, 2026; until then it was ≤1,000 followers, 48 hours, 1,000 impressions,
+  under **200** Home impressions. Among the qualifiers, X now uses Thompson sampling on
+  the like rate to pick a shortlist of two, and the higher model score wins — so with one
+  or two qualifiers, likes change nothing. One post per request — not per author, not per
+  session. Every one of those gates moved in X's Sept 29 sync, published Sept 30, 2026;
+  until then it was ≤1,000 followers, 48 hours, 1,000 impressions,
   and the highest score won. Bangermeter
   cannot tell whether a given post *was* promoted (the slate is server-side), so it reports
   the eligibility rules and refuses to claim credit for the outcome.
@@ -219,7 +222,7 @@ what the published weights actually say.
 | `extension/content.js` | Badges, breakdown panel, compose meter |
 | `extension/background.js` | Service worker. One listener: open the quick start on first install, never on update |
 | `extension/welcome.html` | The quick start itself — self-contained, loads nothing over the network |
-| `extension/test.html` | Engine self-test — open in any browser (281 assertions) |
+| `extension/test.html` | Engine self-test — open in any browser (282 assertions) |
 | `extension/fixture.html` | X-DOM fixture harness for the content script |
 | `extension/fixture-thread.html` | Reply-detection harness — asserts the conversation, `with_replies` and home-timeline surfaces separately, because X marks a reply differently on each. Needs `serve-fixtures.js` (it reads `location.pathname`) |
 | `extension/serve-fixtures.js` | Tiny static server for the harnesses, including the x.com-shaped paths the reply-detection cases need |
@@ -237,13 +240,14 @@ happened when those numbers were hardcoded.
 
 ## Verification status
 
-- Engine math: **281/281 self-tests pass** (`test.html`). Every one of the 25 published
+- Engine math: **282/282 self-tests pass** (`test.html`). Every one of the 25 published
   weights and its feature-switch parameter name is asserted against `param.rs`
   individually, so a silent transcription error fails the suite rather than shipping.
   All 25 re-verified against the live repo's 2026-09-29T17:02:52Z sync, in both
-  `param.rs` and `vm-ranker/params.rs`; three moved in it (click, click dwell,
-  not-interested). X deleted a 26th head, `cont_active_secs_5m_residual_norm` (weighted
-  0.0), on Sept 23.
+  `param.rs` and `vm-ranker/params.rs`; three had moved in the 2026-09-28 sync before it
+  (click, click dwell, not-interested). X deleted a 26th head,
+  `cont_active_secs_5m_residual_norm` (weighted 0.0), in its Sept 23 sync, published
+  Sept 24.
   `packages/bangermeter-rank` runs `sync` daily in CI to catch the next change.
 - Locale strings (reply markers and count words for 16 locales) are transcribed from X's
   own production i18n bundles (`abs.twimg.com/responsive-web/client-web/i18n/*`), fetched
