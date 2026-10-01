@@ -355,7 +355,28 @@ var BANGERMETER_CONFIG = {
         "NsfwHighRecall", "NsfwHighPrecision", "NsfwAvatarImage", "NsfwNearPerfect",
         "NsfwBannerImage", "NsfwAdmin", "ImpersonationHighPrecision",
         "AbusiveHighRecall", "DoNotAmplify"]
-    }
+    },
+
+    // ── A post that quotes a "Visibility limited" post (verified 2026-09-30) ──
+    // X's client draws the quoted post's notice inside the quote card (its
+    // soft-intervention component takes an inQuoteTweet prop). The label is
+    // the quoted post's, so the panel gives this case its own row.
+    quotedVisibilityLimited: {
+      provenance: "2026-published",
+      verifiedAt: "77d431a", verifiedAsOf: "2026-09-30",
+      sources: [
+        "home-mixer/candidate_hydrators/vf_candidate_hydrator.rs@77d431a (lines 79-80, 100-106: every candidate's quoted post is checked at TimelineHomeRecommendations; lines 109-110: a post that is also checked in-network keeps that verdict; lines 140-170: should_drop_ancillary flags a post whose quoted post is dropped)",
+        "home-mixer/filters/ancillary_vf_filter.rs@77d431a (line 15: every flagged post is removed)",
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs@77d431a (lines 425, 445: wired into For You)",
+        "visibility-filtering/rules/tweet_rules.rs@77d431a (lines 159-161: each drop exempts the post's author; lines 163-185, 574-580: the five FOSNR labels)",
+        "visibility-filtering/rules/registry.rs@77d431a (lines 134-164, 268-271: four labels drop at TimelineHome, all five at TimelineHomeRecommendations)",
+        "home-mixer/candidate_hydrators/vf_following_candidate_hydrator.rs@77d431a (lines 49-50, 63: the chronological Following feed checks quoted posts at TimelineHome)",
+        "home-mixer/candidate_pipeline/reverse_chron_posts_pipeline.rs@77d431a (lines 169, 182: and removes flagged posts)",
+        "home-mixer/candidate_pipeline/for_you_candidate_pipeline.rs@77d431a (lines 203-212: PushToHomeSource posts get no VF filter)",
+        "under-the-hood/strato/lib/underTheHoodLabels.strato@77d431a (lines 69-98: the five FOSNR labels come with a label all users can see)"
+      ],
+      panel: "Quotes a post X limited — For You removes this post too",
+      note: "X's own descriptions say five FOSNR labels come with a notice that the post has limited visibility (underTheHoodLabels.strato). For You checks every candidate's quoted post at the TimelineHomeRecommendations safety level, where all five are dropped. When the quoted post is dropped, should_drop_ancillary flags the quoting post and AncillaryVFFilter removes it, whether or not it has a label of its own. The drops exempt the quoted post's author, who can still be shown the quoting post. Three paths skip the removal: a quoted post whose visibility check fails gets no verdict; a quoted post that is also checked in-network keeps that verdict, and FOSNR_ABUSE_INSULTS is not dropped in-network; and posts from PushToHomeSource pass through no VF filter. The chronological Following feed checks quoted posts at TimelineHome, so it removes a post that quotes one with any of the other four labels. Where and how X renders the notice is not in the published code." }
   },
 
   // ── MEASURED RATES (retrospective score only) ───────────────────────────────
@@ -857,6 +878,47 @@ var BangermeterEngine = (function () {
       if (t.indexOf(VISIBILITY_LIMITED_LOWER[i]) !== -1) return true;
     }
     return false;
+  }
+
+  // Is one of these lines, on its own, the label? Trimmed, any case. X's
+  // client draws the header as its own bold line, so a whole-line match finds
+  // it and a sentence that merely contains the words does not.
+  function visibilityLimitedLineIn(text) {
+    if (!text) return false;
+    var lines = String(text).split("\n");
+    for (var i = 0; i < lines.length; i++) {
+      if (VISIBILITY_LIMITED_LOWER.indexOf(lines[i].trim().toLowerCase()) !== -1) return true;
+    }
+    return false;
+  }
+
+  // Whose "Visibility limited" header is on screen: this post's, the quoted
+  // post's, or both. content.js gathers the text; this decides.
+  //
+  //   articleText  the article's innerText
+  //   quoteTexts   each quote card's innerText
+  //   belowText    text after this post's own text, outside quote cards
+  //   quotedText   text after the quoted post's text, inside its card
+  //
+  // X draws the header after the post's text and media (the soft
+  // intervention, b3296688), and draws the quoted post's own header inside
+  // the quote card. Below the text only a whole line counts. The 200-character
+  // window over the article's start stays, for a notice drawn above the text,
+  // but quote cards are cut out of it first: a label in the card belongs to
+  // the quoted post, and For You treats that case differently (see
+  // sourcedFacts.quotedVisibilityLimited).
+  function visibilityLimitedVerdict(o) {
+    o = o || {};
+    var own = String(o.articleText || "");
+    (o.quoteTexts || []).forEach(function (q) {
+      q = String(q || "");
+      var at = q ? own.indexOf(q) : -1;
+      if (at !== -1) own = own.slice(0, at) + own.slice(at + q.length);
+    });
+    return {
+      own: visibilityLimitedIn(own.slice(0, 200)) || visibilityLimitedLineIn(o.belowText),
+      quoted: visibilityLimitedLineIn(o.quotedText)
+    };
   }
 
   // ---- score history (pure list/entry logic; storage stays in content.js) ----
@@ -1383,6 +1445,8 @@ var BangermeterEngine = (function () {
     parseActionBarLabel: parseActionBarLabel,
     replyMarkerIn: replyMarkerIn,
     visibilityLimitedIn: visibilityLimitedIn,
+    visibilityLimitedLineIn: visibilityLimitedLineIn,
+    visibilityLimitedVerdict: visibilityLimitedVerdict,
     replyVerdict: replyVerdict,
     surfaceFromPath: surfaceFromPath,
     makeHistoryEntry: makeHistoryEntry,
@@ -1502,6 +1566,55 @@ var BangermeterEngine = (function () {
     return null;
   }
 
+  // The text BangermeterEngine.visibilityLimitedVerdict reads. X draws the
+  // "Visibility limited" header after the post's text and media, and draws a
+  // quoted post's header inside the quote card. Quote cards are collected up
+  // front because X wraps the quoted header in a link of its own, where
+  // closest('div[role="link"]') would stop short of the card.
+  function visibilityLimitedText(article) {
+    var cards = [].filter.call(article.querySelectorAll('div[role="link"]'), function (l) {
+      return !!l.querySelector('[data-testid="tweetText"]');
+    });
+    function inCard(node) {
+      for (var i = 0; i < cards.length; i++) if (cards[i].contains(node)) return true;
+      return false;
+    }
+    function firstOutsideCards(selector) {
+      var nodes = article.querySelectorAll(selector);
+      for (var i = 0; i < nodes.length; i++) if (!inCard(nodes[i])) return nodes[i];
+      return null;
+    }
+    // The header follows this post's own text, or its name block if it has
+    // no text. In that case the article's first tweetText is the quoted post's.
+    var anchor = firstOutsideCards('[data-testid="tweetText"]') ||
+      firstOutsideCards('[data-testid="User-Name"]');
+    return {
+      articleText: article.innerText,
+      quoteTexts: cards.map(function (c) { return c.innerText; }),
+      belowText: anchor ? textAfter(article, anchor, inCard) : "",
+      quotedText: cards.map(function (c) {
+        return textAfter(c, c.querySelector('[data-testid="tweetText"]'), function () { return false; });
+      }).join("\n")
+    };
+  }
+
+  // Text nodes after `anchor` inside `root`, one per line. Link previews,
+  // polls and Community Notes are skipped: their wording is chosen by
+  // someone else, and X draws the header outside them.
+  function textAfter(root, anchor, skip) {
+    var out = [];
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    for (var n = walker.nextNode(); n; n = walker.nextNode()) {
+      if (anchor.contains(n) ||
+          !(anchor.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING)) continue;
+      if (skip(n)) continue;
+      if (n.parentElement && n.parentElement.closest(
+          '[data-testid="card.wrapper"], [data-testid="cardPoll"], [data-testid="birdwatch-pivot"]')) continue;
+      out.push(n.nodeValue);
+    }
+    return out.join("\n");
+  }
+
   // How many posts by the same author sit ABOVE this one among the currently
   // rendered articles — the k in production's diversity_multiplier. The
   // virtualized list only keeps a window of posts mounted, so this is a lower
@@ -1598,7 +1711,6 @@ var BangermeterEngine = (function () {
     var hashtagCount = textEl ? textEl.querySelectorAll('a[href*="/hashtag/"]').length : 0;
 
     var socialContext = article.querySelector('[data-testid="socialContext"]');
-    var firstDivs = article.innerText.slice(0, 200);
     var isRepost = !!(socialContext && /reposted/i.test(socialContext.innerText));
 
     // Signal 1 — the "Replying to" label. It renders ABOVE the tweet's own
@@ -1666,7 +1778,10 @@ var BangermeterEngine = (function () {
     var hasCommunityNote = !!article.querySelector('[data-testid="birdwatch-pivot"]');
 
     // FOSNR restricted-reach interstitial (qualitative flag; magnitude unpublished)
-    var visibilityLimited = BangermeterEngine.visibilityLimitedIn(firstDivs);
+    // A header inside a quote card is the quoted post's, reported separately.
+    var vlVerdict = BangermeterEngine.visibilityLimitedVerdict(visibilityLimitedText(article));
+    var visibilityLimited = vlVerdict.own;
+    var quotedVisibilityLimited = vlVerdict.quoted;
 
     var idLink = article.querySelector('a[href*="/status/"] time');
     var tweetId = null;
@@ -1695,6 +1810,7 @@ var BangermeterEngine = (function () {
       isVerified: isVerified,
       hasCommunityNote: hasCommunityNote,
       visibilityLimited: visibilityLimited,
+      quotedVisibilityLimited: quotedVisibilityLimited,
       ageMinutes: ageMinutes
     };
   }
@@ -1981,6 +2097,15 @@ var BangermeterEngine = (function () {
         "▼ Visibility limited by X — reach suppressed (magnitude unpublished)");
       vl.title = "FOSNR restricted-reach interstitial detected (FreedomOfSpeechNotReach.scala label taxonomy; numeric penalty never released)";
       sec1.appendChild(vl);
+    }
+    if (result.features.quotedVisibilityLimited) {
+      var QVL = BANGERMETER_CONFIG.sourcedFacts.quotedVisibilityLimited;
+      var qvl = el("div", "bangermeter-rescorer", "▼ " + QVL.panel);
+      qvl.title = QVL.note + " (xai-org/x-algorithm at " + QVL.verifiedAt + ", " +
+        QVL.verifiedAsOf + ": " + QVL.sources.map(function (s) {
+          return s.split(" (")[0];
+        }).join(", ") + ")";
+      sec1.appendChild(qvl);
     }
     if (result.features.hasCommunityNote) {
       sec1.appendChild(el("div", "bangermeter-fineprint",

@@ -98,6 +98,55 @@
     return null;
   }
 
+  // The text BangermeterEngine.visibilityLimitedVerdict reads. X draws the
+  // "Visibility limited" header after the post's text and media, and draws a
+  // quoted post's header inside the quote card. Quote cards are collected up
+  // front because X wraps the quoted header in a link of its own, where
+  // closest('div[role="link"]') would stop short of the card.
+  function visibilityLimitedText(article) {
+    var cards = [].filter.call(article.querySelectorAll('div[role="link"]'), function (l) {
+      return !!l.querySelector('[data-testid="tweetText"]');
+    });
+    function inCard(node) {
+      for (var i = 0; i < cards.length; i++) if (cards[i].contains(node)) return true;
+      return false;
+    }
+    function firstOutsideCards(selector) {
+      var nodes = article.querySelectorAll(selector);
+      for (var i = 0; i < nodes.length; i++) if (!inCard(nodes[i])) return nodes[i];
+      return null;
+    }
+    // The header follows this post's own text, or its name block if it has
+    // no text. In that case the article's first tweetText is the quoted post's.
+    var anchor = firstOutsideCards('[data-testid="tweetText"]') ||
+      firstOutsideCards('[data-testid="User-Name"]');
+    return {
+      articleText: article.innerText,
+      quoteTexts: cards.map(function (c) { return c.innerText; }),
+      belowText: anchor ? textAfter(article, anchor, inCard) : "",
+      quotedText: cards.map(function (c) {
+        return textAfter(c, c.querySelector('[data-testid="tweetText"]'), function () { return false; });
+      }).join("\n")
+    };
+  }
+
+  // Text nodes after `anchor` inside `root`, one per line. Link previews,
+  // polls and Community Notes are skipped: their wording is chosen by
+  // someone else, and X draws the header outside them.
+  function textAfter(root, anchor, skip) {
+    var out = [];
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    for (var n = walker.nextNode(); n; n = walker.nextNode()) {
+      if (anchor.contains(n) ||
+          !(anchor.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING)) continue;
+      if (skip(n)) continue;
+      if (n.parentElement && n.parentElement.closest(
+          '[data-testid="card.wrapper"], [data-testid="cardPoll"], [data-testid="birdwatch-pivot"]')) continue;
+      out.push(n.nodeValue);
+    }
+    return out.join("\n");
+  }
+
   // How many posts by the same author sit ABOVE this one among the currently
   // rendered articles — the k in production's diversity_multiplier. The
   // virtualized list only keeps a window of posts mounted, so this is a lower
@@ -194,7 +243,6 @@
     var hashtagCount = textEl ? textEl.querySelectorAll('a[href*="/hashtag/"]').length : 0;
 
     var socialContext = article.querySelector('[data-testid="socialContext"]');
-    var firstDivs = article.innerText.slice(0, 200);
     var isRepost = !!(socialContext && /reposted/i.test(socialContext.innerText));
 
     // Signal 1 — the "Replying to" label. It renders ABOVE the tweet's own
@@ -262,7 +310,10 @@
     var hasCommunityNote = !!article.querySelector('[data-testid="birdwatch-pivot"]');
 
     // FOSNR restricted-reach interstitial (qualitative flag; magnitude unpublished)
-    var visibilityLimited = BangermeterEngine.visibilityLimitedIn(firstDivs);
+    // A header inside a quote card is the quoted post's, reported separately.
+    var vlVerdict = BangermeterEngine.visibilityLimitedVerdict(visibilityLimitedText(article));
+    var visibilityLimited = vlVerdict.own;
+    var quotedVisibilityLimited = vlVerdict.quoted;
 
     var idLink = article.querySelector('a[href*="/status/"] time');
     var tweetId = null;
@@ -291,6 +342,7 @@
       isVerified: isVerified,
       hasCommunityNote: hasCommunityNote,
       visibilityLimited: visibilityLimited,
+      quotedVisibilityLimited: quotedVisibilityLimited,
       ageMinutes: ageMinutes
     };
   }
@@ -577,6 +629,15 @@
         "▼ Visibility limited by X — reach suppressed (magnitude unpublished)");
       vl.title = "FOSNR restricted-reach interstitial detected (FreedomOfSpeechNotReach.scala label taxonomy; numeric penalty never released)";
       sec1.appendChild(vl);
+    }
+    if (result.features.quotedVisibilityLimited) {
+      var QVL = BANGERMETER_CONFIG.sourcedFacts.quotedVisibilityLimited;
+      var qvl = el("div", "bangermeter-rescorer", "▼ " + QVL.panel);
+      qvl.title = QVL.note + " (xai-org/x-algorithm at " + QVL.verifiedAt + ", " +
+        QVL.verifiedAsOf + ": " + QVL.sources.map(function (s) {
+          return s.split(" (")[0];
+        }).join(", ") + ")";
+      sec1.appendChild(qvl);
     }
     if (result.features.hasCommunityNote) {
       sec1.appendChild(el("div", "bangermeter-fineprint",
