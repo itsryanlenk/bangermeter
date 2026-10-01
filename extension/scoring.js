@@ -366,15 +366,18 @@ var BangermeterEngine = (function () {
   // treats that case differently (see sourcedFacts.quotedVisibilityLimited).
   function visibilityLimitedVerdict(o) {
     o = o || {};
+    // Find the post's text before cutting anything: a link preview that
+    // shows only a domain the post also names would otherwise be cut out
+    // of the post itself.
     var own = String(o.articleText || "");
+    var post = String(o.postText || "");
+    var start = post ? own.indexOf(post.slice(0, 40)) : -1;
+    if (start !== -1) own = own.slice(0, start);
     (o.cutTexts || []).forEach(function (q) {
       q = String(q || "");
       var at = q ? own.indexOf(q) : -1;
       if (at !== -1) own = own.slice(0, at) + own.slice(at + q.length);
     });
-    var post = String(o.postText || "");
-    var start = post ? own.indexOf(post.slice(0, 40)) : -1;
-    if (start !== -1) own = own.slice(0, start);
     return {
       own: visibilityLimitedIn(own.slice(0, 200)) || visibilityLimitedLineIn(o.belowText),
       quoted: visibilityLimitedLineIn(o.quotedText)
