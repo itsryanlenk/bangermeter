@@ -154,6 +154,66 @@
     check("July 13 'mutuals' announcement mapped to the EXISTING boost, still 15.0",
       /July 13/.test(H.reply.note) && C.bidirectionalFollowReplyBoost === 15.0);
 
+    // ── The "Visibility limited" notice (verified against 77d431a, 2026-09-30) ──
+    // Through 0.10.2 the panel called this "reach suppressed (magnitude
+    // unpublished)", citing the 2023 archive. The 2026 code does not shrink
+    // these posts in For You. It removes them.
+    var VL = SF.visibilityLimited || {};
+    var FOSNR_LEVEL_3 = ["FOSNR_HATEFUL_CONDUCT", "FOSNR_VIOLENT_SPEECH",
+      "FOSNR_ABUSE", "FOSNR_CIVIC_INTEGRITY"];
+    check("visibility-limited fact recorded, verified at 77d431a with a date",
+      VL.provenance === "2026-published" && VL.verifiedAt === "77d431a" &&
+      VL.verifiedAsOf === "2026-09-30");
+    check("For You calls exactly two VF safety levels",
+      JSON.stringify(VL.forYouLevels) === '["TimelineHome","TimelineHomeRecommendations"]',
+      JSON.stringify(VL.forYouLevels));
+    check("four FOSNR labels dropped from For You for everyone but the author",
+      JSON.stringify(VL.droppedExceptAuthor) === JSON.stringify(FOSNR_LEVEL_3),
+      JSON.stringify(VL.droppedExceptAuthor));
+    check("FOSNR_ABUSE_INSULTS dropped out-of-network only",
+      JSON.stringify(VL.droppedOutOfNetwork) === '["FOSNR_ABUSE_INSULTS"]',
+      JSON.stringify(VL.droppedOutOfNetwork));
+    check("every dropped label is one Under the Hood discloses",
+      FOSNR_LEVEL_3.concat("FOSNR_ABUSE_INSULTS").every(function (l) {
+        return SF.underTheHood.postLabelAllowlist.indexOf(l) !== -1;
+      }));
+    check("no FOSNR limited-engagement rule, and the notice's rendering is unpublished",
+      VL.fosnrLimitedEngagementRule === false && VL.noticeRenderingPublished === false);
+    check("every visibility-limited source is cited file@commit",
+      Array.isArray(VL.sources) && VL.sources.length >= 5 &&
+      VL.sources.every(function (s) { return /^[\w\/.-]+@[0-9a-f]{7}\b/.test(s); }),
+      JSON.stringify(VL.sources));
+    check("the 2023 archive is not cited as the source of current behavior",
+      Array.isArray(VL.sources) &&
+      VL.sources.every(function (s) { return !/FreedomOfSpeechNotReach/.test(s); }));
+    check("panel line says For You removes it, not that reach is 'suppressed'",
+      /For You/.test(VL.panel || "") && /removes/.test(VL.panel || "") &&
+      /author/.test(VL.panel || "") &&
+      !/suppress|magnitude/i.test((VL.panel || "") + (VL.panelDetail || "")),
+      VL.panel);
+    check("panel detail names the out-of-network exception and the unpublished notice",
+      /out-of-network/.test(VL.panelDetail || "") &&
+      /not in X's published code/.test(VL.panelDetail || ""), VL.panelDetail);
+    // An adversary pass found three ways a labeled post still reaches For
+    // You: a repost by a followed account (checked at TimelineHome), a failed
+    // visibility check (no verdict, so VFFilter keeps it), and PushToHomeSource
+    // (no VF filter in its pipeline). The record must not hide them.
+    check("the FOSNR_ABUSE_INSULTS exception covers reposts by followed accounts",
+      /reposts it/.test(VL.panelDetail || ""), VL.panelDetail);
+    check("the note names both published paths that skip the check",
+      /check fails/.test(VL.note || "") && /PushToHomeSource/.test(VL.note || ""));
+    check("the removal of quoting posts and replies is cited where it happens",
+      Array.isArray(VL.sources) && VL.sources.some(function (s) {
+        return /^home-mixer\/candidate_hydrators\/vf_candidate_hydrator\.rs@77d431a \(lines 140-170/.test(s);
+      }));
+    check("both Following feeds are accounted for",
+      /chronological Following/.test(VL.note || "") && /ranked Following/.test(VL.note || "") &&
+      Array.isArray(VL.sources) && VL.sources.some(function (s) {
+        return /^home-mixer\/server\.rs@77d431a/.test(s);
+      }));
+    check("47c1bcd is not called the first publication (that is aaa167b, Jan 20)",
+      !/first publication/.test((VL.note || "") + (VL.panelDetail || "")));
+
     // ── Mechanisms verified against the repo ───────────────────────────
     // Author cold start is DEFAULT ON and promotes at most one post per
     // request. home-mixer/scorers/author_cold_start.rs. Every gate moved in

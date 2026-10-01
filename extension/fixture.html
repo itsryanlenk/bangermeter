@@ -18,7 +18,7 @@
   </style>
 </head>
 <body>
-  <h3 style="max-width:560px;margin:0 auto 12px;">Fixture harness v9 (Bangermeter) — replicates X DOM structure</h3>
+  <h3 style="max-width:560px;margin:0 auto 12px;">Fixture harness v10 (Bangermeter) — replicates X DOM structure</h3>
 
   <!-- Compose box replica -->
   <div class="compose">
@@ -166,6 +166,22 @@
       <button data-testid="retweet" aria-label="3 yeniden gönderi. Yeniden gönder">🔁 3</button>
       <button data-testid="like" aria-label="50 beğeni. Beğen">❤ 50</button>
       <button data-testid="bookmark" aria-label="2 yer işareti. Yer işareti">🔖 2</button>
+    </div>
+  </article>
+
+  <!-- 11: X's "Visibility limited" notice. Detection keys on that phrase in the
+       first 200 characters of the article's text, and nothing else. X's own
+       markup and the rest of its wording are not reproduced here. The panel
+       must say For You removes the post (not "reach suppressed") and show the
+       FOSNR_ABUSE_INSULTS exception line beneath it. -->
+  <article data-testid="tweet" id="t11">
+    <div data-testid="User-Name"><span class="name">Limited</span> <a href="/limited/status/1011"><time datetime="2026-08-02T14:55:00.000Z">5m</time></a></div>
+    <div>Visibility limited</div>
+    <div data-testid="tweetText">A post carrying X's visibility notice.</div>
+    <div role="group" aria-label="1 reply, 0 reposts, 4 likes, 800 views">
+      <button data-testid="reply" aria-label="1 Reply. Reply">💬 1</button>
+      <button data-testid="retweet" aria-label="0 reposts. Repost">🔁</button>
+      <button data-testid="like" aria-label="4 Likes. Like">❤ 4</button>
     </div>
   </article>
 
