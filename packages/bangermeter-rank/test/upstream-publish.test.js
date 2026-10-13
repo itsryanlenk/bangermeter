@@ -72,9 +72,11 @@ test("a fatal report is published, then fails the run", () => {
   assert.ok(h.logs.join("\n").includes("baseline: stamp gone"));
 });
 
-test("PR creation refused by the repo setting fails red, naming the setting", () => {
+test("PR creation refused by the repo setting still publishes the issue, then fails red naming the setting", () => {
   const h = harness(R(AUTO), [[/^git status/, { out: " M extension/weights.js" }],
     [/^gh pr create/, { code: 1, err: "GraphQL: GitHub Actions is not permitted to create or approve pull requests" }]].concat(NO_GH_STATE));
   assert.equal(h.code(), 1);
   assert.match(h.logs.join("\n"), /Allow GitHub Actions to create and approve pull requests/);
+  const refused = h.calls.findIndex(c => c.startsWith("gh pr create"));
+  assert.ok(h.calls.findIndex((c, i) => i > refused && c.startsWith("gh issue create")) > refused, "the issue is still published");
 });
