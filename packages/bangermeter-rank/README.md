@@ -82,9 +82,29 @@ Favorite, Reply, Report, OON, VideoOpen, Vqv and Dwell are flagged `CRITICAL`. I
 upstream stamp moves but no value changed, the check passes and says so.
 Each file is checked on its own, and comments are stripped before parsing, so
 a commented-out `param!` line never counts as live. A duplicate declaration or a
-missing `last sync` stamp also fails. The `weight-sync` job in
-`.github/workflows/bangermeter-rank.yml` runs daily and on demand. It does not run
-on PRs, so a PR never goes red because X moved a weight overnight.
+missing `last sync` stamp also fails. Plain `sync` is the quick check; the
+daily CI job uses `--history`, below.
+
+### Upstream history (`sync --history`)
+
+`sync --history CLONE` reads both param files from a local clone of
+`xai-org/x-algorithm` and sorts every finding into one bucket:
+
+- **auto**: both upstream files agree on a new value.
+- **needs you**: a head was added or removed, the two files disagree, or a citation does not resolve.
+- **re-verify**: a file weights.js cites has been touched since it was checked.
+
+Each value is dated from the history of its own file. The publication date
+is the commit, and the sync date is the `param.rs` stamp at that commit.
+
+- `--report OUT.json` writes the findings.
+- `--write` applies only the auto bucket: numbers in code and tests, never
+  prose. Run it from the repo.
+
+With `--history`, drift exits 0, because it is reported rather than failed.
+1 means the check itself is broken. The daily `upstream-sync` CI job runs
+this, then `bin/upstream-publish.js`, which keeps one `upstream-drift` issue
+and one draft PR on `bot/upstream-sync` current.
 
 ## Gates
 
