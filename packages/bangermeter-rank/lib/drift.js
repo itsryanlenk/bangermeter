@@ -153,7 +153,13 @@ function buildReport(opts) {
       if (commits.length) report.review.push(Object.assign({}, c, { commits }));
     }
   }
-  report.stampBump = !report.fatal.length && !report.needsYou.some(f => f.kind !== "badcitation");
+  // Citations without a sha of their own are watched from the pinned sync, so
+  // bumping the stamp would drop them from the re-verify list unchecked.
+  const unverified = report.baseline ? report.review.filter(r => r.baseline === report.baseline.sha).length : 0;
+  report.stampHold = report.fatal.length ? "fatal"
+    : report.needsYou.some(f => f.kind !== "badcitation") ? "weight-findings"
+    : unverified ? "unverified-citations" : null;
+  report.stampBump = !report.stampHold;
   sortReport(report);
   report.hash = hash(report);
   return report;

@@ -60,7 +60,7 @@ test("prBody flags red-on-purpose only when the ceiling moved, and reports gates
   const write = { changed: ["extension/weights.js"], staleLines: [{ file: "README.md", line: 98, figure: "0.000896", text: "rescaled into [0, 0.000896)" }],
     sums: { before: { positive: 43.24, negative: 371.54, total: 414.78, ceiling: "0.000896" }, after: { positive: 43.24, negative: 384.02, total: 427.26, ceiling: "0.000899" } },
     sumsMoved: true, ceilingMoved: true, stamp: null };
-  const report = Object.assign({}, base, { auto: [auto], write });
+  const report = Object.assign({}, base, { auto: [auto], write, stampHold: "weight-findings" });
   const md = render.prBody(report, { gates: [{ name: "Engine self-test", ok: false, tail: "1 failed" }, { name: "Package tests", ok: true, tail: "" }] });
   assert.match(md, /Red on purpose/);
   assert.match(md, /`README\.md:98` \(0\.000896\)/);
@@ -75,4 +75,13 @@ test("prBody warns up front that tests pinning a published value are expected to
   const md = render.prBody(Object.assign({}, base, { auto: [auto], write: { changed: ["extension/weights.js"], staleLines: [], sums: null, sumsMoved: false, ceilingMoved: false, stamp: null } }), {});
   assert.match(md, /pin a published value/);
   assert.match(md, /expected to fail until you confirm the new values/);
+});
+
+test("prBody gives the real reason the stamp did not move", () => {
+  const w = { changed: ["extension/weights.js"], staleLines: [], sums: null, sumsMoved: false, ceilingMoved: false, stamp: null };
+  const body = extra => render.prBody(Object.assign({}, base, { auto: [auto], write: w }, extra), {});
+  assert.match(body({ stampHold: "weight-findings" }), /not bumped: the issue still has weight findings/);
+  assert.match(body({ stampHold: "unverified-citations", review: [{ path: "a", baseline: "77d431abbbb", facts: ["x"], commits: [] }, { path: "b", baseline: "77d431abbbb", facts: ["y"], commits: [] }] }),
+    /not bumped: 2 cited files are watched from the pinned sync/);
+  assert.match(body({ stampHold: null }), /`paramRsLastSync` unchanged: upstream's stamp is the one weights\.js already pins/);
 });
