@@ -132,3 +132,26 @@ test("the new-user OON factor is checked too", () => {
   assert.equal(r.ok, false);
   assert.ok(r.problems.some(p => p.param === "rust_home_mixer_new_user_oon_weight_factor"));
 });
+
+test("expected() carries a weights.js key path that resolves to the value it checks", () => {
+  const { C } = require("../lib/engine");
+  const exp = sync.expected();
+  assert.deepEqual(exp.rust_home_mixer_click_weight.path, ["heads", "click", "weight"]);
+  assert.deepEqual(exp.rust_home_mixer_oon_weight_factor.path, ["rescorers", "outOfNetwork", "factor"]);
+  assert.deepEqual(exp.rust_home_mixer_bidirectional_follow_reply_weight_boost.path, ["bidirectionalFollowReplyBoost"]);
+  assert.deepEqual(exp.rust_home_mixer_min_video_duration_ms.path, ["sourcedFacts", "minVideoDurationMs", "value"]);
+  for (const [param, e] of Object.entries(exp)) {
+    assert.equal(e.path.reduce((o, k) => o[k], C), e.value, param);
+  }
+});
+
+test("a disagreement carries both upstream values, the repo value and the key path", () => {
+  const moved = paramRs.replace('"rust_home_mixer_favorite_weight", 0.5', '"rust_home_mixer_favorite_weight", 0.6');
+  const r = sync.check({ paramRs: moved, vmParams });
+  const d = r.problems.find(p => p.kind === "disagree" && p.param === "rust_home_mixer_favorite_weight");
+  assert.deepEqual(d.values, { paramRs: 0.6, vmParams: 0.5 });
+  assert.equal(d.repo, 0.5);
+  assert.deepEqual(d.path, ["heads", "favorite", "weight"]);
+  const v = r.problems.find(p => p.kind === "value" && p.param === "rust_home_mixer_favorite_weight");
+  assert.deepEqual(v.path, ["heads", "favorite", "weight"]);
+});

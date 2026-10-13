@@ -53,19 +53,20 @@ const VM = ["vmParams"];
 
 function expected() {
   const out = {};
-  const put = (param, value, what, files) => { out[param] = { value, what, files }; };
-  for (const [name, h] of Object.entries(C.heads)) put(h.param, h.weight, "head " + name, BOTH);
+  // `path` is where weights.js holds the value, so --write can find it.
+  const put = (param, value, what, files, path) => { out[param] = { value, what, files, path }; };
+  for (const [name, h] of Object.entries(C.heads)) put(h.param, h.weight, "head " + name, BOTH, ["heads", name, "weight"]);
   const r = C.rescorers;
-  put(r.outOfNetwork.param, r.outOfNetwork.factor, "rescorer outOfNetwork", VM);
-  put(r.topicOutOfNetwork.param, r.topicOutOfNetwork.factor, "rescorer topicOutOfNetwork", VM);
+  put(r.outOfNetwork.param, r.outOfNetwork.factor, "rescorer outOfNetwork", VM, ["rescorers", "outOfNetwork", "factor"]);
+  put(r.topicOutOfNetwork.param, r.topicOutOfNetwork.factor, "rescorer topicOutOfNetwork", VM, ["rescorers", "topicOutOfNetwork", "factor"]);
   // weights.js records this one from config.rs without a param name; X now
   // publishes it, so it is checked by its published name.
-  put("rust_home_mixer_new_user_oon_weight_factor", r.newUserOutOfNetwork.factor, "rescorer newUserOutOfNetwork", VM);
-  put(r.authorDiversity.param, r.authorDiversity.decay, "author diversity decay", VM);
-  put(r.authorDiversity.floorParam, r.authorDiversity.floor, "author diversity floor", VM);
-  put("rust_home_mixer_bidirectional_follow_reply_weight_boost", C.bidirectionalFollowReplyBoost, "mutual-follow reply boost", BOTH);
-  put("rust_home_mixer_bidirectional_follow_dwell_weight_boost", C.bidirectionalFollowDwellBoost, "mutual-follow dwell boost", BOTH);
-  put(C.sourcedFacts.minVideoDurationMs.param, C.sourcedFacts.minVideoDurationMs.value, "min video duration ms", BOTH);
+  put("rust_home_mixer_new_user_oon_weight_factor", r.newUserOutOfNetwork.factor, "rescorer newUserOutOfNetwork", VM, ["rescorers", "newUserOutOfNetwork", "factor"]);
+  put(r.authorDiversity.param, r.authorDiversity.decay, "author diversity decay", VM, ["rescorers", "authorDiversity", "decay"]);
+  put(r.authorDiversity.floorParam, r.authorDiversity.floor, "author diversity floor", VM, ["rescorers", "authorDiversity", "floor"]);
+  put("rust_home_mixer_bidirectional_follow_reply_weight_boost", C.bidirectionalFollowReplyBoost, "mutual-follow reply boost", BOTH, ["bidirectionalFollowReplyBoost"]);
+  put("rust_home_mixer_bidirectional_follow_dwell_weight_boost", C.bidirectionalFollowDwellBoost, "mutual-follow dwell boost", BOTH, ["bidirectionalFollowDwellBoost"]);
+  put(C.sourcedFacts.minVideoDurationMs.param, C.sourcedFacts.minVideoDurationMs.value, "min video duration ms", BOTH, ["sourcedFacts", "minVideoDurationMs", "value"]);
   return out;
 }
 
@@ -111,13 +112,13 @@ function check(files) {
       seen.push([key, p.params[param]]);
     }
     if (seen.length === 2 && seen[0][1] !== seen[1][1]) {
-      add({ kind: "disagree", param,
+      add({ kind: "disagree", param, repo: e.value, path: e.path, values: Object.fromEntries(seen),
         message: param + ": upstream files disagree (" + seen.map(([k, v]) => k + " " + v).join(" vs ") + ")" });
     }
     for (const [key, v] of seen) {
       live[param] = v;
       if (v !== e.value) {
-        add({ kind: "value", file: key, param, repo: e.value, live: v,
+        add({ kind: "value", file: key, param, repo: e.value, live: v, path: e.path,
           message: key + ": " + param + " (" + e.what + "): repo " + e.value + " ≠ live " + v });
       }
     }
@@ -154,4 +155,4 @@ async function fetchLive(fetchImpl) {
   return out;
 }
 
-module.exports = { parse, check, fetchLive, stripComments, SOURCES, CRITICAL };
+module.exports = { parse, check, expected, isHeadParam, fetchLive, stripComments, SOURCES, CRITICAL };
