@@ -8,6 +8,9 @@ const { makeRepo, fixture, setStamp, setValue } = require("./git-fixture");
 
 const P = upstream.FILES.paramRs, V = upstream.FILES.vmParams;
 const FAV = "rust_home_mixer_favorite_weight", OON = "rust_home_mixer_oon_weight_factor";
+// Likes as the fixtures hold it today, and a value they do not: a fixed 0.6
+// would stop being a move the day upstream (and the bot) land Likes 0.6.
+const OLD = require("../lib/sync").parse(fixture("param.rs")).params[FAV], NEW = +(OLD + 0.1).toFixed(10);
 const B = "2026-09-29T17:02:52Z";                       // the fixtures' stamp
 const paramRs = fixture("param.rs"), vmParams = fixture("vm-params.rs");
 const CLONE = path.join(__dirname, "..", "..", "..", "repo", "x-algorithm");
@@ -36,11 +39,11 @@ test("arrival dates a change by its own file's commit, with param.rs's stamp", (
   const r = makeRepo([
     { date: "2026-09-30T03:53:42Z", files: { [P]: paramRs, [V]: vmParams } },
     { date: "2026-10-01T02:13:55Z", files: { [P]: setStamp(paramRs, "2026-09-30T16:00:40Z") } },
-    { date: "2026-10-13T08:05:54Z", files: { [P]: setValue(setStamp(paramRs, "2026-10-12T16:00:33Z"), FAV, "0.6") } }
+    { date: "2026-10-13T08:05:54Z", files: { [P]: setValue(setStamp(paramRs, "2026-10-12T16:00:33Z"), FAV, String(NEW)) } }
   ]);
   try {
     const a = upstream.arrival(r.dir, "paramRs", FAV, upstream.findBaseline(r.dir, B));
-    assert.deepEqual(a, { sha: r.sha("HEAD"), date: "2026-10-13T08:05:54Z", stamp: "2026-10-12T16:00:33Z", from: 0.5, to: 0.6 });
+    assert.deepEqual(a, { sha: r.sha("HEAD"), date: "2026-10-13T08:05:54Z", stamp: "2026-10-12T16:00:33Z", from: OLD, to: NEW });
     assert.equal(upstream.arrival(r.dir, "vmParams", FAV, upstream.findBaseline(r.dir, B)), null, "vm-ranker never moved");
   } finally { r.cleanup(); }
 });
@@ -48,14 +51,14 @@ test("arrival dates a change by its own file's commit, with param.rs's stamp", (
 test("a value that moves and moves back dates from its latest arrival, not its first", () => {
   const r = makeRepo([
     { date: "2026-09-30T03:00:00Z", files: { [P]: paramRs, [V]: vmParams } },
-    { date: "2026-10-02T03:00:00Z", files: { [P]: setValue(paramRs, FAV, "0.6") } },
-    { date: "2026-10-03T03:00:00Z", files: { [P]: setValue(paramRs, FAV, "0.5") } },
-    { date: "2026-10-06T03:00:00Z", files: { [P]: setValue(paramRs, FAV, "0.6") } }
+    { date: "2026-10-02T03:00:00Z", files: { [P]: setValue(paramRs, FAV, String(NEW)) } },
+    { date: "2026-10-03T03:00:00Z", files: { [P]: setValue(paramRs, FAV, String(OLD)) } },
+    { date: "2026-10-06T03:00:00Z", files: { [P]: setValue(paramRs, FAV, String(NEW)) } }
   ]);
   try {
     const a = upstream.arrival(r.dir, "paramRs", FAV, upstream.findBaseline(r.dir, B));
     assert.equal(a.date, "2026-10-06T03:00:00Z");
-    assert.equal(a.from, 0.5);
+    assert.equal(a.from, OLD);
   } finally { r.cleanup(); }
 });
 

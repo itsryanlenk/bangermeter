@@ -118,7 +118,8 @@ const commitMessage = report => "Apply upstream values from " + short(report.ups
 function prBody(report, opts) {
   const o = opts || {};
   const w = report.write || { changed: [], staleLines: [], sums: null, sumsMoved: false, ceilingMoved: false, stamp: null };
-  const L = ["> Draft, opened by the upstream-sync job. It changes numbers in code and tests only; notes, `weightsSnapshot`, README, RESEARCH.md and store copy are yours. Anything it could not apply is in the open `upstream-drift` issue."];
+  const L = ["> Draft, opened by the upstream-sync job. It changes numbers in code and tests only; notes, `weightsSnapshot`, README, RESEARCH.md and store copy are yours. Anything it could not apply is in the open `upstream-drift` issue.",
+    ">", "> Tests that pin a published value (the live-table checks in `sync.test.js`, the numbers-gate test, and the engine's golden numbers) are expected to fail until you confirm the new values. Each failure is listed under Gates."];
   if (w.ceilingMoved) {
     L.push(">", "> **Red on purpose.** The negative-branch ceiling moved from " + w.sums.before.ceiling + " to " + w.sums.after.ceiling +
       ". `test.html` now expects the panel note (`sourcedFacts.negativeOffsetRule.note` in weights.js) to quote the new figure, and only a human edits that note.");
