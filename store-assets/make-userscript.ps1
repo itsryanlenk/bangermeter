@@ -37,6 +37,13 @@ function Read-Src($name) {
 # Linux CI build produce the same bytes.
 $css = (Read-Src "styles.css") -replace "`r`n", "`n"
 $cssJson = ConvertTo-Json -InputObject "$css"
+# Windows PowerShell 5.1 escapes the characters in $literal as backslash-u
+# sequences (an apostrophe becomes backslash-u0027), and PowerShell 7 writes
+# them as is. Both are the same JS string; writing them as is makes the two
+# builds match byte for byte. [char]92 is a backslash, so no escape sequence
+# appears in this file.
+$literal = @{ "0027" = [char]39; "003c" = [char]60; "003e" = [char]62; "0026" = [char]38 }
+foreach ($code in $literal.Keys) { $cssJson = $cssJson.Replace([string][char]92 + "u" + $code, [string]$literal[$code]) }
 
 $header = @"
 // ==UserScript==
