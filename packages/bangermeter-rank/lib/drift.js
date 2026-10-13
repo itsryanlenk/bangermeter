@@ -145,8 +145,13 @@ function buildReport(opts) {
     }
     for (const c of citedPaths(config, report.baseline.sha)) {
       if (!upstream.existsAt(clone, c.baseline, c.path)) {
+        // Say where the baseline came from: a citation with no sha of its own
+        // is checked at the pinned sync, which it never cited.
+        const where = c.baseline === report.baseline.sha
+          ? " (weights.js's pinned sync; " + c.facts.join(", ") + " names no commit of its own)"
+          : ", the commit " + c.facts.join(", ") + " cites";
         report.needsYou.push({ kind: "badcitation", param: null, path: c.path, facts: c.facts, severity: "inert",
-          message: "`" + c.path + "` does not exist at `" + c.baseline.slice(0, 7) + "`, the commit " + c.facts.join(", ") + " cites, so it cannot be watched" });
+          message: "`" + c.path + "` does not exist at `" + c.baseline.slice(0, 7) + "`" + where + ", so it cannot be watched" });
         continue;
       }
       const commits = upstream.commitsTouching(clone, c.path, { since: c.baseline, head });
