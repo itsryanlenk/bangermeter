@@ -1,13 +1,15 @@
 name: bangermeter-rank
 
-# Tests and ship gates on every push and PR. Weight sync against X's live
-# param.rs + vm-ranker/params.rs every day: a red scheduled run means X moved a
-# weight, added or removed a head, or the two upstream files disagree.
+# Tests and ship gates on every push and PR. Once a day, upstream-sync checks
+# xai-org/x-algorithm for anything Bangermeter depends on: drift goes to one
+# rolling `upstream-drift` issue, mechanical edits to a draft PR on
+# bot/upstream-sync. A red scheduled run means the automation itself broke.
 on:
   push:
   pull_request:
   schedule:
-    - cron: "30 18 * * *" # daily, after X's usual ~16:30 UTC sync
+    # X stamps param.rs at 16:00 UTC and publishes the next day, 01:00-08:00 UTC.
+    - cron: "30 9 * * *"
   workflow_dispatch:
 
 permissions:
@@ -31,16 +33,38 @@ jobs:
         run: npm test
       - name: Copy + Numbers gates
         run: node packages/bangermeter-rank/bin/bangermeter-rank.js gate
+      - name: Userscript is rebuilt from current sources
+        run: |
+          pwsh -NoProfile -File store-assets/make-userscript.ps1
+          git diff --exit-code -- extension/bangermeter.user.js
 
-  # Only on the schedule or by hand: a PR should not go red because X moved a
-  # weight overnight. Drift is its own alarm, handled by updating weights.js.
-  weight-sync:
+  # Only on the schedule or by hand: a PR should not go red because X moved
+  # something overnight.
+  upstream-sync:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    concurrency:
+      group: upstream-sync
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Live param.rs drift check
-        run: node packages/bangermeter-rank/bin/bangermeter-rank.js sync
+      - name: Clone xai-org/x-algorithm (blobless, full history)
+        run: git clone --quiet --filter=blob:none https://github.com/xai-org/x-algorithm.git "$RUNNER_TEMP/x-algorithm"
+      - name: Report drift and apply the mechanical edits
+        continue-on-error: true
+        run: node packages/bangermeter-rank/bin/bangermeter-rank.js sync --history "$RUNNER_TEMP/x-algorithm" --report "$RUNNER_TEMP/drift.json" --write
+      - name: Rebuild the userscript
+        run: pwsh -NoProfile -File store-assets/make-userscript.ps1
+      - name: Publish to the upstream-drift issue and the draft PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node packages/bangermeter-rank/bin/upstream-publish.js --report "$RUNNER_TEMP/drift.json"
