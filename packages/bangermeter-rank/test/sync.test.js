@@ -164,11 +164,12 @@ test("expected() carries a weights.js key path that resolves to the value it che
 });
 
 test("a disagreement carries both upstream values, the repo value and the key path", () => {
-  const moved = paramRs.replace('"rust_home_mixer_favorite_weight", 0.5', '"rust_home_mixer_favorite_weight", 0.6');
-  const r = sync.check({ paramRs: moved, vmParams });
+  // Derived from the fixture, so the move stays a move after a real Likes change lands.
+  const old = sync.parse(paramRs).params.rust_home_mixer_favorite_weight, moved = +(old + 0.1).toFixed(10);
+  const r = sync.check({ paramRs: paramRs.replace(/("rust_home_mixer_favorite_weight",\s*)[\d.]+/, "$1" + moved), vmParams });
   const d = r.problems.find(p => p.kind === "disagree" && p.param === "rust_home_mixer_favorite_weight");
-  assert.deepEqual(d.values, { paramRs: 0.6, vmParams: 0.5 });
-  assert.equal(d.repo, 0.5);
+  assert.deepEqual(d.values, { paramRs: moved, vmParams: old });
+  assert.equal(d.repo, old);
   assert.deepEqual(d.path, ["heads", "favorite", "weight"]);
   const v = r.problems.find(p => p.kind === "value" && p.param === "rust_home_mixer_favorite_weight");
   assert.deepEqual(v.path, ["heads", "favorite", "weight"]);
