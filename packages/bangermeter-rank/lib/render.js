@@ -29,8 +29,20 @@ function latest(arrivals) {
   return Object.values(arrivals || {}).sort((x, y) => (x.date < y.date ? -1 : x.date > y.date ? 1 : 0)).pop() || null;
 }
 
+// One file's dates. vm-ranker/params.rs has no stamp of its own, so its sync
+// date is param.rs's at the same commit, and is labeled that way.
+function fileDates(k, a) {
+  if (k === "paramRs") return FILE_LABEL[k] + (a.stamp ? " in the " : ", ") + when(a) + " (`" + short(a.sha) + "`)";
+  const differ = a.stamp && new Date(a.date).getUTCFullYear() !== new Date(a.stamp).getUTCFullYear();
+  return FILE_LABEL[k] + " published " + day(a.date, !a.stamp || differ) + " (`" + short(a.sha) + "`" +
+    (a.stamp ? ", param.rs stamp " + day(a.stamp, true) : "") + ")";
+}
+
 function datedLine(f) {
   const head = f.label + ": " + fmt(f.repo) + " → " + fmt(f.live);
+  // Files that changed in different pushes get a date each: picking one would be a guess.
+  const keys = Object.keys(FILE_LABEL).filter(k => f.arrivals && f.arrivals[k]);
+  if (new Set(keys.map(k => f.arrivals[k].sha)).size > 1) return head + " — " + keys.map(k => fileDates(k, f.arrivals[k])).join("; ");
   const a = latest(f.arrivals);
   if (!a) return head + " (date unknown)";
   return head + (a.stamp ? " in the " : ", ") + when(a) + " (`" + short(a.sha) + "`)";

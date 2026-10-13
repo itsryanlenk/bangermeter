@@ -85,3 +85,13 @@ test("prBody gives the real reason the stamp did not move", () => {
     /not bumped: 2 cited files are watched from the pinned sync/);
   assert.match(body({ stampHold: null }), /`paramRsLastSync` unchanged: upstream's stamp is the one weights\.js already pins/);
 });
+
+test("when the two files changed on different days, the dated line gives each file's dates instead of guessing", () => {
+  const f = Object.assign({}, auto, { arrivals: {
+    paramRs: arr("2026-10-13T08:05:54Z", "2026-10-12T16:00:33Z", "e1a0375aaaa"),
+    vmParams: arr("2026-10-14T05:00:00Z", "2026-10-13T16:00:00Z", "378c0e8bbbb") } });
+  assert.equal(render.datedLine(f), "Likes: 0.5 → 0.6 — param.rs in the Oct 12, 2026 sync, published Oct 13 (`e1a0375`); " +
+    "vm-ranker/params.rs published Oct 14 (`378c0e8`, param.rs stamp Oct 13, 2026)");
+  const same = Object.assign({}, auto, { arrivals: { paramRs: auto.arrivals.paramRs, vmParams: auto.arrivals.paramRs } });
+  assert.equal(render.datedLine(same), render.datedLine(auto), "one push: one date");
+});
