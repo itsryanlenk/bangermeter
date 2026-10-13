@@ -8,7 +8,9 @@ on:
   push:
   pull_request:
   schedule:
-    # X stamps param.rs at 16:00 UTC and publishes the next day, 01:00-08:00 UTC.
+    # X stamps param.rs around 16:00 UTC and usually publishes overnight
+    # (01:00-08:05 UTC Sept 14-Oct 13, with one push at 23:55); 09:30 catches
+    # most pushes the morning they land.
     - cron: "30 9 * * *"
   workflow_dispatch:
 
