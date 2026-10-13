@@ -68,3 +68,53 @@ test("sync against local fixtures passes, and against a drifted file exits 1", (
   assert.equal(r.status, 1);
   assert.match(r.stderr, /CRITICAL/);
 });
+
+const upstream = require("../lib/upstream");
+const { makeRepo, fixture, setStamp, setValue } = require("./git-fixture");
+const { makeRoot } = require("./repo-fixture");
+const FAVP = "rust_home_mixer_favorite_weight";
+const upstreamWith = (paramRsText, vmText) => makeRepo([
+  { date: "2026-09-30T03:53:42Z", files: { [upstream.FILES.paramRs]: fixture("param.rs"), [upstream.FILES.vmParams]: fixture("vm-params.rs") } },
+  { date: "2026-10-13T08:05:54Z", files: { [upstream.FILES.paramRs]: setStamp(paramRsText, "2026-10-12T16:00:33Z"), [upstream.FILES.vmParams]: vmText } }
+]);
+
+test("sync --history --report: drift is reported with exit 0, not a failure", () => {
+  const up = upstreamWith(setValue(fixture("param.rs"), FAVP, "0.6"), fixture("vm-params.rs"));
+  const out = path.join(dir, "drift.json");
+  try {
+    const r = run("sync", "--history", up.dir, "--report", out);
+    assert.equal(r.status, 0, r.stderr);
+    const rep = JSON.parse(fs.readFileSync(out, "utf8"));
+    assert.equal(rep.needsYou.find(f => f.param === FAVP).kind, "disagree");
+    assert.equal(rep.write, undefined);
+    assert.match(r.stdout, /NEEDS YOU/);
+  } finally { up.cleanup(); }
+});
+
+test("sync --write applies auto findings under --root and records them in the report", () => {
+  const up = upstreamWith(setValue(fixture("param.rs"), FAVP, "0.6"), setValue(fixture("vm-params.rs"), FAVP, "0.6"));
+  const root = makeRoot();
+  const out = path.join(dir, "drift-w.json");
+  try {
+    const r = run("sync", "--history", up.dir, "--report", out, "--write", "--root", root.dir);
+    assert.equal(r.status, 0, r.stderr);
+    const rep = JSON.parse(fs.readFileSync(out, "utf8"));
+    assert.ok(rep.write.changed.includes("extension/weights.js"));
+    assert.match(root.read("extension/weights.js"), /favorite: \{ weight: 0\.6/);
+  } finally { up.cleanup(); root.cleanup(); }
+});
+
+test("sync --history exits 1 when weights.js pins a stamp upstream never published", () => {
+  const up = makeRepo([{ date: "2026-09-30T03:53:42Z", files: {
+    [upstream.FILES.paramRs]: setStamp(fixture("param.rs"), "2026-09-25T16:24:28Z"), [upstream.FILES.vmParams]: fixture("vm-params.rs") } }]);
+  try {
+    const r = run("sync", "--history", up.dir);
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /FATAL/);
+  } finally { up.cleanup(); }
+});
+
+test("sync --write without --history or --report is a usage error", () => {
+  assert.equal(run("sync", "--write").status, 2);
+  assert.equal(run("sync", "--history", dir, "--write").status, 2);
+});
