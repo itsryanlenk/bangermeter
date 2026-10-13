@@ -70,6 +70,13 @@ function section(L, title, items) {
   for (const i of items) L.push("- " + i);
 }
 
+// The heading says what publish.plan() actually did with the mechanical edits.
+const MECHANICAL = {
+  pushed: "Mechanical — applied in the draft PR on `bot/upstream-sync`",
+  held: "Mechanical — not pushed: the open bot PR has commits from someone other than the bot",
+  none: "Mechanical — not applied in this run"
+};
+
 const issueTitle = () => "Upstream drift: xai-org/x-algorithm moved something Bangermeter depends on";
 
 function issueBody(report, opts) {
@@ -83,8 +90,7 @@ function issueBody(report, opts) {
   section(L, "The alarm itself is broken", report.fatal.map(f => f.message));
   section(L, "Needs you — score-moving", report.needsYou.filter(f => f.severity === "score-moving").map(needsYouLine));
   section(L, "Needs you — inert (no score effect today)", report.needsYou.filter(f => f.severity !== "score-moving").map(needsYouLine));
-  section(L, report.write ? "Mechanical — applied in the draft PR on `bot/upstream-sync`" : "Mechanical — not applied in this run",
-    report.auto.map(datedLine));
+  section(L, MECHANICAL[o.mechanical] || MECHANICAL.none, report.auto.map(datedLine));
   section(L, "Re-verify: cited files touched since they were checked", report.review.map(reviewLine));
   L.push("", "---", "Updated by the upstream-sync job" + (o.runUrl ? " ([run](" + o.runUrl + "))" : "") +
     ". It comments only when these findings change, and closes this issue once upstream and weights.js agree.");
