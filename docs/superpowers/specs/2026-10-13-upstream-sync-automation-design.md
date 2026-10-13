@@ -59,9 +59,10 @@ had already shipped.
 
 The existing daily job becomes `upstream-sync`. Its cron moves from 18:30 to
 **09:30 UTC**. The current YAML comment says it runs "after X's usual ~16:30
-UTC sync", but 16:00 is the stamp time. X *publishes* the next day between
-01:00 and 08:00 UTC (every push from Sept 14 to Oct 13). At 18:30 every alert
-waits about ten extra hours. `workflow_dispatch` stays.
+UTC sync", but 16:00 is the stamp time. X usually *publishes* overnight:
+between 01:00 and 08:05 UTC for every push from Sept 14 to Oct 13 but one
+(`8b25829`, 23:55 on Sept 18). At 18:30 a typical alert waits about ten
+extra hours. `workflow_dispatch` stays.
 
 1. **Fetch.** Check out bangermeter. Run `git clone --filter=blob:none` on
    `xai-org/x-algorithm` (full history, blobs fetched on demand).
