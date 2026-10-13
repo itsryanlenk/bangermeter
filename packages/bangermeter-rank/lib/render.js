@@ -121,6 +121,17 @@ const prForeignComment = report => "Upstream moved again (`" + short(report.upst
 const commitMessage = report => "Apply upstream values from " + short(report.upstreamHead.sha) + "\n\n" +
   report.auto.map(f => "- " + datedLine(f).replace(/`/g, "")).join("\n");
 
+function stampLine(report, w) {
+  if (w.stamp) return "`paramRsLastSync` " + w.stamp.from + " → " + w.stamp.to + ": this PR resolves every weight finding.";
+  if (report.stampHold === "weight-findings") return "`paramRsLastSync` not bumped: the issue still has weight findings this PR does not resolve.";
+  if (report.stampHold === "unverified-citations") {
+    const n = report.review.filter(r => report.baseline && r.baseline === report.baseline.sha).length;
+    return "`paramRsLastSync` not bumped: " + plural(n, "cited file") + " " + (n === 1 ? "is" : "are") +
+      " watched from the pinned sync, and bumping it would drop them from the re-verify list before anyone checks them.";
+  }
+  return "`paramRsLastSync` unchanged: upstream's stamp is the one weights.js already pins.";
+}
+
 function prBody(report, opts) {
   const o = opts || {};
   const w = report.write || { changed: [], staleLines: [], sums: null, sumsMoved: false, ceilingMoved: false, stamp: null };
@@ -140,8 +151,7 @@ function prBody(report, opts) {
     L.push("", "Weight sums: " + ["positive", "negative", "total"].map(k => k + " " + w.sums.before[k] + " → " + w.sums.after[k]).join(", ") +
       "; ceiling " + w.sums.before.ceiling + " → " + w.sums.after.ceiling + ".");
   }
-  L.push("", w.stamp ? "`paramRsLastSync` " + w.stamp.from + " → " + w.stamp.to + ": this PR resolves every weight finding."
-    : "`paramRsLastSync` not bumped: the issue still has weight findings this PR does not resolve.");
+  L.push("", stampLine(report, w));
   L.push("", "## Ready-to-paste dated lines", "");
   for (const f of report.auto) L.push("- " + datedLine(f));
   L.push("", "## Lines that quote an old figure", "");

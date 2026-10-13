@@ -158,3 +158,17 @@ test("hash ignores array order and changes when a finding changes", () => {
   const c = { fatal: [], auto: [], needsYou: a.needsYou, review: [{ path: "x", commits: [{ sha: "1" }] }] };
   assert.notEqual(drift.hash(a), drift.hash(c));
 });
+
+test("buildReport: a moved file cited from the pinned sync holds the stamp, so a bump cannot drop it unchecked", () => {
+  const r = makeRepo([
+    { date: "2026-09-30T03:53:42Z", files: { [P]: paramRs, [V]: vmParams, "phoenix/reference/world.py": "x\n" } },
+    { date: "2026-10-13T08:05:54Z", files: { [P]: setValue(setStamp(paramRs, "2026-10-12T16:00:33Z"), FAV, String(NEW)), [V]: setValue(vmParams, FAV, String(NEW)), "phoenix/reference/world.py": "y\n" } }
+  ]);
+  try {
+    const rep = drift.buildReport({ clone: r.dir, config: cfg });
+    assert.equal(rep.auto.length, 1);
+    assert.equal(rep.review[0].baseline, rep.baseline.sha, "dwellMark has no sha of its own");
+    assert.equal(rep.stampBump, false);
+    assert.equal(rep.stampHold, "unverified-citations");
+  } finally { r.cleanup(); }
+});
