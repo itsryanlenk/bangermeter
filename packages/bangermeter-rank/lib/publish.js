@@ -6,15 +6,18 @@
 // One rolling issue, keyed by the findings hash in its body. Same hash: say
 // nothing, even if Ryan closed it (closed = dismissed). New hash: update the
 // open issue and comment once, or open a new one. Fatal: never touch the PR,
-// and fail the run every time — a broken alarm must stay loud.
+// and fail the run every time — a broken alarm must stay loud. A PR that
+// GitHub refused leaves the issue marked "pr-pending", so the next run
+// retries the PR without commenting again.
 const render = require("./render");
 
 const LABEL = "upstream-drift";
 const BRANCH = "bot/upstream-sync";
 const BOT = "github-actions[bot]";
-const HASH_RE = /<!-- findings-hash: ([0-9a-f]+) -->/;
+const HASH_RE = /<!-- findings-hash: ([0-9a-f]+)( pr-pending)? -->/;
 
 const hashFromBody = body => { const m = HASH_RE.exec(body || ""); return m ? m[1] : null; };
+const pendingFromBody = body => { const m = HASH_RE.exec(body || ""); return !!(m && m[2]); };
 const count = r => r.fatal.length + r.auto.length + r.needsYou.length + r.review.length;
 
 function plan(report, state, opts) {
@@ -29,9 +32,11 @@ function plan(report, state, opts) {
     if (state.pr && !foreign) actions.push({ type: "pr.close", number: state.pr.number, body: render.prClosingComment(report) });
     return actions;
   }
-  const fresh = !issue || issue.hash !== report.hash;
-  let mechanical = "none"; // what the issue may say happened: "pushed", "held" or "none"
-  if (fresh && !report.fatal.length) {
+  const changed = !issue || issue.hash !== report.hash;
+  const fresh = changed || !!(issue && issue.open && issue.pending);
+  // What the issue may say happened: "pushed", "held", "refused" or "none".
+  let mechanical = o.prRefused ? "refused" : "none";
+  if (fresh && !report.fatal.length && !o.prRefused) {
     const edits = report.auto.length && report.write && report.write.changed.length;
     if (edits && foreign) {
       mechanical = "held";
@@ -47,10 +52,11 @@ function plan(report, state, opts) {
     }
   }
   if (fresh) {
-    const body = render.issueBody(report, Object.assign({}, o, { mechanical }));
+    const body = render.issueBody(report, Object.assign({}, o, { mechanical, pending: !!o.prRefused }));
     if (issue && issue.open) {
       actions.push({ type: "issue.update", number: issue.number, body });
-      actions.push({ type: "issue.comment", number: issue.number, body: render.issueComment(report, o) });
+      // A retry of a pending PR is not news; only changed findings are.
+      if (changed) actions.push({ type: "issue.comment", number: issue.number, body: render.issueComment(report, o) });
     } else {
       actions.push({ type: "issue.create", title: render.issueTitle(), label: LABEL, body });
     }
@@ -59,4 +65,4 @@ function plan(report, state, opts) {
   return actions;
 }
 
-module.exports = { plan, hashFromBody, LABEL, BRANCH, BOT };
+module.exports = { plan, hashFromBody, pendingFromBody, LABEL, BRANCH, BOT };

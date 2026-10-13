@@ -25,6 +25,8 @@ function realRun(cmd, args, opts) {
 }
 
 class Broken extends Error {}
+// GitHub refused the PR (the repo setting is off). main() still publishes the issue.
+class PrRefused extends Error {}
 function must(r, what) {
   if (r.code !== 0) throw new Broken(what + " failed: " + (r.err || r.out || "exit " + r.code));
   return r;
@@ -37,7 +39,7 @@ function changedFiles(run) {
 
 function gather(run) {
   const issues = JSON.parse(must(run("gh", ["issue", "list", "--label", publish.LABEL, "--state", "all", "--limit", "1", "--json", "number,state,body"]), "gh issue list").out || "[]");
-  const issue = issues[0] ? { number: issues[0].number, open: issues[0].state === "OPEN", hash: publish.hashFromBody(issues[0].body) } : null;
+  const issue = issues[0] ? { number: issues[0].number, open: issues[0].state === "OPEN", hash: publish.hashFromBody(issues[0].body), pending: publish.pendingFromBody(issues[0].body) } : null;
   const prs = JSON.parse(must(run("gh", ["pr", "list", "--head", publish.BRANCH, "--state", "open", "--limit", "1", "--json", "number"]), "gh pr list").out || "[]");
   let foreignCommits = false;
   if (run("git", ["fetch", "--quiet", "origin", publish.BRANCH]).code === 0) {
@@ -75,7 +77,7 @@ function act(a, run, bodyFile) {
     must(run("git", ["push", "--force", "origin", a.branch]), "git push");
   } else if (a.type === "pr.create") {
     const r = run("gh", ["pr", "create", "--draft", "--head", a.branch, "--base", "main", "--title", a.title, "--body-file", bodyFile(a.body)]);
-    if (r.code !== 0 && /not permitted to create or approve pull requests/i.test(r.err)) throw new Broken("gh pr create refused. " + PR_SETTING_HINT);
+    if (r.code !== 0 && /not permitted to create or approve pull requests/i.test(r.err)) throw new PrRefused("gh pr create refused. " + PR_SETTING_HINT);
     must(r, "gh pr create");
   } else if (a.type === "pr.update") must(run("gh", ["pr", "edit", String(a.number), "--body-file", bodyFile(a.body)]), "gh pr edit");
   else if (a.type === "pr.comment") must(run("gh", ["pr", "comment", String(a.number), "--body-file", bodyFile(a.body)]), "gh pr comment");
@@ -102,8 +104,18 @@ function main(argv, deps) {
     const gates = files.length ? runGates(deps.run) : null;
     const env = deps.env;
     const runUrl = env.GITHUB_RUN_ID ? (env.GITHUB_SERVER_URL || "https://github.com") + "/" + env.GITHUB_REPOSITORY + "/actions/runs/" + env.GITHUB_RUN_ID : null;
-    const actions = publish.plan(report, gather(deps.run), { owner: env.GITHUB_REPOSITORY_OWNER, runUrl, gates });
-    const failed = execute(actions, deps.run);
+    const state = gather(deps.run);
+    const opts = { owner: env.GITHUB_REPOSITORY_OWNER, runUrl, gates };
+    const actions = publish.plan(report, state, opts);
+    let failed;
+    try { failed = execute(actions, deps.run); }
+    catch (e) {
+      if (!(e instanceof PrRefused)) throw e;
+      // Publish the issue anyway, marked pr-pending so the next run retries the PR.
+      const issueOnly = publish.plan(report, state, Object.assign({ prRefused: true }, opts)).filter(a => a.type.startsWith("issue."));
+      execute(issueOnly, deps.run);
+      throw new Broken(e.message);
+    }
     deps.log("upstream-publish: " + (actions.map(a => a.type).join(", ") || "nothing to do"));
     if (failed) { deps.log("upstream-sync is broken: " + failed); return 1; }
     return 0;

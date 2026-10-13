@@ -89,3 +89,22 @@ test("the issue says what actually happened to the mechanical edits", () => {
     /Mechanical — not pushed: the open bot PR has commits from someone other than the bot/);
   assert.match(body(R({ auto }), S()), /Mechanical — not applied in this run/);
 });
+
+test("a refused PR still updates the issue, marked pending, saying why", () => {
+  const a = plan(R({ auto, write: wrote }), S({ issue: { number: 7, open: true, hash: "old" } }), Object.assign({ prRefused: true }, O));
+  assert.deepEqual(types(a), ["issue.update", "issue.comment"]);
+  assert.match(a[0].body, /<!-- findings-hash: h1 pr-pending -->/);
+  assert.match(a[0].body, /could not be opened/);
+});
+
+test("a pending issue retries the PR on the next run without commenting again", () => {
+  assert.deepEqual(types(plan(R({ auto, write: wrote }), S({ issue: { number: 7, open: true, hash: "h1", pending: true } }), O)),
+    ["branch.push", "pr.create", "issue.update"]);
+});
+
+test("the pending marker still yields the hash", () => {
+  const { pendingFromBody } = require("../lib/publish");
+  assert.equal(hashFromBody("<!-- findings-hash: 0123456789abcdef pr-pending -->"), "0123456789abcdef");
+  assert.equal(pendingFromBody("<!-- findings-hash: 0123456789abcdef pr-pending -->"), true);
+  assert.equal(pendingFromBody("<!-- findings-hash: 0123456789abcdef -->"), false);
+});

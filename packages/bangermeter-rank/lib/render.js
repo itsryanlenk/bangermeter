@@ -86,6 +86,8 @@ function section(L, title, items) {
 const MECHANICAL = {
   pushed: "Mechanical — applied in the draft PR on `bot/upstream-sync`",
   held: "Mechanical — not pushed: the open bot PR has commits from someone other than the bot",
+  refused: "Mechanical — the draft PR could not be opened: GitHub refused it. Enable Settings → Actions → General → " +
+    "\"Allow GitHub Actions to create and approve pull requests\"; the next run retries",
   none: "Mechanical — not applied in this run"
 };
 
@@ -93,7 +95,7 @@ const issueTitle = () => "Upstream drift: xai-org/x-algorithm moved something Ba
 
 function issueBody(report, opts) {
   const o = opts || {};
-  const L = ["<!-- findings-hash: " + report.hash + " -->"];
+  const L = ["<!-- findings-hash: " + report.hash + (o.pending ? " pr-pending" : "") + " -->"];
   if (o.owner) L.push("cc @" + o.owner);
   const h = report.upstreamHead;
   L.push("", "`xai-org/x-algorithm` at `" + short(h.sha) + "` (published " + day(h.date, true) + "). param.rs stamp `" +
