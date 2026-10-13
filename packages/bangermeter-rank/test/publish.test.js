@@ -77,3 +77,15 @@ test("hashFromBody reads the marker", () => {
   assert.equal(hashFromBody("<!-- findings-hash: 0123456789abcdef -->\ncc"), "0123456789abcdef");
   assert.equal(hashFromBody("edited by hand"), null);
 });
+
+test("a leftover bot branch with someone's commits but no open PR is reset, not a reason to go quiet", () => {
+  assert.deepEqual(types(plan(R({ auto, write: wrote }), S({ foreignCommits: true }), O)), ["branch.push", "pr.create", "issue.create"]);
+});
+
+test("the issue says what actually happened to the mechanical edits", () => {
+  const body = (report, state) => plan(report, state, O).find(a => a.type.startsWith("issue.")).body;
+  assert.match(body(R({ auto, write: wrote }), S()), /Mechanical — applied in the draft PR on `bot\/upstream-sync`/);
+  assert.match(body(R({ auto, write: wrote }), S({ issue: { number: 7, open: true, hash: "old" }, pr: { number: 9 }, foreignCommits: true })),
+    /Mechanical — not pushed: the open bot PR has commits from someone other than the bot/);
+  assert.match(body(R({ auto }), S()), /Mechanical — not applied in this run/);
+});
