@@ -138,6 +138,9 @@ test("buildReport: a cited path missing at its baseline is a badcitation, not si
     const rep = drift.buildReport({ clone: r.dir, config: cfg });
     assert.equal(rep.needsYou[0].kind, "badcitation");
     assert.match(rep.needsYou[0].message, /phoenix\/reference\/world\.py/);
+    // dwellMark cites no commit of its own; the message must not claim it does.
+    assert.match(rep.needsYou[0].message, /weights\.js's pinned sync/);
+    assert.doesNotMatch(rep.needsYou[0].message, /cites,/);
     assert.equal(rep.stampBump, true, "a bad citation does not block the stamp");
   } finally { r.cleanup(); }
 });
