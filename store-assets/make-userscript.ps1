@@ -32,7 +32,10 @@ function Read-Src($name) {
     return (Get-Content (Join-Path $ext $name) -Raw -Encoding UTF8)
 }
 
-$css = Read-Src "styles.css"
+# The CSS is JSON-encoded, so its line endings become literal \r\n or \n escapes
+# inside the string. Normalize to LF so a Windows (CRLF checkout) build and the
+# Linux CI build produce the same bytes.
+$css = (Read-Src "styles.css") -replace "`r`n", "`n"
 $cssJson = ConvertTo-Json -InputObject "$css"
 
 $header = @"
