@@ -21,27 +21,33 @@ function plan(report, state, opts) {
   const o = opts || {};
   const issue = state.issue;
   const actions = [];
+  // Someone else's commits only protect a branch with an open PR. Left over
+  // after a merge or a close, they would otherwise stop the bot for good.
+  const foreign = !!state.pr && state.foreignCommits;
   if (!count(report)) {
     if (issue && issue.open) actions.push({ type: "issue.close", number: issue.number, body: render.closingComment(report) });
-    if (state.pr && !state.foreignCommits) actions.push({ type: "pr.close", number: state.pr.number, body: render.prClosingComment(report) });
+    if (state.pr && !foreign) actions.push({ type: "pr.close", number: state.pr.number, body: render.prClosingComment(report) });
     return actions;
   }
   const fresh = !issue || issue.hash !== report.hash;
+  let mechanical = "none"; // what the issue may say happened: "pushed", "held" or "none"
   if (fresh && !report.fatal.length) {
     const edits = report.auto.length && report.write && report.write.changed.length;
-    if (edits && state.foreignCommits) {
-      if (state.pr) actions.push({ type: "pr.comment", number: state.pr.number, body: render.prForeignComment(report) });
+    if (edits && foreign) {
+      mechanical = "held";
+      actions.push({ type: "pr.comment", number: state.pr.number, body: render.prForeignComment(report) });
     } else if (edits) {
+      mechanical = "pushed";
       actions.push({ type: "branch.push", branch: BRANCH, message: render.commitMessage(report) });
       const body = render.prBody(report, o);
       actions.push(state.pr ? { type: "pr.update", number: state.pr.number, body }
         : { type: "pr.create", branch: BRANCH, title: render.prTitle(report), body });
-    } else if (state.pr && !state.foreignCommits) {
+    } else if (state.pr && !foreign) {
       actions.push({ type: "pr.close", number: state.pr.number, body: render.prClosingComment(report) });
     }
   }
   if (fresh) {
-    const body = render.issueBody(report, o);
+    const body = render.issueBody(report, Object.assign({}, o, { mechanical }));
     if (issue && issue.open) {
       actions.push({ type: "issue.update", number: issue.number, body });
       actions.push({ type: "issue.comment", number: issue.number, body: render.issueComment(report, o) });
