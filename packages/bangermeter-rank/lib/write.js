@@ -18,7 +18,10 @@ const F = {
 };
 const WRITABLE = [F.weights, F.testHtml, F.userscript, F.fxParam, F.fxVm, ...F.stampTests];
 const FIXTURE_FOR = { paramRs: F.fxParam, vmParams: F.fxVm };
-const PROSE = ["README.md", "RESEARCH.md", "store-assets/store-description.txt", "packages/bangermeter-rank/README.md", F.weights];
+// Read for stale figures, never written. The UI files carry figures in user-facing strings ("▼ Reply ×0.75").
+const PROSE = ["README.md", "RESEARCH.md", "store-assets/store-description.txt", "packages/bangermeter-rank/README.md", F.weights,
+  "extension/content.js", "extension/popup.html", "extension/popup.js"];
+const GENERIC = new Set(["rust", "home", "mixer", "weight", "factor"]);
 const SUMS = ["positive", "negative", "total"];
 
 const NUM = "-?\\d[\\d_]*(?:\\.\\d+)?(?:[eE][-+]?\\d+)?";
@@ -86,14 +89,30 @@ function figureRe(fig) {
   return new RegExp("(?<![\\d.])(?:" + [...variants].map(esc).join("|") + ")(?!\\d)");
 }
 
-// Lines in prose that quote a figure this write made stale. Weight values
-// count only on a line that also names the head; sums and the ceiling are
-// distinctive enough to count anywhere. Over-reporting is the safe direction.
-function findStale(get, root, report, before, after, ceilingMoved) {
-  const needles = report.auto.map(f => ({
-    figure: String(f.repo), re: figureRe(String(f.repo)),
-    names: [f.param, f.label, f.path.length > 1 ? f.path[f.path.length - 2] : f.path[0]].filter(Boolean).map(s => s.toLowerCase())
-  }));
+// Words prose uses for a non-head param: its own name's tokens ("oon",
+// "topic", "decay"), "out-of-network" for an OON factor, and the words of
+// its weights.js label.
+function aliases(f, config) {
+  const words = f.param.split("_").filter(w => w.length >= 3 && !GENERIC.has(w));
+  if (words.includes("oon")) words.push("out-of-network", "out of network");
+  const obj = f.path.slice(0, -1).reduce((o, k) => (o ? o[k] : undefined), config);
+  if (obj && typeof obj.label === "string") words.push(...obj.label.toLowerCase().split(/[^a-z-]+/).filter(w => w.length >= 4));
+  return words;
+}
+
+// Lines in prose that quote a figure this write made stale. A head's value
+// counts only on a line that also names the head. A non-head figure counts
+// with any of its aliases, or written as a multiplier (×0.75). Sums and the
+// ceiling are distinctive enough to count anywhere. Over-reporting is the
+// safe direction.
+function findStale(get, root, report, before, after, ceilingMoved, config) {
+  const needles = report.auto.map(f => {
+    const re = figureRe(String(f.repo));
+    if (f.path[0] === "heads") {
+      return { figure: String(f.repo), re, names: [f.param, f.label, f.path[1]].filter(Boolean).map(s => s.toLowerCase()) };
+    }
+    return { figure: String(f.repo), re, names: aliases(f, config), multRe: new RegExp("×\\s*" + re.source) };
+  });
   for (const k of SUMS) if (before[k] !== after[k]) needles.push({ figure: String(before[k]), re: figureRe(String(before[k])), names: null });
   if (ceilingMoved) needles.push({ figure: before.ceiling, re: figureRe(before.ceiling), names: null });
   const out = [];
@@ -101,7 +120,8 @@ function findStale(get, root, report, before, after, ceilingMoved) {
     if (!fs.existsSync(path.join(root, rel))) continue;
     get(rel).split(/\r?\n/).forEach((line, i) => {
       const lower = line.toLowerCase();
-      const hit = needles.find(n => n.re.test(line) && (!n.names || n.names.some(x => lower.includes(x))));
+      const hit = needles.find(n => n.re.test(line) &&
+        (!n.names || n.names.some(x => lower.includes(x)) || (n.multRe && n.multRe.test(line))));
       if (hit) out.push({ file: rel, line: i + 1, figure: hit.figure, text: line.trim().slice(0, 160) });
     });
   }
@@ -117,7 +137,8 @@ function applyAuto({ root, report }) {
   // An unchanged value keeps its literal exactly (the fixtures write 10_000).
   const num = v => old => (Number(old.replace(/_/g, "")) === v ? old : formatLike(old, v));
 
-  const before = sums(loadConfig(get(F.weights)));
+  const original = loadConfig(get(F.weights));
+  const before = sums(original);
   for (const f of report.auto) {
     set(F.weights, replaceOnce(get(F.weights), weightsSite(f.path), num(f.live), F.weights + " " + f.path.join(".")));
     if (f.path[0] === "heads") {
@@ -150,7 +171,7 @@ function applyAuto({ root, report }) {
     set(F.fxParam, replaceOnce(get(F.fxParam), /(last sync )(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ)/g, () => stamp.to, F.fxParam + " stamp"));
     for (const rel of F.stampTests) set(rel, get(rel).split(stamp.from).join(stamp.to));
   }
-  const staleLines = findStale(get, root, report, before, after, ceilingMoved);
+  const staleLines = findStale(get, root, report, before, after, ceilingMoved, original);
   const changed = [];
   for (const [rel, text] of files) {
     if (text !== disk(rel)) { fs.writeFileSync(path.join(root, rel), text, "utf8"); changed.push(rel); }
