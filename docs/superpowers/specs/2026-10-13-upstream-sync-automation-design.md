@@ -86,7 +86,7 @@ Every finding lands in one bucket.
 | Bucket | Finding kinds (from `check()`) | Effect |
 |---|---|---|
 | **auto** | `value`, where every upstream file that declares the param agrees on the new value | `--write` applies it |
-| **needs-you** | `disagree`; `added`; `removed`; a head declared in only one of the two files | Listed in the issue, never written |
+| **needs-you** | `disagree`; `added`; `removed`; a head declared in only one of the two files; `badcitation`, a cited path missing at its own baseline, which would otherwise go unwatched without anyone noticing | Listed in the issue, never written |
 | **review** | A cited file touched since its baseline | Listed in the issue with commits and dates |
 | **fatal** | `unparseable`; `duplicate`; `nostamp`; baseline stamp not in history | Run goes red |
 
@@ -147,7 +147,8 @@ Writes (each edit site must match exactly once, or the run is fatal):
 | `extension/weights.js` | The literal at the param's key path (`heads.<name>.weight`, `rescorers.outOfNetwork.factor`, `sourcedFacts.minVideoDurationMs.value`, and the rest of `expected()`'s mapping) |
 | `extension/test.html` | The head's entry in the `PARAM_RS` table, and the `positive_sum`/`negative_sum`/`total_sum` assertions, recomputed by loading the edited weights.js in a fresh `vm` context |
 | `packages/bangermeter-rank/test/fixtures/{param,vm-params}.rs` | The `param!(…)` value literal; declarations can span several lines (`param!(\n    ProfileClickWeight, …`), so the site is located with the same regex `sync.parse()` uses |
-| `extension/weights.js` + both fixtures | `paramRsLastSync` and the fixtures' stamp line, **only if** no weight-file finding remains in needs-you |
+| `extension/test.html` | When the negative-branch ceiling moves: the expected figure in the "note quotes the current ceiling" check. Without this the check stays green while the note is stale. With it, the check goes red until a human edits the note |
+| `extension/weights.js`, `test.html`, the `param.rs` fixture, `test/{sync,modes,report}.test.js` | `paramRsLastSync`, the `C.paramRsLastSync ===` check, the fixture's stamp line, and the stamp pinned in those three package tests, **only if** no weight-file finding remains in needs-you. Comments and `weightsSnapshot` keep the old stamp |
 | `extension/bangermeter.user.js` | Rebuilt by `make-userscript.ps1` under `pwsh`, not by the writer |
 
 Properties:
@@ -169,8 +170,16 @@ When sums or the ceiling move, the draft PR is **red on purpose**:
 `test.html:326` asserts that the panel note quotes the current ceiling, and only
 a human edits that note. The PR body says so at the top.
 
-Allowlist guard: after writing and rebuilding, `git diff --name-only` must be a
-subset of the five files above; otherwise the run is fatal.
+Allowlist guard: after writing and rebuilding, the changed files must be a
+subset of these eight; otherwise the run is fatal:
+- `extension/weights.js`
+- `extension/test.html`
+- `extension/bangermeter.user.js`
+- the two fixtures
+- `packages/bangermeter-rank/test/{sync,modes,report}.test.js`
+
+An unchanged value keeps its literal exactly as written, so the fixtures'
+`10_000` survives a rewrite.
 
 ## Publishing
 
@@ -183,15 +192,24 @@ A thin executor in `bin/` runs the actions through `gh`.
 - **Findings hash**: sha256 of canonical JSON of the sorted findings, with no
   timestamps or run IDs. Stored in the issue body as
   `<!-- findings-hash: … -->`.
-- **Issue**: one open issue labeled `upstream-drift`. Body = current findings.
-  A new comment, @mentioning the repo owner, is posted only when the hash
-  changes; this makes the alert reach Ryan even if he watches the repo as
-  "Participating". Closed with a comment once there are zero findings.
-- **PR**: created as a draft from `bot/upstream-sync` only when auto is
-  non-empty. Updated (force-push and body) on later runs. If the branch carries
-  foreign commits, the bot does not push; it comments the new findings on the
-  PR instead. If auto becomes empty while the PR is open and the branch has no
-  foreign commits, the PR is closed with a comment.
+- **Issue**: the most recent issue labeled `upstream-drift`, open or closed.
+  Its body holds the current findings and cc's the repo owner.
+  - **Same hash:** nothing happens, even if the issue is closed. Closing it
+    means Ryan dismissed those exact findings.
+  - **New hash, issue open:** update the body and post one comment that
+    @mentions the owner. This reaches Ryan even if he watches the repo as
+    "Participating".
+  - **New hash, issue closed:** open a new issue.
+  - **Zero findings:** close the open issue with a comment.
+- **PR**: PR actions happen only when the findings hash changes, so nothing
+  is force-pushed daily.
+  - A draft PR is created from `bot/upstream-sync` only when the write
+    produced edits. Later runs update it (force-push and body).
+  - If the branch carries foreign commits, the bot does not push; it comments
+    the new findings on the PR instead.
+  - If auto becomes empty and the branch has only bot commits, the PR is
+    closed with a comment.
+  - Fatal findings never touch the PR.
 - Gate results run inside the job are written into the PR body, because
   PRs opened with `GITHUB_TOKEN` do not trigger `pull_request` workflows.
 
@@ -202,17 +220,24 @@ sync [--param-rs FILE --vm-params FILE] [--history CLONE] [--report OUT.json] [-
 ```
 
 - No new flags: behavior unchanged (exit 1 on drift).
-- `--history CLONE`: read both files from the clone's HEAD, and enable dates,
-  baseline and the cited-file watch. Without it, dates read "unknown".
-- `--report OUT.json`: exit 0 when drift is found and reported, 1 on fatal,
-  2 on usage error.
-- `--write`: requires `--history`; applies auto only.
+- `--history CLONE [--head REF]`: read both files from the clone at `REF`
+  (default HEAD), and enable dates, the baseline and the cited-file watch.
+  In this mode drift is *reported*: exit 0 when drift is found, 1 only on
+  fatal, 2 on a usage error.
+- `--report OUT.json`: write the findings.
+- `--write [--root DIR]`: requires `--history` and `--report`, and applies
+  auto only.
 
-New modules in `packages/bangermeter-rank/lib/`: `upstream.js` (git walk:
-`findBaseline`, `paramTimeline`, `touchedSince`), `drift.js` (classify, date,
-hash, render issue and PR markdown), `write.js`, `publish.js`. `sync.js` gains a
-key path on each `expected()` entry. They ship with the package, but `--write`
-and publishing refuse outside the repo, as `gate` already assumes the repo.
+New modules in `packages/bangermeter-rank/lib/`:
+- `upstream.js`: the git walk (`findBaseline`, `arrival`, `commitsTouching`, `existsAt`)
+- `drift.js`: classify, date, cite-watch, hash
+- `render.js`: issue, comment and PR markdown
+- `write.js`
+- `publish.js`: the pure planner
+
+The executor is `bin/upstream-publish.js`. `sync.js` gains a key path on each
+`expected()` entry. The modules ship with the package, but `--write` refuses
+outside the repo, matching `gate`, which already assumes the repo.
 
 ## Workflow
 
