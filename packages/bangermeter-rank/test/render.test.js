@@ -70,3 +70,9 @@ test("prBody flags red-on-purpose only when the ceiling moved, and reports gates
   const calm = render.prBody(Object.assign({}, report, { write: Object.assign({}, write, { ceilingMoved: false }) }), {});
   assert.doesNotMatch(calm, /Red on purpose/);
 });
+
+test("prBody warns up front that tests pinning a published value are expected to fail", () => {
+  const md = render.prBody(Object.assign({}, base, { auto: [auto], write: { changed: ["extension/weights.js"], staleLines: [], sums: null, sumsMoved: false, ceilingMoved: false, stamp: null } }), {});
+  assert.match(md, /pin a published value/);
+  assert.match(md, /expected to fail until you confirm the new values/);
+});

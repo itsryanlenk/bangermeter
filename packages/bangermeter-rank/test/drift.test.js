@@ -8,29 +8,32 @@ const { makeRepo, fixture, setStamp, setValue } = require("./git-fixture");
 
 const P = upstream.FILES.paramRs, V = upstream.FILES.vmParams;
 const FAV = "rust_home_mixer_favorite_weight";
+// Likes as the fixtures hold it today, and a value they do not: a fixed 0.6
+// would stop being a move the day upstream (and the bot) land Likes 0.6.
+const OLD = require("..").sync.parse(fixture("param.rs")).params[FAV], NEW = +(OLD + 0.1).toFixed(10);
 const paramRs = fixture("param.rs"), vmParams = fixture("vm-params.rs");
 const newHead = (text, value) => text + '\nparam!(ReactWithVideoWeight, f64, "rust_home_mixer_react_with_video_weight", ' + value + ");\n";
 const cls = files => drift.classify(sync.check(files));
 
 test("both files agreeing on a new value is auto", () => {
-  const r = cls({ paramRs: setValue(paramRs, FAV, "0.6"), vmParams: setValue(vmParams, FAV, "0.6") });
+  const r = cls({ paramRs: setValue(paramRs, FAV, String(NEW)), vmParams: setValue(vmParams, FAV, String(NEW)) });
   assert.equal(r.needsYou.length, 0);
   assert.equal(r.auto.length, 1);
   const f = r.auto[0];
   assert.equal(f.param, FAV);
   assert.equal(f.label, "Likes");
-  assert.equal(f.repo, 0.5);
-  assert.equal(f.live, 0.6);
+  assert.equal(f.repo, OLD);
+  assert.equal(f.live, NEW);
   assert.deepEqual(f.path, ["heads", "favorite", "weight"]);
   assert.deepEqual(f.files, ["paramRs", "vmParams"]);
 });
 
 test("files that disagree are needs-you, score-moving, and never auto", () => {
-  const r = cls({ paramRs: setValue(paramRs, FAV, "0.6"), vmParams });
+  const r = cls({ paramRs: setValue(paramRs, FAV, String(NEW)), vmParams });
   assert.equal(r.auto.length, 0);
   assert.equal(r.needsYou[0].kind, "disagree");
   assert.equal(r.needsYou[0].severity, "score-moving");
-  assert.deepEqual(r.needsYou[0].live, { paramRs: 0.6, vmParams: 0.5 });
+  assert.deepEqual(r.needsYou[0].live, { paramRs: NEW, vmParams: OLD });
 });
 
 test("a new head at weight 0 is inert; at a real weight it is score-moving", () => {
@@ -99,7 +102,7 @@ const cfg = Object.assign({}, C, {
 test("buildReport dates a disagreement and lists a touched cited file", () => {
   const r = makeRepo([
     { date: "2026-09-30T03:53:42Z", files: { [P]: paramRs, [V]: vmParams, "phoenix/reference/world.py": "DWELL = 10\n" } },
-    { date: "2026-10-13T08:05:54Z", files: { [P]: setValue(setStamp(paramRs, "2026-10-12T16:00:33Z"), FAV, "0.6"), "phoenix/reference/world.py": "DWELL = 12\n" } }
+    { date: "2026-10-13T08:05:54Z", files: { [P]: setValue(setStamp(paramRs, "2026-10-12T16:00:33Z"), FAV, String(NEW)), "phoenix/reference/world.py": "DWELL = 12\n" } }
   ]);
   try {
     const rep = drift.buildReport({ clone: r.dir, config: cfg });
@@ -119,7 +122,7 @@ test("buildReport dates a disagreement and lists a touched cited file", () => {
 test("buildReport: agreeing files are auto, dated in both files, and allow the stamp bump", () => {
   const r = makeRepo([
     { date: "2026-09-30T03:53:42Z", files: { [P]: paramRs, [V]: vmParams, "phoenix/reference/world.py": "x\n" } },
-    { date: "2026-10-13T08:05:54Z", files: { [P]: setValue(setStamp(paramRs, "2026-10-12T16:00:33Z"), FAV, "0.6"), [V]: setValue(vmParams, FAV, "0.6") } }
+    { date: "2026-10-13T08:05:54Z", files: { [P]: setValue(setStamp(paramRs, "2026-10-12T16:00:33Z"), FAV, String(NEW)), [V]: setValue(vmParams, FAV, String(NEW)) } }
   ]);
   try {
     const rep = drift.buildReport({ clone: r.dir, config: cfg });

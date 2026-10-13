@@ -73,13 +73,15 @@ const upstream = require("../lib/upstream");
 const { makeRepo, fixture, setStamp, setValue } = require("./git-fixture");
 const { makeRoot } = require("./repo-fixture");
 const FAVP = "rust_home_mixer_favorite_weight";
+// A value fixtures and weights.js do not hold today, so the move stays a move.
+const FAV_NEW = +(require("../lib/sync").parse(fixture("param.rs")).params[FAVP] + 0.1).toFixed(10);
 const upstreamWith = (paramRsText, vmText) => makeRepo([
   { date: "2026-09-30T03:53:42Z", files: { [upstream.FILES.paramRs]: fixture("param.rs"), [upstream.FILES.vmParams]: fixture("vm-params.rs") } },
   { date: "2026-10-13T08:05:54Z", files: { [upstream.FILES.paramRs]: setStamp(paramRsText, "2026-10-12T16:00:33Z"), [upstream.FILES.vmParams]: vmText } }
 ]);
 
 test("sync --history --report: drift is reported with exit 0, not a failure", () => {
-  const up = upstreamWith(setValue(fixture("param.rs"), FAVP, "0.6"), fixture("vm-params.rs"));
+  const up = upstreamWith(setValue(fixture("param.rs"), FAVP, String(FAV_NEW)), fixture("vm-params.rs"));
   const out = path.join(dir, "drift.json");
   try {
     const r = run("sync", "--history", up.dir, "--report", out);
@@ -92,7 +94,7 @@ test("sync --history --report: drift is reported with exit 0, not a failure", ()
 });
 
 test("sync --write applies auto findings under --root and records them in the report", () => {
-  const up = upstreamWith(setValue(fixture("param.rs"), FAVP, "0.6"), setValue(fixture("vm-params.rs"), FAVP, "0.6"));
+  const up = upstreamWith(setValue(fixture("param.rs"), FAVP, String(FAV_NEW)), setValue(fixture("vm-params.rs"), FAVP, String(FAV_NEW)));
   const root = makeRoot();
   const out = path.join(dir, "drift-w.json");
   try {
@@ -100,7 +102,7 @@ test("sync --write applies auto findings under --root and records them in the re
     assert.equal(r.status, 0, r.stderr);
     const rep = JSON.parse(fs.readFileSync(out, "utf8"));
     assert.ok(rep.write.changed.includes("extension/weights.js"));
-    assert.match(root.read("extension/weights.js"), /favorite: \{ weight: 0\.6/);
+    assert.ok(root.read("extension/weights.js").includes("favorite: { weight: " + FAV_NEW));
   } finally { up.cleanup(); root.cleanup(); }
 });
 
