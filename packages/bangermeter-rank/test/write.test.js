@@ -144,3 +144,19 @@ test("refuses to run outside the repo; the allowlist is exact", () => {
   assert.throws(() => write.applyAuto({ root: require("os").tmpdir(), report: report([]) }), /inside the Bangermeter repo/);
   assert.deepEqual(write.outsideAllowlist(["extension/weights.js", "README.md", "extension\\test.html"]), ["README.md"]);
 });
+
+test("stale lines for a non-head figure: matched by ×, the label's words or the param's own tokens, UI files included", () => {
+  const root = makeRoot();
+  try {
+    const oon = C.rescorers.outOfNetwork.factor, fig = String(oon);
+    root.write("README.md", ["Reply drafts take the ×" + fig + " in-network reply factor.", "Is the OON factor really " + fig + "?",
+      "Out-of-network ×" + fig + " | supported", "An unrelated " + fig + " here."].join("\n") + "\n");
+    root.write("extension/content.js", 'chip = el("span", "bangermeter-down", "▼ Reply ×' + fig + '");\n');
+    const f = Object.assign(finding("rust_home_mixer_oon_weight_factor", round(oon + 0.05)), { label: exp.rust_home_mixer_oon_weight_factor.what });
+    const r = write.applyAuto({ root: root.dir, report: report([f]) });
+    const at = file => r.staleLines.filter(s => s.file === file).map(s => s.line);
+    assert.deepEqual(at("README.md"), [1, 2, 3], "the unrelated line 4 is not listed");
+    assert.deepEqual(at("extension/content.js"), [1]);
+    assert.ok(r.staleLines.some(s => s.file === "extension/weights.js" && s.text.includes("×" + fig)), "the weights.js label quotes it too");
+  } finally { root.cleanup(); }
+});
