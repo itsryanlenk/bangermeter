@@ -18,5 +18,6 @@ module.exports = {
   drift: require("./drift"),
   render: require("./render"),
   write: require("./write"),
+  publish: require("./publish"),
   config: engine.C
 };
