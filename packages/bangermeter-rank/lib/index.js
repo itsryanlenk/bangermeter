@@ -14,5 +14,9 @@ module.exports = {
   gates: require("./gates"),
   sync: require("./sync"),
   report: require("./report"),
+  upstream: require("./upstream"),
+  drift: require("./drift"),
+  render: require("./render"),
+  write: require("./write"),
   config: engine.C
 };

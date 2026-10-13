@@ -12,14 +12,16 @@ const USAGE = `bangermeter-rank — ranking modes, score cards, weight sync, and
                            [--winners N] [--losers N] [--json]
   report <posts.jsonl|.json> --out report.html [--account @handle] [--pdf report.pdf]
   sync [--param-rs FILE --vm-params FILE] [--json]
+  sync --history CLONE [--head REF] [--report OUT.json] [--write [--root DIR]] [--json]
   gate [--root DIR]
 
 Default mode is audit: like rate inside matched view bands, posts ≥48h old.
 C is a checklist, not a forecast. E is retrospective and unused under 2,000 views.
-Exit codes: 0 ok · 1 drift / gate failure · 2 usage or I/O error.`;
+Exit codes: 0 ok · 1 drift / gate failure · 2 usage or I/O error.
+With --history, drift is reported (exit 0); 1 means the check itself is broken.`;
 
 // Flags that never take a value, so `rank --json FILE` reads FILE as the file.
-const BOOLEAN = new Set(["json", "help"]);
+const BOOLEAN = new Set(["json", "help", "write"]);
 
 function args(argv) {
   const out = { _: [] };
@@ -113,6 +115,36 @@ function findBrowser() {
   return c.find(p => p && fs.existsSync(p)) || null;
 }
 
+function syncHistory(a) {
+  if (typeof a.history !== "string") die("--report and --write need --history CLONE (a clone of xai-org/x-algorithm)");
+  if (a["param-rs"] || a["vm-params"]) die("--history reads both files from the clone; drop --param-rs/--vm-params");
+  if (a.write && typeof a.report !== "string") die("--write needs --report OUT.json, so the job can publish what it wrote");
+  let report;
+  try { report = bmr.drift.buildReport({ clone: path.resolve(a.history), head: a.head }); }
+  catch (e) { die("sync: " + e.message); }
+  if (a.write && report.auto.length && !report.fatal.length) {
+    const root = path.resolve(a.root || path.join(__dirname, "..", "..", ".."));
+    try { report.write = bmr.write.applyAuto({ root, report }); }
+    catch (e) { report.fatal.push({ kind: "write", file: null, message: e.message }); }
+    report.hash = bmr.drift.hash(report);
+  }
+  if (typeof a.report === "string") fs.writeFileSync(a.report, JSON.stringify(report, null, 2) + "\n");
+  if (a.json) console.log(JSON.stringify(report, null, 2)); else printDrift(report);
+  return report.fatal.length ? 1 : 0;
+}
+
+function printDrift(r) {
+  const plain = s => s.replace(/\*\*|`/g, "");
+  console.log("upstream " + r.upstreamHead.sha.slice(0, 7) + " (" + r.upstreamHead.date + ") · stamp " + r.liveStamp +
+    " · weights.js pins " + r.pinnedStamp + (r.baseline ? " (" + r.baseline.sha.slice(0, 7) + ")" : ""));
+  r.fatal.forEach(f => console.error("FATAL      " + f.message));
+  r.needsYou.forEach(f => console.log("NEEDS YOU  [" + f.severity + "] " + plain(bmr.render.needsYouLine(f))));
+  r.auto.forEach(f => console.log("AUTO       " + plain(bmr.render.datedLine(f))));
+  r.review.forEach(x => console.log("RE-VERIFY  " + plain(bmr.render.reviewLine(x))));
+  if (r.write) console.log("wrote " + (r.write.changed.join(", ") || "nothing"));
+  if (!r.fatal.length && !r.needsYou.length && !r.auto.length && !r.review.length) console.log("upstream sync ok: nothing moved");
+}
+
 async function main() {
   const a = args(process.argv.slice(2));
   const cmd = a._[0];
@@ -147,6 +179,7 @@ async function main() {
   }
 
   if (cmd === "sync") {
+    if (a.history || a.report || a.write) return syncHistory(a);
     let files;
     if (a["param-rs"] || a["vm-params"]) {
       if (!a["param-rs"] || !a["vm-params"]) die("pass both --param-rs and --vm-params, or neither to fetch live");
