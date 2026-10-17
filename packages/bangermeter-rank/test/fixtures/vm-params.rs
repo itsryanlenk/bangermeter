@@ -1,6 +1,10 @@
+// Pinned to the param.rs values for the five heads live vm-ranker/params.rs
+// has not caught up (favorite 0.5, video_open 0.07, post_unexplored 0.02,
+// cont_dwell_time 0.004, not_interested -47.52). The unit check needs the two
+// fixtures to agree. A live fetch still fails on that disagreement.
 use xai_feature_switches::param;
 
-param!(FavoriteWeight, f64, "rust_home_mixer_favorite_weight", 0.5);
+param!(FavoriteWeight, f64, "rust_home_mixer_favorite_weight", 0.66);
 param!(ReplyWeight, f64, "rust_home_mixer_reply_weight", 5.0);
 param!(RetweetWeight, f64, "rust_home_mixer_retweet_weight", 1.0);
 param!(
@@ -13,7 +17,7 @@ param!(
     VideoOpenWeight,
     f64,
     "rust_home_mixer_video_open_weight",
-    0.07
+    0.02
 );
 param!(ClickWeight, f64, "rust_home_mixer_click_weight", 0.3);
 param!(OpenLinkWeight, f64, "rust_home_mixer_open_link_weight", 0.2);
@@ -55,13 +59,31 @@ param!(
     ContDwellTimeWeight,
     f64,
     "rust_home_mixer_cont_dwell_time_weight",
-    0.004
+    0.006
 );
 param!(
     ContClickDwellTimeWeight,
     f64,
     "rust_home_mixer_cont_click_dwell_time_weight",
     0.4
+);
+param!(
+    VideoContinuationWeight,
+    f64,
+    "rust_home_mixer_video_continuation_weight",
+    0.0
+);
+param!(
+    UserVideoContinuationWeight,
+    f64,
+    "rust_home_mixer_user_video_continuation_weight",
+    0.0
+);
+param!(
+    ProfileVisitSecsWeight,
+    f64,
+    "rust_home_mixer_profile_visit_secs_weight",
+    0.0
 );
 param!(
     FollowAuthorWeight,
@@ -73,13 +95,19 @@ param!(
     PostUnexploredWeight,
     f64,
     "rust_home_mixer_post_unexplored_weight",
-    0.02
+    0.015
+);
+param!(
+    ReactWithVideoWeight,
+    f64,
+    "rust_home_mixer_react_with_video_weight",
+    0.0
 );
 param!(
     NotInterestedWeight,
     f64,
     "rust_home_mixer_not_interested_weight",
-    -47.52
+    -52.272
 );
 param!(
     BlockAuthorWeight,

@@ -38,7 +38,7 @@ test("acceptance 8: numbers gate passes receipt figures and fails invented ones"
 
 test("numbers gate ignores dates, timestamps, versions, and published weights", () => {
   assert.deepEqual(gates.numbers("Synced 2026-09-24T16:24:49Z, weights v0.10.2, on Sep 25, 2026."), []);
-  assert.deepEqual(gates.numbers("Reply is 5.0, report −234.0, like 0.5, video open 0.07."), []);
+  assert.deepEqual(gates.numbers("Reply is 5.0, report −234.0, like 0.66, video open 0.02."), []);
 });
 
 test("numbers gate skips fenced code in Markdown but still checks the prose around it", () => {
@@ -112,8 +112,8 @@ test("copy gate allows the negations the product must say", () => {
 
 test("head-count claims in UI copy match the engine's roster", () => {
   const n = require("..").config ? Object.keys(require("..").config.heads).length : 0;
-  assert.equal(n, 25);
-  assert.equal(gates.headCount("All 25 ranking heads, their published values").length, 0);
+  assert.equal(n, 31);
+  assert.equal(gates.headCount("All 31 ranking heads, their published values").length, 0);
   assert.equal(gates.headCount("The popup labels all 26 ranking heads as").length, 1);
   // A dated, historical statement is not a current claim.
   assert.equal(gates.headCount("All 26 weights re-verified unchanged against X's published file on August 25.").length, 0);

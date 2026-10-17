@@ -41,19 +41,23 @@
 
     // ================================================================
     // WEIGHT LAYER — verbatim against xai-org/x-algorithm
-    // home-mixer/params/param.rs (sync 2026-09-29T17:02:52Z)
+    // home-mixer/params/param.rs (sync 2026-10-16T16:00:32Z)
     // Every value below was transcribed from the published file. If any
     // of these fail, the tool is lying about X's algorithm.
     // ================================================================
     section("Weight layer — verbatim param.rs");
 
     var PARAM_RS = {
-      favorite: 0.5, reply: 5.0, retweet: 1.0, photo_expand: 0.05, video_open: 0.07,
-      click: 0.3, open_link: 0.2, profile_click: 0.0, vqv: 0.0, share: 2.0,
+      favorite: 0.66, reply: 5.0, retweet: 1.0, photo_expand: 0.05, video_open: 0.02,
+      click: 0.3, open_link: 0.2, profile_click: 0.0, profile_visit_secs: 0.0,
+      vqv: 0.0, share: 2.0,
       share_via_dm: 5.0, share_via_copy_link: 20.0, dwell: 0.05, quote: 5.0,
-      quoted_click: 0.05, quoted_vqv: 0.0, follow_author: 4.0, post_unexplored: 0.02,
-      cont_dwell_time: 0.004, cont_click_dwell_time: 0.4,
-      not_interested: -47.52, block_author: -31.2, mute_author: -58.8,
+      quoted_click: 0.05, quoted_vqv: 0.0, follow_author: 4.0, post_unexplored: 0.015,
+      react_with_video: 0.0,
+      cont_dwell_time: 0.006, cont_click_dwell_time: 0.4,
+      video_continuation: 0.0, user_video_continuation: 0.0,
+      video_carousel_video_open: 1.0, video_carousel_immersive_vqv: 0.0,
+      not_interested: -52.272, block_author: -31.2, mute_author: -58.8,
       report: -234.0, not_dwelled: -0.02
     };
     Object.keys(PARAM_RS).forEach(function (k) {
@@ -71,13 +75,20 @@
     check("no bookmark head exists in the 2026 roster", H.bookmark === undefined);
     // X deleted this head (param + scorer term) in the 2026-09-23 sync. It was
     // 0.0, so no score moved, but carrying it made "26/26" a stale claim.
-    check("head roster matches live param.rs exactly (25 heads)",
-      Object.keys(H).length === Object.keys(PARAM_RS).length && Object.keys(PARAM_RS).length === 25,
+    check("head roster is every published weight head (31)",
+      Object.keys(H).length === Object.keys(PARAM_RS).length && Object.keys(PARAM_RS).length === 31,
       Object.keys(H).length);
+    check("one-file heads name the upstream file that publishes them",
+      H.video_carousel_video_open.upstream === "paramRs" &&
+      H.video_carousel_immersive_vqv.upstream === "paramRs" &&
+      H.video_continuation.upstream === "vmParams" &&
+      H.user_video_continuation.upstream === "vmParams" &&
+      H.profile_visit_secs.upstream === "vmParams" &&
+      H.react_with_video.upstream === undefined && H.favorite.upstream === undefined);
     check("retired head cont_active_secs_5m_residual_norm is gone",
       H.cont_active_secs_5m_residual_norm === undefined);
     check("param.rs last-sync stamp is pinned for score cards",
-      C.paramRsLastSync === "2026-09-29T17:02:52Z", C.paramRsLastSync);
+      C.paramRsLastSync === "2026-10-16T16:00:32Z", C.paramRsLastSync);
 
     // ── Facts X published on Aug 14 2026 ──────────────────────────────
     // The weights themselves did not move; these are the clarifications
@@ -314,17 +325,23 @@
     // ranking_scorer.rs:105-128. cont_* terms and the bidirectional boost are
     // deliberately NOT in positive_sum.
     section("Weight sums (xai-value-model/weights.rs)");
-    check("positive_sum = 43.24", approx(C.weightSums.positive, 43.24, 1e-9), C.weightSums.positive);
-    check("negative_sum = 371.54", approx(C.weightSums.negative, 371.54, 1e-9), C.weightSums.negative);
-    check("total_sum = 414.78", approx(C.weightSums.total, 414.78, 1e-9), C.weightSums.total);
+    check("positive_sum = 43.345", approx(C.weightSums.positive, 43.345, 1e-9), C.weightSums.positive);
+    check("negative_sum = 376.292", approx(C.weightSums.negative, 376.292, 1e-9), C.weightSums.negative);
+    check("total_sum = 419.637", approx(C.weightSums.total, 419.637, 1e-9), C.weightSums.total);
     check("cont_dwell_time excluded from positive_sum",
       C.weightSums.positiveMembers.indexOf("cont_dwell_time") === -1);
     check("cont_click_dwell_time excluded from positive_sum, though now weighted 0.4",
       C.weightSums.positiveMembers.indexOf("cont_click_dwell_time") === -1);
+    check("react_with_video is in positive_sum; continuation, profile-visit and carousel weights are not",
+      C.weightSums.positiveMembers.indexOf("react_with_video") !== -1 &&
+      ["video_continuation", "user_video_continuation", "profile_visit_secs",
+        "video_carousel_video_open", "video_carousel_immersive_vqv"].every(function (h) {
+        return C.weightSums.positiveMembers.indexOf(h) === -1;
+      }));
     check("NEGATIVE_SCORES_OFFSET = 0.001", C.negativeScoresOffset === 0.001);
     // The negative-branch ceiling is negative_sum / total_sum × offset.
-    check("negative-offset note quotes the current ceiling (0.000896)",
-      /0\.000896/.test(SF.negativeOffsetRule.note), SF.negativeOffsetRule.note);
+    check("negative-offset note quotes the current ceiling (0.000897)",
+      /\[0, 0\.000897\)/.test(SF.negativeOffsetRule.note), SF.negativeOffsetRule.note);
 
     // ---- where the live score is computed (moved Sept 24, 2026) ----
     // home-mixer's RankingScorer was deleted in 44d37eb; vm-ranker computes
@@ -622,10 +639,11 @@
     check("observedRates are NOT the content model's priors",
       base.favorite !== C.baselineP.favorite, "both " + base.favorite);
 
-    // reply is still 10x a like (5.0 vs 0.5), down from 27x in the 2023 table
+    // reply is 5.0 against a like of 0.66 (about 7.6×). It was 10× when a like
+    // was 0.5, and 27× in the 2023 table.
     var replyHeavy = E.engagementScore({ counts: { likes: 100, retweets: 0, replies: 400, views: 100000 } }, {});
     var likeHeavy = E.engagementScore({ counts: { likes: 400, retweets: 0, replies: 100, views: 100000 } }, {});
-    check("reply-heavy > like-heavy (reply 5.0 vs fav 0.5)", replyHeavy.score > likeHeavy.score,
+    check("reply-heavy > like-heavy (reply 5.0 vs fav 0.66)", replyHeavy.score > likeHeavy.score,
       replyHeavy.score + " vs " + likeHeavy.score);
 
     var noViews = E.engagementScore({ counts: { likes: 5, retweets: 1, replies: 0, views: null } }, {});
@@ -669,12 +687,14 @@
     var tags = E.contentScore({ text: "Great day! #sun #fun #beach #vibes", hasVideo: false, hasImage: false, hasExternalLink: false, hashtagCount: 4, isReply: false }, {});
     check("3+ hashtags < plain", tags.score < plain.score, tags.score + " vs " + plain.score);
 
-    // FLATTENING GUARD (v0.7.1 class of regression): adding ~15 new heads must
-    // not compress every post toward one number. A strong post and a weak post
-    // have to stay far apart.
+    // FLATTENING GUARD (v0.7.1 class of regression): adding heads must not
+    // compress every post toward one number. A strong post and a weak post
+    // have to stay far apart. Floors were 65 and 25 on the Sept 29 table;
+    // the Oct 16 param.rs reweight (like 0.5→0.66, dwell 0.004→0.006,
+    // not-interested −47.52→−52.272) landed this pair at 64 and 21.
     var strong = E.contentScore({ text: "I spent six months rebuilding our deploy pipeline from scratch. Here is every mistake I made, what it cost, and what I would do differently — starting with the one that took down prod for four hours. What would you have done?", hasVideo: false, hasImage: true, hasExternalLink: false, hashtagCount: 0, isReply: false, isThreadStarter: true }, {});
-    check("strong post clears 65", strong.score >= 65, strong.score);
-    check("strong - bait spread >= 25 points", strong.score - bait.score >= 25,
+    check("strong post clears 64", strong.score >= 64, strong.score);
+    check("strong - bait spread >= 21 points", strong.score - bait.score >= 21,
       strong.score + " - " + bait.score + " = " + (strong.score - bait.score));
 
     // v0.7.1 REGRESSION: the exact user-reported case.

@@ -45,16 +45,25 @@ function parse(src) {
 }
 
 // What the engine claims, keyed by feature-switch name, with the upstream
-// file(s) that must declare it. As of the 2026-09-24 sync every head, both
-// mutual-follow boosts and the video-duration gate are in BOTH files; the
-// OON factors and author diversity are only in vm-ranker/params.rs.
+// file(s) that must declare it. Heads default to BOTH files. A head X publishes
+// in only one file sets `upstream` to "paramRs" or "vmParams" — same idea as
+// the OON factors, which live only in vm-ranker/params.rs. A copy that also
+// shows up in the other file is still compared, so a disagreement is not ignored.
 const BOTH = ["paramRs", "vmParams"];
 const VM = ["vmParams"];
+const PARAM = ["paramRs"];
+const SOURCE_KEYS = ["paramRs", "vmParams"];
+
+function filesFor(h) {
+  if (h.upstream === "vmParams") return VM;
+  if (h.upstream === "paramRs") return PARAM;
+  return BOTH;
+}
 
 function expected() {
   const out = {};
   const put = (param, value, what, files) => { out[param] = { value, what, files }; };
-  for (const [name, h] of Object.entries(C.heads)) put(h.param, h.weight, "head " + name, BOTH);
+  for (const [name, h] of Object.entries(C.heads)) put(h.param, h.weight, "head " + name, filesFor(h));
   const r = C.rescorers;
   put(r.outOfNetwork.param, r.outOfNetwork.factor, "rescorer outOfNetwork", VM);
   put(r.topicOutOfNetwork.param, r.topicOutOfNetwork.factor, "rescorer topicOutOfNetwork", VM);
@@ -100,12 +109,14 @@ function check(files) {
   for (const [param, e] of Object.entries(exp)) {
     if (isHeadParam(param) && e.files === BOTH) headsChecked++;
     const seen = [];
-    for (const key of e.files) {
+    for (const key of SOURCE_KEYS) {
       const p = parsed[key];
       if (!p || !Object.keys(p.params).some(isHeadParam)) continue; // already reported unparseable
       if (!(param in p.params)) {
-        add({ kind: "removed", file: key, param, repo: e.value,
-          message: key + ": " + param + " (" + e.what + ") is missing — X deleted or moved it" });
+        if (e.files.indexOf(key) !== -1) {
+          add({ kind: "removed", file: key, param, repo: e.value,
+            message: key + ": " + param + " (" + e.what + ") is missing — X deleted or moved it" });
+        }
         continue;
       }
       seen.push([key, p.params[param]]);
