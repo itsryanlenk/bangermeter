@@ -11,36 +11,37 @@ const vmParams = fx("vm-params.rs");
 
 test("parse reads the last-sync stamp and numeric defaults (including 10_000 literals)", () => {
   const p = sync.parse(paramRs);
-  assert.equal(p.lastSync, "2026-09-29T17:02:52Z");
-  assert.equal(p.params.rust_home_mixer_favorite_weight, 0.5);
+  assert.equal(p.lastSync, "2026-10-16T16:00:32Z");
+  assert.equal(p.params.rust_home_mixer_favorite_weight, 0.66);
   assert.equal(p.params.rust_home_mixer_report_weight, -234.0);
   assert.equal(p.params.rust_home_mixer_min_video_duration_ms, 10000);
 });
 
-// Acceptance 6 — weights match the live table (VideoOpen 0.07, Vqv 0.0, Dwell 0.05).
-test("acceptance 6: repo weights match the pinned live table", () => {
+test("acceptance: pinned fixtures match the repo", () => {
   const r = sync.check({ paramRs, vmParams });
   assert.equal(r.ok, true, JSON.stringify(r.problems, null, 1));
-  assert.equal(r.headsChecked, 25);
-  assert.equal(r.live.rust_home_mixer_video_open_weight, 0.07);
+  // 26 heads are declared in both files. The other five are published in only one.
+  assert.equal(r.headsChecked, 26);
+  assert.equal(r.live.rust_home_mixer_favorite_weight, 0.66);
+  assert.equal(r.live.rust_home_mixer_video_open_weight, 0.02);
+  assert.equal(r.live.rust_home_mixer_post_unexplored_weight, 0.015);
+  assert.equal(r.live.rust_home_mixer_cont_dwell_time_weight, 0.006);
+  assert.equal(r.live.rust_home_mixer_not_interested_weight, -52.272);
   assert.equal(r.live.rust_home_mixer_vqv_weight, 0.0);
   assert.equal(r.live.rust_home_mixer_dwell_weight, 0.05);
-  // The Sept 28 sync (published Sept 29, a707cc2) moved three heads.
   assert.equal(r.live.rust_home_mixer_click_weight, 0.3);
   assert.equal(r.live.rust_home_mixer_cont_click_dwell_time_weight, 0.4);
-  assert.equal(r.live.rust_home_mixer_not_interested_weight, -47.52);
-  assert.equal(r.lastSync, "2026-09-29T17:02:52Z");
+  assert.equal(r.lastSync, "2026-10-16T16:00:32Z");
   assert.equal(r.stampMatchesPin, true);
 });
 
 test("drift on a critical head fails loudly and names it critical", () => {
-  const bad = paramRs.replace('"rust_home_mixer_favorite_weight", 0.5', '"rust_home_mixer_favorite_weight", 0.6');
-  const r = sync.check({ paramRs: bad, vmParams: vmParams.replace('"rust_home_mixer_favorite_weight", 0.5', '"rust_home_mixer_favorite_weight", 0.6') });
+  const tweak = s => s.replace('"rust_home_mixer_favorite_weight", 0.66', '"rust_home_mixer_favorite_weight", 0.6');
+  const r = sync.check({ paramRs: tweak(paramRs), vmParams: tweak(vmParams) });
   assert.equal(r.ok, false);
-  const p = r.problems.find(x => x.param === "rust_home_mixer_favorite_weight");
-  assert.equal(p.kind, "value");
+  const p = r.problems.find(x => x.param === "rust_home_mixer_favorite_weight" && x.kind === "value");
   assert.equal(p.critical, true);
-  assert.equal(p.repo, 0.5);
+  assert.equal(p.repo, 0.66);
   assert.equal(p.live, 0.6);
 });
 
@@ -71,10 +72,27 @@ test("the two upstream files disagreeing is drift", () => {
 });
 
 test("an advanced stamp with unchanged values passes but is reported", () => {
-  const r = sync.check({ paramRs: paramRs.replace("2026-09-29T17:02:52Z", "2026-10-05T00:00:00Z"), vmParams });
-  assert.equal(r.ok, true);
+  const r = sync.check({ paramRs: paramRs.replace("2026-10-16T16:00:32Z", "2026-10-17T00:00:00Z"), vmParams });
+  assert.equal(r.ok, true, JSON.stringify(r.problems, null, 1));
   assert.equal(r.stampMatchesPin, false);
-  assert.equal(r.lastSync, "2026-10-05T00:00:00Z");
+  assert.equal(r.lastSync, "2026-10-17T00:00:00Z");
+});
+
+test("a head X publishes in only one file is required there and not in the other", () => {
+  const r = sync.check({ paramRs, vmParams });
+  assert.equal(r.ok, true, JSON.stringify(r.problems, null, 1));
+  const stripped = vmParams.replace(/param!\(\s*VideoContinuationWeight[^;]*;/, "");
+  const gone = sync.check({ paramRs, vmParams: stripped });
+  assert.ok(gone.problems.some(p => p.kind === "removed" && p.file === "vmParams" && p.param === "rust_home_mixer_video_continuation_weight"));
+  assert.ok(!gone.problems.some(p => p.kind === "removed" && p.file === "paramRs" && p.param === "rust_home_mixer_video_continuation_weight"));
+});
+
+test("a one-file head copied into the other file at a different value is still a disagreement", () => {
+  const extra = paramRs + '\nparam!(VideoContinuationWeight, f64, "rust_home_mixer_video_continuation_weight", 2.0);\n';
+  const r = sync.check({ paramRs: extra, vmParams });
+  assert.equal(r.ok, false);
+  assert.ok(r.problems.some(p => p.kind === "disagree" && p.param === "rust_home_mixer_video_continuation_weight"));
+  assert.ok(r.problems.some(p => p.kind === "value" && p.file === "paramRs" && p.live === 2));
 });
 
 test("an unparseable file is an error, not a pass", () => {

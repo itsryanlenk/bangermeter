@@ -498,12 +498,18 @@
 
   // Reply weight is viewer-dependent: 5.0 normally, 20.0 on an original post from
   // an author the viewer mutually follows (BidirectionalFollowReplyWeightBoost).
+  function likesEquiv(weight) {
+    var n = weight / BANGERMETER_CONFIG.heads.favorite.weight;
+    var rounded = Math.round(n * 100) / 100;
+    return Math.abs(rounded - Math.round(rounded)) < 1e-9 ? String(Math.round(rounded)) : rounded.toFixed(2);
+  }
+
   function replyWorthText() {
     var w = BangermeterEngine.replyWeightFor({
       isMutualFollow: settings.assumeMutualFollow === true,
       isReply: false, isRepost: false
     });
-    var likes = w / BANGERMETER_CONFIG.heads.favorite.weight;
+    var likes = likesEquiv(w);
     return settings.assumeMutualFollow
       ? "each worth " + likes + " likes (mutual-follow boost on)"
       : "each worth " + likes + " likes";
@@ -730,13 +736,14 @@
           worth: replyWorthText(),
           tip: BANGERMETER_CONFIG.heads.reply.note },
         { icon: "repost", n: counts.retweets, one: "repost", many: "reposts",
-          worth: "each worth 2 likes",
-          tip: "Weight 1.0 vs 0.5 for a like (param.rs, Aug 2026). A ratio of coefficients on " +
+          worth: "each worth " + likesEquiv(BANGERMETER_CONFIG.heads.retweet.weight) + " likes",
+          tip: "Weight " + BANGERMETER_CONFIG.heads.retweet.weight + " vs " +
+            BANGERMETER_CONFIG.heads.favorite.weight + " for a like (param.rs). A ratio of coefficients on " +
             "same-denominator rates — meaningful inside this score, and only here. X warns that " +
             "weight ratios are NOT count equivalences in general; see the fine print below." },
         { icon: "like", n: counts.likes, one: "like", many: "likes",
           worth: "the baseline unit",
-          tip: "Weight 0.5 (param.rs, Aug 2026)" },
+          tip: "Weight " + BANGERMETER_CONFIG.heads.favorite.weight + " (param.rs)" },
         { icon: "bookmark", n: counts.bookmarks, one: "bookmark", many: "bookmarks",
           worth: "not a scored action — X publishes no bookmark weight",
           tip: BANGERMETER_CONFIG.unweightedSignals.bookmark.note }

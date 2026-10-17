@@ -1,7 +1,7 @@
-// mirrored from config feature-switch defaults; last sync 2026-09-29T17:02:52Z
+// mirrored from config feature-switch defaults; last sync 2026-10-16T16:00:32Z
 use xai_feature_switches::param;
 
-param!(FavoriteWeight, f64, "rust_home_mixer_favorite_weight", 0.5);
+param!(FavoriteWeight, f64, "rust_home_mixer_favorite_weight", 0.66);
 param!(ReplyWeight, f64, "rust_home_mixer_reply_weight", 5.0);
 param!(
     BidirectionalFollowReplyWeightBoost,
@@ -26,7 +26,7 @@ param!(
     VideoOpenWeight,
     f64,
     "rust_home_mixer_video_open_weight",
-    0.07
+    0.02
 );
 param!(ClickWeight, f64, "rust_home_mixer_click_weight", 0.3);
 param!(OpenLinkWeight, f64, "rust_home_mixer_open_link_weight", 0.2);
@@ -74,13 +74,19 @@ param!(
     PostUnexploredWeight,
     f64,
     "rust_home_mixer_post_unexplored_weight",
-    0.02
+    0.015
+);
+param!(
+    ReactWithVideoWeight,
+    f64,
+    "rust_home_mixer_react_with_video_weight",
+    0.0
 );
 param!(
     ContDwellTimeWeight,
     f64,
     "rust_home_mixer_cont_dwell_time_weight",
-    0.004
+    0.006
 );
 param!(
     ContClickDwellTimeWeight,
@@ -92,7 +98,7 @@ param!(
     NotInterestedWeight,
     f64,
     "rust_home_mixer_not_interested_weight",
-    -47.52
+    -52.272
 );
 param!(
     BlockAuthorWeight,
@@ -130,4 +136,16 @@ param!(
     bool,
     "rust_home_mixer_use_engagement_counter_view_count_for_impression_boost",
     true
+);
+param!(
+    VideoCarouselVideoOpenWeight,
+    f64,
+    "rust_home_mixer_video_carousel_video_open_weight",
+    1.0
+);
+param!(
+    VideoCarouselImmersiveVqvWeight,
+    f64,
+    "rust_home_mixer_video_carousel_immersive_vqv_weight",
+    0.0
 );
