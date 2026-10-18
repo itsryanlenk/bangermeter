@@ -12,7 +12,7 @@ const FAV = "rust_home_mixer_favorite_weight";
 // would stop being a move the day upstream (and the bot) land Likes 0.6.
 const OLD = require("..").sync.parse(fixture("param.rs")).params[FAV], NEW = +(OLD + 0.1).toFixed(10);
 const paramRs = fixture("param.rs"), vmParams = fixture("vm-params.rs");
-const newHead = (text, value) => text + '\nparam!(ReactWithVideoWeight, f64, "rust_home_mixer_react_with_video_weight", ' + value + ");\n";
+const newHead = (text, value) => text + '\nparam!(TestOnlyNewWeight, f64, "rust_home_mixer_test_only_new_weight",' + value + ");\n";
 const cls = files => drift.classify(sync.check(files));
 
 test("both files agreeing on a new value is auto", () => {

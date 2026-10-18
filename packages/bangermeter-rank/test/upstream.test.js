@@ -11,7 +11,7 @@ const FAV = "rust_home_mixer_favorite_weight", OON = "rust_home_mixer_oon_weight
 // Likes as the fixtures hold it today, and a value they do not: a fixed 0.6
 // would stop being a move the day upstream (and the bot) land Likes 0.6.
 const OLD = require("../lib/sync").parse(fixture("param.rs")).params[FAV], NEW = +(OLD + 0.1).toFixed(10);
-const B = "2026-09-29T17:02:52Z";                       // the fixtures' stamp
+const B = require("../lib/sync").parse(fixture("param.rs")).lastSync; // the fixtures' stamp, whatever it is today
 const paramRs = fixture("param.rs"), vmParams = fixture("vm-params.rs");
 const CLONE = path.join(__dirname, "..", "..", "..", "repo", "x-algorithm");
 
@@ -31,7 +31,7 @@ test("findBaseline returns the commit that introduced the pinned stamp", () => {
 
 test("findBaseline throws, naming the stamp, when upstream never published it", () => {
   const r = makeRepo([{ date: "2026-09-30T03:53:42Z", files: { [P]: setStamp(paramRs, "2026-09-25T16:24:28Z"), [V]: vmParams } }]);
-  try { assert.throws(() => upstream.findBaseline(r.dir, B), /2026-09-29T17:02:52Z/); }
+  try { assert.throws(() => upstream.findBaseline(r.dir, B), err => err.message.includes(B)); }
   finally { r.cleanup(); }
 });
 
