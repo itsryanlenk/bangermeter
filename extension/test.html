@@ -45,7 +45,7 @@
     // Every value below was transcribed from the published file. If any
     // of these fail, the tool is lying about X's algorithm.
     // ================================================================
-    section("Weight layer — verbatim param.rs");
+    section("Weight layer — published values (param.rs, or vm-ranker/params.rs for vm-only heads)");
 
     var PARAM_RS = {
       favorite: 0.66, reply: 5.0, retweet: 1.0, photo_expand: 0.05, video_open: 0.02,
@@ -56,7 +56,6 @@
       react_with_video: 0.0,
       cont_dwell_time: 0.006, cont_click_dwell_time: 0.4,
       video_continuation: 0.0, user_video_continuation: 0.0,
-      video_carousel_video_open: 1.0, video_carousel_immersive_vqv: 0.0,
       not_interested: -52.272, block_author: -31.2, mute_author: -58.8,
       report: -234.0, not_dwelled: -0.02
     };
@@ -75,12 +74,13 @@
     check("no bookmark head exists in the 2026 roster", H.bookmark === undefined);
     // X deleted this head (param + scorer term) in the 2026-09-23 sync. It was
     // 0.0, so no score moved, but carrying it made "26/26" a stale claim.
-    check("head roster is every published weight head (31)",
-      Object.keys(H).length === Object.keys(PARAM_RS).length && Object.keys(PARAM_RS).length === 31,
+    check("head roster is every published weight head (29, as xai-value-model's weights_mut lists)",
+      Object.keys(H).length === Object.keys(PARAM_RS).length && Object.keys(PARAM_RS).length === 29,
       Object.keys(H).length);
     check("one-file heads name the upstream file that publishes them",
-      H.video_carousel_video_open.upstream === "paramRs" &&
-      H.video_carousel_immersive_vqv.upstream === "paramRs" &&
+      C.carouselWeights.video_carousel_video_open.upstream === "paramRs" &&
+      C.carouselWeights.video_carousel_immersive_vqv.upstream === "paramRs" &&
+      !H.video_carousel_video_open && C.carouselWeights.video_carousel_video_open.weight === 1.0 &&
       H.video_continuation.upstream === "vmParams" &&
       H.user_video_continuation.upstream === "vmParams" &&
       H.profile_visit_secs.upstream === "vmParams" &&
@@ -332,10 +332,9 @@
       C.weightSums.positiveMembers.indexOf("cont_dwell_time") === -1);
     check("cont_click_dwell_time excluded from positive_sum, though now weighted 0.4",
       C.weightSums.positiveMembers.indexOf("cont_click_dwell_time") === -1);
-    check("react_with_video is in positive_sum; continuation, profile-visit and carousel weights are not",
+    check("react_with_video is in positive_sum; continuation and profile-visit heads are not",
       C.weightSums.positiveMembers.indexOf("react_with_video") !== -1 &&
-      ["video_continuation", "user_video_continuation", "profile_visit_secs",
-        "video_carousel_video_open", "video_carousel_immersive_vqv"].every(function (h) {
+      ["video_continuation", "user_video_continuation", "profile_visit_secs"].every(function (h) {
         return C.weightSums.positiveMembers.indexOf(h) === -1;
       }));
     check("NEGATIVE_SCORES_OFFSET = 0.001", C.negativeScoresOffset === 0.001);

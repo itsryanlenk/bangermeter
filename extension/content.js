@@ -738,12 +738,12 @@
         { icon: "repost", n: counts.retweets, one: "repost", many: "reposts",
           worth: "each worth " + likesEquiv(BANGERMETER_CONFIG.heads.retweet.weight) + " likes",
           tip: "Weight " + BANGERMETER_CONFIG.heads.retweet.weight + " vs " +
-            BANGERMETER_CONFIG.heads.favorite.weight + " for a like (param.rs). A ratio of coefficients on " +
+            BANGERMETER_CONFIG.heads.favorite.weight + " for a like (param.rs, " + BANGERMETER_CONFIG.paramRsLastSync.slice(0, 10) + " sync). A ratio of coefficients on " +
             "same-denominator rates — meaningful inside this score, and only here. X warns that " +
             "weight ratios are NOT count equivalences in general; see the fine print below." },
         { icon: "like", n: counts.likes, one: "like", many: "likes",
           worth: "the baseline unit",
-          tip: "Weight " + BANGERMETER_CONFIG.heads.favorite.weight + " (param.rs)" },
+          tip: "Weight " + BANGERMETER_CONFIG.heads.favorite.weight + " (param.rs, " + BANGERMETER_CONFIG.paramRsLastSync.slice(0, 10) + " sync)" },
         { icon: "bookmark", n: counts.bookmarks, one: "bookmark", many: "bookmarks",
           worth: "not a scored action — X publishes no bookmark weight",
           tip: BANGERMETER_CONFIG.unweightedSignals.bookmark.note }

@@ -112,8 +112,8 @@ test("copy gate allows the negations the product must say", () => {
 
 test("head-count claims in UI copy match the engine's roster", () => {
   const n = require("..").config ? Object.keys(require("..").config.heads).length : 0;
-  assert.equal(n, 31);
-  assert.equal(gates.headCount("All 31 ranking heads, their published values").length, 0);
+  assert.equal(n, 29);
+  assert.equal(gates.headCount("All 29 ranking heads, their published values").length, 0);
   assert.equal(gates.headCount("The popup labels all 26 ranking heads as").length, 1);
   // A dated, historical statement is not a current claim.
   assert.equal(gates.headCount("All 26 weights re-verified unchanged against X's published file on August 25.").length, 0);
