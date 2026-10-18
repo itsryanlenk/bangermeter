@@ -442,7 +442,8 @@ var BANGERMETER_CONFIG = {
     // ── "Under the Hood" transparency pilot (announced Aug 13, 2026) ──────
     underTheHood: {
       provenance: "2026-published",
-      source: "under-the-hood/ (underTheHoodLabels.strato, under_the_hood.thrift, uth_serving.thrift)",
+      sources: ["under-the-hood/strato/lib/underTheHoodLabels.strato", "under-the-hood/strato/graphql/under_the_hood.thrift",
+        "under-the-hood/thrift/uth_serving.thrift"],
       // The upstream README moved the link to /i/jf/ on Sept 25, 2026 (bf7db1b).
       path: "x.com/i/jf/under_the_hood",
       // The two published eligibility checks, verbatim from
