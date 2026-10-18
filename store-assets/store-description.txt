@@ -83,6 +83,19 @@ MIT licensed, with the full research record and 362 automated tests that check e
 github.com/itsryanlenk/bangermeter
 
 
+WHAT'S NEW IN 0.10.4
+
+• Five weights changed in X's config between its 6 and 13 October syncs, and this release catches up. Likes went from 0.5 to 0.66 in two steps: 0.6 in the 12 October sync (published 13 October), then 0.66 in the 13 October sync (published 14 October). Video open fell from 0.07 to 0.02 and dwell time rose from 0.004 to 0.006 per second in the 12 October sync (published 13 October). Post-unexplored fell from 0.02 to 0.015 in the 6 October sync (published 7 October). And "not interested" got another 10% harsher, −47.52 to −52.272, in the 13 October sync (published 14 October).
+
+• The coefficients moved relative to each other. The reply coefficient is now about 7.6 times the like coefficient, down from 10, and about 30 times on an original post from a mutual, where X adds 15 to the reply weight (down from 40). The repost coefficient is about 1.5 times the like coefficient, down from 2. These multiply X's predicted chance of each action, not counts, so as X's own code comment warns, they do not mean a reply is worth 7.6 likes.
+
+• Which numbers this follows, and why. X publishes its weights in two files, and on 16 October they disagree on those five: home-mixer/params/param.rs has the new values, and vm-ranker/params.rs, the scorer's own file, still lists the old ones. The scorer polls the same live config file that param.rs is copied from, and both files use the same setting names, so the extension follows param.rs. How the scorer handles a setting missing from that config lives in a library X has not published. Three of the four new heads below, and the post-unexplored switch, appear only in vm-ranker/params.rs, so the extension takes those from there. X does not publish its per-user experiments or overrides, so no outside tool can see those.
+
+• Four new heads, all at 0, so no score moves: video continuation, user video continuation and profile visit time (5 October sync, published 6 October), and react with video (12 October sync, published 13 October). Two video-carousel weights also appeared in the 14 October sync (published 15 October). They order the video carousel, not For You, and the carousel is off by default as of the 16 October sync, so the extension does not score them or list them.
+
+• Smaller corrections. Post-unexplored is in-network by default, but since the 5 October sync (published 6 October) a switch can extend it out of network (it ships off); the breakdown used to call it hard-wired. And the net-negative ceiling is now 0.000897, from 0.000896, as of the 13 October sync (published 14 October).
+
+
 WHAT'S NEW IN 0.10.3
 
 • Three weights changed, published by X on 29 September from its 28 September config sync. A click on a post now carries 0.3, down from 0.4. Clicking in and staying past X's click-dwell mark now carries 0.4, up from nothing. And "not interested" got 10% harsher, −43.2 to −47.52, the first negative weight X has moved since publishing the table. The extension cannot see clicks, so it estimates the click-dwell term, and threads get credit for it.
