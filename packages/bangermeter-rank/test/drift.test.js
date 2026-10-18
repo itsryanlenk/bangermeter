@@ -28,12 +28,12 @@ test("both files agreeing on a new value is auto", () => {
   assert.deepEqual(f.files, ["paramRs", "vmParams"]);
 });
 
-test("files that disagree are needs-you, score-moving, and never auto", () => {
+test("param.rs moving ahead of vm-ranker is auto, at the param.rs value", () => {
   const r = cls({ paramRs: setValue(paramRs, FAV, String(NEW)), vmParams });
-  assert.equal(r.auto.length, 0);
-  assert.equal(r.needsYou[0].kind, "disagree");
-  assert.equal(r.needsYou[0].severity, "score-moving");
-  assert.deepEqual(r.needsYou[0].live, { paramRs: NEW, vmParams: OLD });
+  assert.equal(r.needsYou.length, 0);
+  assert.equal(r.auto.length, 1);
+  assert.equal(r.auto[0].live, NEW);
+  assert.equal(r.auto[0].repo, OLD);
 });
 
 test("a new head at weight 0 is inert; at a real weight it is score-moving", () => {
@@ -99,7 +99,7 @@ const cfg = Object.assign({}, C, {
   sourcedFacts: { dwellMark: { source: "phoenix/reference/world.py" } }
 });
 
-test("buildReport dates a disagreement and lists a touched cited file", () => {
+test("buildReport applies param.rs over a lagging vm-ranker, notes the lag, and lists a touched cited file", () => {
   const r = makeRepo([
     { date: "2026-09-30T03:53:42Z", files: { [P]: paramRs, [V]: vmParams, "phoenix/reference/world.py": "DWELL = 10\n" } },
     { date: "2026-10-13T08:05:54Z", files: { [P]: setValue(setStamp(paramRs, "2026-10-12T16:00:33Z"), FAV, String(NEW)), "phoenix/reference/world.py": "DWELL = 12\n" } }
@@ -109,12 +109,13 @@ test("buildReport dates a disagreement and lists a touched cited file", () => {
     assert.deepEqual(rep.fatal, []);
     assert.equal(rep.liveStamp, "2026-10-12T16:00:33Z");
     assert.equal(rep.baseline.sha, r.sha("HEAD~1"));
-    const d = rep.needsYou.find(f => f.param === FAV);
-    assert.equal(d.kind, "disagree");
+    const d = rep.auto.find(f => f.param === FAV);
+    assert.equal(d.live, NEW);
     assert.equal(d.arrivals.paramRs.date, "2026-10-13T08:05:54Z");
-    assert.equal(d.arrivals.vmParams, undefined);
+    assert.equal(d.arrivals.vmParams, undefined, "vm-ranker never moved");
+    assert.deepEqual(rep.lagging.find(l => l.param === FAV).values, { paramRs: NEW, vmParams: OLD });
     assert.deepEqual(rep.review.map(x => [x.path, x.commits.length]), [["phoenix/reference/world.py", 1]]);
-    assert.equal(rep.stampBump, false, "a weight finding is still open");
+    assert.equal(rep.stampHold, "unverified-citations", "world.py is cited from the pinned sync");
     assert.match(rep.hash, /^[0-9a-f]{16}$/);
   } finally { r.cleanup(); }
 });

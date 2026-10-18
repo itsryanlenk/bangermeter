@@ -65,10 +65,10 @@ test("a head removed upstream, or a new head added, is drift", () => {
   assert.ok(r2.problems.some(p => p.kind === "added" && p.param === "rust_home_mixer_new_thing_weight"));
 });
 
-test("the two upstream files disagreeing is drift", () => {
+test("param.rs wins when the files disagree: vm-ranker lagging is a note, not drift", () => {
   const r = sync.check({ paramRs, vmParams: vmParams.replace('"rust_home_mixer_reply_weight", 5.0', '"rust_home_mixer_reply_weight", 6.0') });
-  assert.equal(r.ok, false);
-  assert.ok(r.problems.some(p => p.kind === "disagree" && p.param === "rust_home_mixer_reply_weight"));
+  assert.equal(r.ok, true, JSON.stringify(r.problems, null, 1));
+  assert.deepEqual(r.lagging.find(l => l.param === "rust_home_mixer_reply_weight").values, { paramRs: 5, vmParams: 6 });
 });
 
 test("an advanced stamp with unchanged values passes but is reported", () => {
@@ -87,12 +87,13 @@ test("a head X publishes in only one file is required there and not in the other
   assert.ok(!gone.problems.some(p => p.kind === "removed" && p.file === "paramRs" && p.param === "rust_home_mixer_video_continuation_weight"));
 });
 
-test("a one-file head copied into the other file at a different value is still a disagreement", () => {
+test("a vm-only head that param.rs starts declaring follows param.rs", () => {
   const extra = paramRs + '\nparam!(VideoContinuationWeight, f64, "rust_home_mixer_video_continuation_weight", 2.0);\n';
   const r = sync.check({ paramRs: extra, vmParams });
   assert.equal(r.ok, false);
-  assert.ok(r.problems.some(p => p.kind === "disagree" && p.param === "rust_home_mixer_video_continuation_weight"));
-  assert.ok(r.problems.some(p => p.kind === "value" && p.file === "paramRs" && p.live === 2));
+  const v = r.problems.filter(p => p.param === "rust_home_mixer_video_continuation_weight");
+  assert.deepEqual(v.map(p => [p.kind, p.file, p.live]), [["value", "paramRs", 2]]);
+  assert.ok(r.lagging.some(l => l.param === "rust_home_mixer_video_continuation_weight"));
 });
 
 test("an unparseable file is an error, not a pass", () => {
@@ -163,14 +164,12 @@ test("expected() carries a weights.js key path that resolves to the value it che
   }
 });
 
-test("a disagreement carries both upstream values, the repo value and the key path", () => {
+test("param.rs moving ahead of vm-ranker is one value problem against param.rs, plus a lag note", () => {
   // Derived from the fixture, so the move stays a move after a real Likes change lands.
   const old = sync.parse(paramRs).params.rust_home_mixer_favorite_weight, moved = +(old + 0.1).toFixed(10);
   const r = sync.check({ paramRs: paramRs.replace(/("rust_home_mixer_favorite_weight",\s*)[\d.]+/, "$1" + moved), vmParams });
-  const d = r.problems.find(p => p.kind === "disagree" && p.param === "rust_home_mixer_favorite_weight");
-  assert.deepEqual(d.values, { paramRs: moved, vmParams: old });
-  assert.equal(d.repo, old);
-  assert.deepEqual(d.path, ["heads", "favorite", "weight"]);
-  const v = r.problems.find(p => p.kind === "value" && p.param === "rust_home_mixer_favorite_weight");
-  assert.deepEqual(v.path, ["heads", "favorite", "weight"]);
+  const fav = r.problems.filter(p => p.param === "rust_home_mixer_favorite_weight");
+  assert.deepEqual(fav.map(p => [p.kind, p.file, p.repo, p.live]), [["value", "paramRs", old, moved]]);
+  assert.deepEqual(fav[0].path, ["heads", "favorite", "weight"]);
+  assert.deepEqual(r.lagging.find(l => l.param === "rust_home_mixer_favorite_weight").values, { paramRs: moved, vmParams: old });
 });
