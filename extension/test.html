@@ -152,9 +152,10 @@
       /not published/i.test(SF.replyQualityGate.note));
     check("reply rubric marked withheld — inputs listed, no invented direction",
       SF.replyQualityGate.rubricWithheld === true && SF.replyQualityGate.signals.length === 8);
-    check("Under the Hood: aggregates only, 18 post + 12 account labels",
+    check("Under the Hood: aggregates only, 19 post + 12 account labels (BRAZIL_ELECTION_LEGAL added Oct 2, 2026)",
       SF.underTheHood.aggregatesOnly === true &&
-      SF.underTheHood.postLabelAllowlist.length === 18 &&
+      SF.underTheHood.postLabelAllowlist.length === 19 &&
+      SF.underTheHood.postLabelAllowlist.indexOf("BRAZIL_ELECTION_LEGAL") === 8 &&
       SF.underTheHood.accountLabelAllowlist.length === 12);
     // Upstream README moved the link to /i/jf/ on Sept 25 (bf7db1b), the same
     // push that published a page rendering the report.
@@ -165,16 +166,16 @@
     check("July 13 'mutuals' announcement mapped to the EXISTING boost, still 15.0",
       /July 13/.test(H.reply.note) && C.bidirectionalFollowReplyBoost === 15.0);
 
-    // ── The "Visibility limited" notice (verified against 77d431a, 2026-09-30) ──
+    // ── The "Visibility limited" notice (first verified at 77d431a, 2026-09-30; re-verified at 862a123, 2026-10-17) ──
     // Through 0.10.2 the panel called this "reach suppressed (magnitude
     // unpublished)", citing the 2023 archive. The 2026 code does not shrink
     // these posts in For You. It removes them.
     var VL = SF.visibilityLimited || {};
     var FOSNR_LEVEL_3 = ["FOSNR_HATEFUL_CONDUCT", "FOSNR_VIOLENT_SPEECH",
       "FOSNR_ABUSE", "FOSNR_CIVIC_INTEGRITY"];
-    check("visibility-limited fact recorded, verified at 77d431a with a date",
-      VL.provenance === "2026-published" && VL.verifiedAt === "77d431a" &&
-      VL.verifiedAsOf === "2026-09-30");
+    check("visibility-limited fact recorded, verified at 862a123 with a date",
+      VL.provenance === "2026-published" && VL.verifiedAt === "862a123" &&
+      VL.verifiedAsOf === "2026-10-17");
     check("For You calls exactly two VF safety levels",
       JSON.stringify(VL.forYouLevels) === '["TimelineHome","TimelineHomeRecommendations"]',
       JSON.stringify(VL.forYouLevels));
@@ -189,7 +190,7 @@
         return SF.underTheHood.postLabelAllowlist.indexOf(l) !== -1;
       }));
     check("no FOSNR limited-engagement rule, and the notice's rendering is unpublished",
-      VL.fosnrLimitedEngagementRule === false && VL.noticeRenderingPublished === false);
+      VL.fosnrLimitedEngagementForYou === false && VL.fosnrLimitedEngagementHydrationAuthorSince === "2026-10-08" && VL.noticeRenderingPublished === false);
     check("every visibility-limited source is cited file@commit",
       Array.isArray(VL.sources) && VL.sources.length >= 5 &&
       VL.sources.every(function (s) { return /^[\w\/.-]+@[0-9a-f]{7}\b/.test(s); }),
@@ -211,7 +212,7 @@
     // (no VF filter in its pipeline). The record must not hide them.
     // A later pass found the repost path contested: TimelineHomeHydration,
     // the level X compares against production getTweetFields, drops
-    // FOSNR_ABUSE_INSULTS for non-followers, and merge_verdict copies an
+    // FOSNR_ABUSE_INSULTS for non-followers, and merge_source (merge_verdict until Oct 15) copies an
     // original's drop onto its repost. So the short panel text no longer
     // asserts it, and the tooltip carries both sides.
     check("panel detail does not assert the contested repost path",
@@ -225,12 +226,12 @@
       /check fails/.test(VL.note || "") && /PushToHomeSource/.test(VL.note || ""));
     check("the removal of quoting posts and replies is cited where it happens",
       Array.isArray(VL.sources) && VL.sources.some(function (s) {
-        return /^home-mixer\/candidate_hydrators\/vf_candidate_hydrator\.rs@77d431a \(lines 140-170/.test(s);
+        return /^home-mixer\/candidate_hydrators\/vf_candidate_hydrator\.rs@862a123 \(lines 140-170/.test(s);
       }));
     check("both Following feeds are accounted for",
       /chronological Following/.test(VL.note || "") && /ranked Following/.test(VL.note || "") &&
       Array.isArray(VL.sources) && VL.sources.some(function (s) {
-        return /^home-mixer\/server\.rs@77d431a/.test(s);
+        return /^home-mixer\/server\.rs@862a123/.test(s);
       }));
     check("47c1bcd is not called the first publication (that is aaa167b, Jan 20)",
       !/first publication/.test((VL.note || "") + (VL.panelDetail || "")));
@@ -966,10 +967,10 @@
     // For You removes a post whose quoted post is dropped. Sourced, so the
     // panel row for the quoted case can cite it.
     var QVL = C.sourcedFacts.quotedVisibilityLimited;
-    check("quoted-label removal is sourced at 77d431a",
-      !!QVL && QVL.verifiedAt === "77d431a" &&
-      QVL.sources.some(function (s) { return /vf_candidate_hydrator\.rs@77d431a.*should_drop_ancillary/.test(s); }) &&
-      QVL.sources.some(function (s) { return /ancillary_vf_filter\.rs@77d431a/.test(s); }));
+    check("quoted-label removal is sourced at 862a123",
+      !!QVL && QVL.verifiedAt === "862a123" &&
+      QVL.sources.some(function (s) { return /vf_candidate_hydrator\.rs@862a123.*should_drop_ancillary/.test(s); }) &&
+      QVL.sources.some(function (s) { return /ancillary_vf_filter\.rs@862a123/.test(s); }));
     check("quoted-label note names the author exemption and PushToHomeSource",
       !!QVL && /author/.test(QVL.note) && /PushToHomeSource/.test(QVL.note) && !!QVL.panel);
 
