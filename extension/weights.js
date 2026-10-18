@@ -35,7 +35,7 @@ var BANGERMETER_CONFIG = {
   //
   // That is a materially stronger claim than the 2023 release made — these are
   // asserted to BE the production values, not merely plausible defaults.
-  weightsSnapshot: "October 16, 2026 — xai-org/x-algorithm home-mixer/params/param.rs (upstream last-sync stamp 2026-10-16T16:00:32Z). param.rs and vm-ranker/params.rs no longer agree. This table follows param.rs, the cron snapshot of production defaults. vm-ranker/params.rs, the served scorer's compiled defaults, still has the September 29 numbers for five heads (favorite 0.5, video_open 0.07, post_unexplored 0.02, cont_dwell_time 0.004, not_interested −47.52). param.rs moved favorite 0.5→0.66, video_open 0.07→0.02, post_unexplored 0.02→0.015, cont_dwell_time 0.004→0.006, not_interested −47.52→−52.272. Six heads were added: react_with_video 0 in both files; video_carousel_video_open 1 and video_carousel_immersive_vqv 0 in param.rs only; video_continuation, user_video_continuation and profile_visit_secs at 0 in vm-ranker only. Earlier, the September 29, 2026 sync (stamp 2026-09-29T17:02:52Z) changed click 0.4→0.3, cont_click_dwell_time 0.0→0.4, not_interested −43.2→−47.52, with both files agreeing on all 25. X deleted a 26th head, cont_active_secs_5m_residual_norm, weighted 0.0, in the Sept 23 sync, and three changed on Aug 25 — vqv 0.05→0.0, binary dwell 0.0→0.05, video_open 0.05→0.07",
+  weightsSnapshot: "October 16, 2026 — xai-org/x-algorithm home-mixer/params/param.rs (upstream last-sync stamp 2026-10-16T16:00:32Z). param.rs and vm-ranker/params.rs no longer agree. This table follows param.rs, the cron snapshot of production defaults. vm-ranker/params.rs, the served scorer's compiled defaults, still has the September 29 numbers for five heads (favorite 0.5, video_open 0.07, post_unexplored 0.02, cont_dwell_time 0.004, not_interested −47.52). param.rs moved post_unexplored 0.02→0.015 in the Oct 6 sync (published Oct 7); video_open 0.07→0.02, cont_dwell_time 0.004→0.006 and favorite 0.5→0.6 in the Oct 12 sync (published Oct 13); favorite 0.6→0.66 and not_interested −47.52→−52.272 in the Oct 13 sync (published Oct 14). Six heads were added: video_continuation, user_video_continuation and profile_visit_secs at 0 in vm-ranker only (published Oct 6); react_with_video 0 in both files (Oct 12 sync, published Oct 13); video_carousel_video_open 1 and video_carousel_immersive_vqv 0 in param.rs only (Oct 14 sync, published Oct 15). Earlier, the September 29, 2026 sync (stamp 2026-09-29T17:02:52Z) changed click 0.4→0.3, cont_click_dwell_time 0.0→0.4, not_interested −43.2→−47.52, with both files agreeing on all 25. X deleted a 26th head, cont_active_secs_5m_residual_norm, weighted 0.0, in the Sept 23 sync, and three changed on Aug 25 — vqv 0.05→0.0, binary dwell 0.0→0.05, video_open 0.05→0.07",
   // Machine-readable copy of the stamp above. Every score card pins this, and
   // packages/bangermeter-rank's sync job fails when live param.rs drifts from it.
   // Only param.rs carries a stamp; vm-ranker/params.rs has none.
@@ -47,7 +47,7 @@ var BANGERMETER_CONFIG = {
   // The head combination, offset, author diversity and OON factor are the same
   // math at published defaults; only the location changed. param.rs still
   // declares the head weights used for home-mixer's local fallback score and to
-  // pick the cold-start candidate. Since the 2026-10-16 sync those two files
+  // pick the cold-start candidate. Since the Oct 6, 2026 sync those two files
   // disagree on five heads; this table follows param.rs.
   weightsSourceUrl: "https://github.com/xai-org/x-algorithm/blob/main/vm-ranker/params.rs",
   scorerSourceUrl: "https://github.com/xai-org/x-algorithm/blob/main/xai-value-model/scoring.rs",
@@ -107,33 +107,33 @@ var BANGERMETER_CONFIG = {
       provenance: "2026-published", label: "Photo expand" },
     video_open: { weight: 0.02, param: "rust_home_mixer_video_open_weight",
       provenance: "2026-published", label: "Video open",
-      note: "Cut from 0.07 to 0.02 in the Oct 16, 2026 param.rs sync. August 25, 2026 had raised it from 0.05 to 0.07, the only positive head X had moved up since first publishing the table; this sync is the first cut. vm-ranker/params.rs still compiles 0.07. The For You value model still pays this head and not vqv (zeroed Aug 25). A separate carousel weight, video_carousel_video_open, is 1.0 and is not this head." },
+      note: "Cut from 0.07 to 0.02 in the Oct 12, 2026 param.rs sync, published Oct 13. August 25, 2026 had raised it from 0.05 to 0.07, the only positive head X had moved up since first publishing the table; this sync is the first cut. vm-ranker/params.rs still compiles 0.07. The For You value model still pays this head and not vqv (zeroed Aug 25). A separate carousel weight, video_carousel_video_open, is 1.0 and is not this head." },
     quoted_click: { weight: 0.05, param: "rust_home_mixer_quoted_click_weight",
       provenance: "2026-published", label: "Quoted-post click" },
     post_unexplored: { weight: 0.015, param: "rust_home_mixer_post_unexplored_weight",
       provenance: "2026-published", label: "Post unexplored",
-      note: "In-network only — hard-wired in xai-value-model since Sept 24, 2026 (until then the PostUnexploredWeightInNetworkOnly switch, default true). Viewer-specific novelty — excluded from the content score. Cut from 0.02 to 0.015 in the Oct 16, 2026 param.rs sync; vm-ranker/params.rs still compiles 0.02." },
+      note: "In-network only — hard-wired in xai-value-model since Sept 24, 2026 (until then the PostUnexploredWeightInNetworkOnly switch, default true). Viewer-specific novelty — excluded from the content score. Cut from 0.02 to 0.015 in the Oct 6, 2026 param.rs sync, published Oct 7; vm-ranker/params.rs still compiles 0.02." },
     react_with_video: { weight: 0.0, param: "rust_home_mixer_react_with_video_weight",
       provenance: "2026-published", label: "React with video",
-      note: "ZEROED. Added in the Oct 16, 2026 sync at 0.0 in both param.rs and vm-ranker/params.rs. It is in positive_sum (xai-value-model/weights.rs), so turning it on would move the negative-offset scale. Bangermeter cannot see a video reaction." },
+      note: "ZEROED. Added at 0.0 to both param.rs and vm-ranker/params.rs in the Oct 12, 2026 sync, published Oct 13. It is in positive_sum (xai-value-model/weights.rs), so turning it on would move the negative-offset scale. Bangermeter cannot see a video reaction." },
     cont_dwell_time: { weight: 0.006, param: "rust_home_mixer_cont_dwell_time_weight",
       provenance: "2026-published", label: "Dwell time",
       continuous: true,
       note: "CONTINUOUS head: multiplies predicted dwell in seconds, not a probability. At a few seconds of dwell this is one of the largest terms for an ordinary post." },
     dwell: { weight: 0.05, param: "rust_home_mixer_dwell_weight",
       provenance: "2026-published", label: "Dwell (binary)",
-      note: "TURNED ON August 25, 2026, at 0.05. Through v0.10.0 this head shipped at 0.0 and this tool said binary dwell paid nothing — that is no longer true. X now pays a flat amount for the reader dwelling at all, on TOP of the continuous dwell-time term (cont_dwell_time, 0.006/second since the Oct 16, 2026 param.rs sync, from 0.004). Stopping the scroll is the cheapest thing a post can win." },
+      note: "TURNED ON August 25, 2026, at 0.05. Through v0.10.0 this head shipped at 0.0 and this tool said binary dwell paid nothing — that is no longer true. X now pays a flat amount for the reader dwelling at all, on TOP of the continuous dwell-time term (cont_dwell_time, 0.006/second since the Oct 12, 2026 param.rs sync, published Oct 13, from 0.004). Stopping the scroll is the cheapest thing a post can win." },
     cont_click_dwell_time: { weight: 0.4, param: "rust_home_mixer_cont_click_dwell_time_weight",
       provenance: "2026-published", label: "Click dwell",
       note: "TURNED ON in the Sept 28, 2026 sync (published Sept 29), from 0.0 to 0.4 — the coefficient a click carried before that push. Because it needs a click AND a stay, its probability is always below a click's, so comparing the two coefficients says nothing about which is worth more. Despite the cont_ prefix it is NOT paid per second: X's published model config trains this head as 'click-dwell-binary' with a 10.0 threshold, and binary heads skip the seconds rescale at inference, so the 0.4 multiplies a PROBABILITY — the chance a reader clicks into the post and stays past that mark. (The serving-side mapping from model output to this field is not in the repo; the training config is the published evidence.) Like cont_dwell_time it is kept out of positive_sum, so it does not move the negative-offset scale. Bangermeter cannot see a click or what follows it, so this head is scored from a baseline estimate." },
     video_continuation: { weight: 0.0, param: "rust_home_mixer_video_continuation_weight",
       provenance: "2026-published", label: "Video continuation", continuous: true,
       upstream: "vmParams",
-      note: "ZEROED. Published only in vm-ranker/params.rs. scoring.rs multiplies P(video open) by predicted home-video continuation seconds. Outside positive_sum, like the other continuous heads, so at 0.0 it moves nothing." },
+      note: "ZEROED. Published only in vm-ranker/params.rs, first in the Oct 6, 2026 push. scoring.rs multiplies P(video open) by predicted home-video continuation seconds. Outside positive_sum, like the other continuous heads, so at 0.0 it moves nothing." },
     user_video_continuation: { weight: 0.0, param: "rust_home_mixer_user_video_continuation_weight",
       provenance: "2026-published", label: "User video continuation", continuous: true,
       upstream: "vmParams",
-      note: "ZEROED. Published only in vm-ranker/params.rs. scoring.rs multiplies P(video open) by the viewer's average continuation seconds across the slate (set_user_video_continuation). Outside positive_sum." },
+      note: "ZEROED. Published only in vm-ranker/params.rs, first in the Oct 6, 2026 push. scoring.rs multiplies P(video open) by the viewer's average continuation seconds across the slate (set_user_video_continuation). Outside positive_sum." },
 
     // Heads X ships with an explicit 0.0 — they exist, they are wired in, and they
     // currently contribute exactly nothing. That is a finding, not an omission.
@@ -143,15 +143,15 @@ var BANGERMETER_CONFIG = {
     profile_visit_secs: { weight: 0.0, param: "rust_home_mixer_profile_visit_secs_weight",
       provenance: "2026-published", label: "Profile visit time", continuous: true,
       upstream: "vmParams",
-      note: "ZEROED. Published only in vm-ranker/params.rs. scoring.rs multiplies P(profile click) by predicted home profile-visit seconds. Like cont_dwell_time it is outside positive_sum, so at 0.0 it does not move the negative-offset scale." },
+      note: "ZEROED. Published only in vm-ranker/params.rs, first in the Oct 6, 2026 push. scoring.rs multiplies P(profile click) by predicted home profile-visit seconds. Like cont_dwell_time it is outside positive_sum, so at 0.0 it does not move the negative-offset scale." },
     video_carousel_video_open: { weight: 1.0, param: "rust_home_mixer_video_carousel_video_open_weight",
       provenance: "2026-published", label: "Carousel video open",
       upstream: "paramRs",
-      note: "Published only in param.rs, at 1.0. It is not a For You value-model head: xai-value-model/weights.rs does not carry it, and it is not in positive_sum. It weights the video carousel, separate from video_open (0.02)." },
+      note: "Published only in param.rs, at 1.0, from the Oct 14, 2026 sync (published Oct 15). It is not a For You value-model head: xai-value-model/weights.rs does not carry it, and it is not in positive_sum. It weights the video carousel, separate from video_open (0.02)." },
     video_carousel_immersive_vqv: { weight: 0.0, param: "rust_home_mixer_video_carousel_immersive_vqv_weight",
       provenance: "2026-published", label: "Carousel immersive view",
       upstream: "paramRs",
-      note: "ZEROED. Published only in param.rs. Same carousel surface as video_carousel_video_open, and likewise outside the For You value-model sum." },
+      note: "ZEROED. Published only in param.rs, from the Oct 14, 2026 sync (published Oct 15). Same carousel surface as video_carousel_video_open, and likewise outside the For You value-model sum." },
     vqv: { weight: 0.0, param: "rust_home_mixer_vqv_weight",
       provenance: "2026-published", label: "Video quality view",
       note: "ZEROED August 25, 2026 — it shipped at 0.05 through v0.10.0. The duration gate is still live and this tool still evaluates it: the clip must run STRICTLY LONGER than MinVideoDurationMs = 10,000, so a 10.000s clip and every GIF fail it (xai-value-model/proto.rs). The second gate — a VIEWER with 10,000 or more followers getting no vqv weight — no longer reaches the served ranking: since Sept 24, 2026 the final score comes from vm-ranker, which checks duration only, and the follower gate survives only in home-mixer's local fallback score (candidates_util.rs). Either way the gate now guards a term worth nothing. Kept because the machinery is intact and X can re-enable it by moving one number." },
@@ -166,7 +166,7 @@ var BANGERMETER_CONFIG = {
     // Negative heads.
     not_interested: { weight: -52.272, param: "rust_home_mixer_not_interested_weight",
       provenance: "2026-published", label: "Not interested",
-      note: "Deepened again in the Oct 16, 2026 param.rs sync, from −47.52 to −52.272 — another exact 10% (47.52 × 1.1). The Sept 28 sync, published Sept 29, had been the first move, −43.2 to −47.52. vm-ranker/params.rs still compiles −47.52. Block, mute, report and not-dwelled are unchanged." },
+      note: "Deepened again in the Oct 13, 2026 param.rs sync, published Oct 14, from −47.52 to −52.272 — another exact 10% (47.52 × 1.1). The Sept 28 sync, published Sept 29, had been the first move, −43.2 to −47.52. vm-ranker/params.rs still compiles −47.52. Block, mute, report and not-dwelled are unchanged." },
     block_author: { weight: -31.2, param: "rust_home_mixer_block_author_weight",
       provenance: "2026-published", label: "Block author",
       note: "The long-circulated 'block = -120' figure was a fan-site fabrication. The real number is -31.2 — and it is the mildest of the four hard negatives." },
@@ -277,7 +277,7 @@ var BANGERMETER_CONFIG = {
       note: "TaskInitialBangerFilter rejects any post with `ancestors` (i.e. any reply) and any post from a protected account. Quality is carried as a boolean `isHighQuality`, not a numeric threshold." },
     negativeOffsetRule: {
       provenance: "xai-value-model/scoring.rs offset_score (formerly ranking_scorer.rs)",
-      note: "Any post whose weighted sum is net-negative is rescaled into [0, 0.000897) — negative_sum/total_sum × the 0.001 offset — so it ranks below every net-positive post regardless of how good the rest of it was. (The ceiling was 0.000896 until the Oct 16, 2026 param.rs weight change, and 0.000894 until Sept 29.)" },
+      note: "Any post whose weighted sum is net-negative is rescaled into [0, 0.000897) — negative_sum/total_sum × the 0.001 offset — so it ranks below every net-positive post regardless of how good the rest of it was. (The ceiling was 0.000896 until X's October 2026 param.rs reweights, and 0.000894 until Sept 29.)" },
 
     // ── Published by X on Aug 14 2026 ─────────────────────────────────────
     reportBaselineRatio: { value: 1000, provenance: "2026-published",
@@ -570,7 +570,7 @@ var BANGERMETER_CONFIG = {
     { id: "conversation_length", label: "Substantive text (≥100 chars)",
       applies: "cont_dwell_time", factor: 1.35, provenance: "estimate",
       alsoApplies: { not_dwelled: 0.8, dwell: 1.5 },
-      why: "Longer posts hold attention, and attention is now paid three ways: continuously (0.006/second since the Oct 16 2026 param.rs sync, from 0.004), as a penalty for scrolling past (−0.02), and since Aug 25 2026 as a flat 0.05 for clearing a TEN-SECOND dwell mark. That mark is a threshold, not a slope, so length helps it more than it helps mean dwell time — which is why this modifier moves the binary head harder than the continuous one." },
+      why: "Longer posts hold attention, and attention is now paid three ways: continuously (0.006/second since the Oct 12 2026 param.rs sync (published Oct 13), from 0.004), as a penalty for scrolling past (−0.02), and since Aug 25 2026 as a flat 0.05 for clearing a TEN-SECOND dwell mark. That mark is a threshold, not a slope, so length helps it more than it helps mean dwell time — which is why this modifier moves the binary head harder than the continuous one." },
     { id: "thread_starter", label: "Thread starter", applies: "click,quote,cont_click_dwell_time",
       factor: 1.3, provenance: "estimate",
       why: "Threads drive post clicks (0.3) and give people something to quote (5.0). Since X's Sept 28 2026 sync it also pays 0.4 when a reader clicks in AND stays past the click-dwell mark — which a thread, read on its own page, is built to earn." },
@@ -579,7 +579,7 @@ var BANGERMETER_CONFIG = {
     { id: "has_video", label: "Has video", applies: "", factor: 1.0,
       enables: "video_open,vqv", provenance: "estimate",
       alsoApplies: { dwell: 1.4, not_dwelled: 0.85 },
-      why: "Enables video_open. X raised it from 0.05 to 0.07 on Aug 25 2026, then cut it to 0.02 in the Oct 16 2026 param.rs sync. It also enables video-quality-view — but X zeroed that head on Aug 25, so clearing its duration gate (STRICTLY over 10 seconds) is now worth nothing. Video did not stop being paid for holding attention, though: the binary dwell head turned on in the same August push at a ten-second mark, which video reaches far more easily than text, so the credit moved rather than vanished. That shift in routing is published; the size of the dwell nudge here is our estimate. The '10× video boost' remains folklore. The carousel's own video-open weight (1.0, param.rs only) is a different head and is not scored here." },
+      why: "Enables video_open. X raised it from 0.05 to 0.07 on Aug 25 2026, then cut it to 0.02 in the Oct 12 2026 param.rs sync (published Oct 13). It also enables video-quality-view — but X zeroed that head on Aug 25, so clearing its duration gate (STRICTLY over 10 seconds) is now worth nothing. Video did not stop being paid for holding attention, though: the binary dwell head turned on in the same August push at a ten-second mark, which video reaches far more easily than text, so the credit moved rather than vanished. That shift in routing is published; the size of the dwell nudge here is our estimate. The '10× video boost' remains folklore. The carousel's own video-open weight (1.0, param.rs only) is a different head and is not scored here." },
     { id: "external_link", label: "External link", applies: "", factor: 1.0,
       enables: "open_link", provenance: "2026-published",
       why: "The 2026 release pays 0.2 for opening a link — links are NOT structurally unrewarded, which retires the old 'link penalty by head omission' reading. 0.2 is small, but it is positive." },
@@ -592,7 +592,7 @@ var BANGERMETER_CONFIG = {
       why: "Earlybird's HAS_MULTIPLE_HASHTAGS_OR_TRENDS penalty exists in code; magnitude never published. Mild directional." },
     { id: "engagement_bait", label: "Engagement-bait phrasing",
       applies: "not_interested,mute_author", factor: 3.0, provenance: "estimate",
-      why: "'Like if / RT if / follow me' phrasing — plus Hinglish ('karo agar', '1 likho agar', 'sach batao') and Devanagari ('…तो लाइक करें', 'कमेंट बॉक्स में जरूर', 'सच सच बताओ') — invites the not-interested (−52.272 since X's Oct 16 2026 param.rs sync, from −47.52, itself from −43.2) and mute (−58.8) heads, and a net-negative post is rescaled below every positive post. Detection covers imperative calls to action ONLY; the rhetorical-question genre ('Kya …?', 'X ya Y?') is deliberately not claimed, because no pattern separates it from a sincere question. Note the Devanagari patterns are not transliterations: Hindi puts the call to action last, so 'like karo agar X' is an English calque that barely occurs, and every Devanagari pattern anchors on तो / जरूर / मुझे instead. That anchor is load-bearing — on X the bare verb phrase is usually an argument ('पहले पढ़ो, फिर कमेंट करो'), not a solicitation. Validated against real Hindi posts: zero false positives, and deliberately conservative recall." },
+      why: "'Like if / RT if / follow me' phrasing — plus Hinglish ('karo agar', '1 likho agar', 'sach batao') and Devanagari ('…तो लाइक करें', 'कमेंट बॉक्स में जरूर', 'सच सच बताओ') — invites the not-interested (−52.272 since X's Oct 13 2026 param.rs sync, published Oct 14, from −47.52, itself from −43.2) and mute (−58.8) heads, and a net-negative post is rescaled below every positive post. Detection covers imperative calls to action ONLY; the rhetorical-question genre ('Kya …?', 'X ya Y?') is deliberately not claimed, because no pattern separates it from a sincere question. Note the Devanagari patterns are not transliterations: Hindi puts the call to action last, so 'like karo agar X' is an English calque that barely occurs, and every Devanagari pattern anchors on तो / जरूर / मुझे instead. That anchor is load-bearing — on X the bare verb phrase is usually an argument ('पहले पढ़ो, फिर कमेंट करो'), not a solicitation. Validated against real Hindi posts: zero false positives, and deliberately conservative recall." },
     { id: "all_caps_shout", label: "Mostly ALL-CAPS", applies: "not_interested",
       factor: 1.5, provenance: "estimate", why: "Shouting correlates with 'show less' feedback." }
   ],

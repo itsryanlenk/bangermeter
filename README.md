@@ -251,8 +251,9 @@ happened when those numbers were hardcoded.
 - Engine math: **364/364 self-tests pass** (`test.html`). Every published
   weight and its feature-switch parameter name is asserted against `param.rs`
   individually, so a silent transcription error fails the suite rather than shipping.
-  The 2026-10-16T16:00:32Z param.rs sync moved five heads and the two upstream files
-  no longer agree on those five; `weights.js` follows param.rs. Six heads were added
+  param.rs moved five heads between the Oct 6 and Oct 13, 2026 syncs (published
+  Oct 7–14), and vm-ranker/params.rs did not, so the two upstream files disagree on
+  those five at the 2026-10-16T16:00:32Z sync; `weights.js` follows param.rs. Six heads were added
   (31 in the roster). X deleted a 26th head,
   `cont_active_secs_5m_residual_norm` (weighted 0.0), in its Sept 23 sync, published
   Sept 24.
