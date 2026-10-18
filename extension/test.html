@@ -690,8 +690,8 @@
     // FLATTENING GUARD (v0.7.1 class of regression): adding heads must not
     // compress every post toward one number. A strong post and a weak post
     // have to stay far apart. Floors were 65 and 25 on the Sept 29 table;
-    // the Oct 16 param.rs reweight (like 0.5→0.66, dwell 0.004→0.006,
-    // not-interested −47.52→−52.272) landed this pair at 64 and 21.
+    // X's October param.rs reweights (Oct 12-13 syncs: like 0.5→0.66, dwell
+    // 0.004→0.006, not-interested −47.52→−52.272) landed this pair at 64 and 21.
     var strong = E.contentScore({ text: "I spent six months rebuilding our deploy pipeline from scratch. Here is every mistake I made, what it cost, and what I would do differently — starting with the one that took down prod for four hours. What would you have done?", hasVideo: false, hasImage: true, hasExternalLink: false, hashtagCount: 0, isReply: false, isThreadStarter: true }, {});
     check("strong post clears 64", strong.score >= 64, strong.score);
     check("strong - bait spread >= 21 points", strong.score - bait.score >= 21,
