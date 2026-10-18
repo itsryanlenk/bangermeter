@@ -75,7 +75,8 @@ test("a moved ceiling updates the test's expected figure, so the stale note goes
     assert.equal(r.sums.after.ceiling, after);
     const t = root.read(T);
     assert.ok(t.includes("note quotes the current ceiling (" + after + ")"));
-    assert.ok(t.includes("/" + after.replace(".", "\\.") + "/.test(SF.negativeOffsetRule.note)"));
+    const pin = t.split(/\r?\n/).find(l => l.includes(".test(SF.negativeOffsetRule.note)"));
+    assert.ok(pin.includes(after.replace(".", "\\.")), pin);
     assert.ok(root.read(W).includes(before), "the note itself is left for a human");
     assert.ok(r.staleLines.some(s => s.file === "README.md" && s.figure === before));
     assert.ok(r.staleLines.some(s => s.file === "RESEARCH.md" && s.figure === String(round(S.negative))));

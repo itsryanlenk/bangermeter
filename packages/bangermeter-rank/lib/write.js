@@ -161,7 +161,9 @@ function applyAuto({ root, report }) {
     // The test that pins the panel note to the ceiling must expect the NEW
     // figure; otherwise it stays green while the note is stale.
     set(F.testHtml, replaceOnce(get(F.testHtml), /(note quotes the current ceiling \()(0\.\d+)/g, () => after.ceiling, F.testHtml + " ceiling name"));
-    set(F.testHtml, replaceOnce(get(F.testHtml), /(\/)(0\\\.\d+)(?=\/\.test\(SF\.negativeOffsetRule\.note\))/g, () => after.ceiling.replace(".", "\\."), F.testHtml + " ceiling regex"));
+    // The decimal inside whatever regex literal feeds .test(SF.negativeOffsetRule.note),
+    // e.g. /0\.000896/ or /\[0, 0\.000897\)/.
+    set(F.testHtml, replaceOnce(get(F.testHtml), /(\/[^\/\n]*?)(0\\\.\d+)(?=[^\/\n]*\/\.test\(SF\.negativeOffsetRule\.note\))/g, () => after.ceiling.replace(".", "\\."), F.testHtml + " ceiling regex"));
   }
   let stamp = null;
   if (report.stampBump && report.liveStamp && report.liveStamp !== report.pinnedStamp) {
