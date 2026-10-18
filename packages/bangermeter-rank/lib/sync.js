@@ -64,6 +64,8 @@ function expected() {
   const out = {};
   const put = (param, value, what, files) => { out[param] = { value, what, files }; };
   for (const [name, h] of Object.entries(C.heads)) put(h.param, h.weight, "head " + name, filesFor(h));
+  // Video-carousel weights: published in param.rs only, not ranking heads.
+  for (const [name, w] of Object.entries(C.carouselWeights || {})) put(w.param, w.weight, "carousel " + name, filesFor(w));
   const r = C.rescorers;
   put(r.outOfNetwork.param, r.outOfNetwork.factor, "rescorer outOfNetwork", VM);
   put(r.topicOutOfNetwork.param, r.topicOutOfNetwork.factor, "rescorer topicOutOfNetwork", VM);

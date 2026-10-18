@@ -109,13 +109,14 @@ what the published weights actually say.
   time **0.006** per second · post unexplored **0.015** · not-dwelled −0.02 · **not-interested −52.272** · block −31.2 · mute
   −58.8 · report −234.0. Profile clicks, **video-quality-view**, quoted-vqv, react-with-video,
   and the continuation and profile-visit heads ship at **0.0**.
-- **Five weights moved on 16 October 2026** in param.rs. Likes went 0.5 → **0.66**,
-  video open went 0.07 → **0.02**, post unexplored went 0.02 → **0.015**, dwell time went
-  0.004 → **0.006** per second, and not-interested went −47.52 → **−52.272** (another exact
-  10%). vm-ranker/params.rs still has the previous five numbers. The daily sync check
-  treats that disagreement as drift and was not changed to ignore it. Six heads were
-  added. Five of them are 0. The carousel video-open weight is 1.0 and is not a For You
-  value-model head, so it is not in the sum.
+- **Five weights moved in param.rs between X's Oct 6 and Oct 13, 2026 syncs.** Post
+  unexplored went 0.02 → **0.015** (Oct 6 sync, published Oct 7). Video open went 0.07 →
+  **0.02**, dwell time 0.004 → **0.006** per second, and Likes 0.5 → 0.6 (Oct 12 sync,
+  published Oct 13). Likes then went 0.6 → **0.66** and not-interested −47.52 →
+  **−52.272**, another exact 10% (Oct 13 sync, published Oct 14). vm-ranker/params.rs still has the previous five numbers. The daily sync check
+  treats that disagreement as drift and was not changed to ignore it. Four heads were
+  added, all at 0. Two video-carousel weights also appeared in param.rs (1.0 and 0); they
+  are not ranking heads, and the carousel is off by default.
 - **Three more weights moved**, published 29 September 2026 from X's 28 September sync.
   Post clicks went 0.4 → **0.3**, click dwell went 0.0 → **0.4**, and not-interested went
   −43.2 → **−47.52** — the first negative weight X has touched since publishing the table.
@@ -230,7 +231,7 @@ what the published weights actually say.
 | `extension/content.js` | Badges, breakdown panel, compose meter |
 | `extension/background.js` | Service worker. One listener: open the quick start on first install, never on update |
 | `extension/welcome.html` | The quick start itself — self-contained, loads nothing over the network |
-| `extension/test.html` | Engine self-test — open in any browser (364 assertions) |
+| `extension/test.html` | Engine self-test — open in any browser (362 assertions) |
 | `extension/fixture.html` | X-DOM fixture harness for the content script |
 | `extension/fixture-thread.html` | Reply-detection harness — asserts the conversation, `with_replies` and home-timeline surfaces separately, because X marks a reply differently on each. Needs `serve-fixtures.js` (it reads `location.pathname`) |
 | `extension/serve-fixtures.js` | Tiny static server for the harnesses, including the x.com-shaped paths the reply-detection cases need |
@@ -248,13 +249,13 @@ happened when those numbers were hardcoded.
 
 ## Verification status
 
-- Engine math: **364/364 self-tests pass** (`test.html`). Every published
-  weight and its feature-switch parameter name is asserted against `param.rs`
-  individually, so a silent transcription error fails the suite rather than shipping.
+- Engine math: **362/362 self-tests pass** (`test.html`). Every published
+  weight and its feature-switch parameter name is asserted individually against
+  `param.rs`, or `vm-ranker/params.rs` for the three heads only it publishes, so a silent transcription error fails the suite rather than shipping.
   param.rs moved five heads between the Oct 6 and Oct 13, 2026 syncs (published
   Oct 7–14), and vm-ranker/params.rs did not, so the two upstream files disagree on
-  those five at the 2026-10-16T16:00:32Z sync; `weights.js` follows param.rs. Six heads were added
-  (31 in the roster). X deleted a 26th head,
+  those five at the 2026-10-16T16:00:32Z sync; `weights.js` follows param.rs. Four heads were added
+  (29 in the roster), plus two video-carousel weights that are not heads. X deleted a 26th head,
   `cont_active_secs_5m_residual_norm` (weighted 0.0), in its Sept 23 sync, published
   Sept 24.
   `packages/bangermeter-rank` runs `sync` daily in CI to catch the next change.
