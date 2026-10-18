@@ -63,6 +63,8 @@ function needsYouLine(f) {
   return f.message;
 }
 
+const lagLine = l => (l.label || l.param) + " (`" + l.param + "`): param.rs " + fmt(l.values.paramRs) + ", vm-ranker/params.rs " + fmt(l.values.vmParams);
+
 function reviewLine(r) {
   const shown = r.commits.slice(-MAX_COMMITS).map(c => "`" + short(c.sha) + "` " + day(c.date)).join(", ");
   const more = r.commits.length > MAX_COMMITS ? " and " + (r.commits.length - MAX_COMMITS) + " earlier" : "";
@@ -106,6 +108,7 @@ function issueBody(report, opts) {
   section(L, "Needs you — inert (no score effect today)", report.needsYou.filter(f => f.severity !== "score-moving").map(needsYouLine));
   section(L, MECHANICAL[o.mechanical] || MECHANICAL.none, report.auto.map(datedLine));
   section(L, "Re-verify: cited files touched since they were checked", report.review.map(reviewLine));
+  section(L, "For information: vm-ranker/params.rs lags param.rs (weights.js follows param.rs)", (report.lagging || []).map(lagLine));
   L.push("", "---", "Updated by the upstream-sync job" + (o.runUrl ? " ([run](" + o.runUrl + "))" : "") +
     ". It comments only when these findings change, and closes this issue once upstream and weights.js agree.");
   return cap(L.join("\n"), o.runUrl);

@@ -4,8 +4,11 @@
 //
 // Since the 2026-09-23 upstream sync the weights are declared in TWO files —
 // home-mixer/params/param.rs and vm-ranker/params.rs — and the OON factor and
-// author-diversity parameters live only in the second. Both are checked, and
-// the two disagreeing with each other is itself drift.
+// author-diversity parameters live only in the second. param.rs is
+// authoritative wherever it declares a value (vm-ranker loads the same live
+// config it mirrors; vm-ranker's own file lags), so weights.js must match it.
+// vm-ranker/params.rs counts only for values param.rs does not declare, and a
+// vm-ranker value that lags param.rs is reported as `lagging`, not drift.
 const { C } = require("./engine");
 
 const RAW = "https://raw.githubusercontent.com/xai-org/x-algorithm/main/";
@@ -48,7 +51,7 @@ function parse(src) {
 // file(s) that must declare it. Heads default to BOTH files. A head X publishes
 // in only one file sets `upstream` to "paramRs" or "vmParams" — same idea as
 // the OON factors, which live only in vm-ranker/params.rs. A copy that also
-// shows up in the other file is still compared, so a disagreement is not ignored.
+// shows up in param.rs is compared there, since param.rs wins.
 const BOTH = ["paramRs", "vmParams"];
 const VM = ["vmParams"];
 const PARAM = ["paramRs"];
@@ -108,6 +111,7 @@ function check(files) {
 
   const exp = expected();
   const live = {};
+  const lagging = [];
   let headsChecked = 0;
   for (const [param, e] of Object.entries(exp)) {
     if (isHeadParam(param) && e.files === BOTH) headsChecked++;
@@ -124,15 +128,18 @@ function check(files) {
       }
       seen.push([key, p.params[param]]);
     }
-    if (seen.length === 2 && seen[0][1] !== seen[1][1]) {
-      add({ kind: "disagree", param, repo: e.value, path: e.path, values: Object.fromEntries(seen),
-        message: param + ": upstream files disagree (" + seen.map(([k, v]) => k + " " + v).join(" vs ") + ")" });
-    }
-    for (const [key, v] of seen) {
+    // param.rs is authoritative wherever it declares a value: vm-ranker loads
+    // the same live config param.rs mirrors, and its own file lags. vm-ranker's
+    // value counts only for a param param.rs does not declare. A lag is a note.
+    const values = Object.fromEntries(seen);
+    if (seen.length === 2 && seen[0][1] !== seen[1][1]) lagging.push({ param, what: e.what, path: e.path, values });
+    const authKey = "paramRs" in values ? "paramRs" : (seen[0] || [])[0];
+    if (authKey) {
+      const v = values[authKey];
       live[param] = v;
       if (v !== e.value) {
-        add({ kind: "value", file: key, param, repo: e.value, live: v, path: e.path,
-          message: key + ": " + param + " (" + e.what + "): repo " + e.value + " ≠ live " + v });
+        add({ kind: "value", file: authKey, param, repo: e.value, live: v, path: e.path,
+          message: authKey + ": " + param + " (" + e.what + "): repo " + e.value + " ≠ live " + v });
       }
     }
   }
@@ -151,6 +158,7 @@ function check(files) {
     problems,
     headsChecked,
     live,
+    lagging,
     lastSync,
     pinnedSync: C.paramRsLastSync,
     stampMatchesPin: lastSync === C.paramRsLastSync

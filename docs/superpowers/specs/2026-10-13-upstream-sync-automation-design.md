@@ -52,7 +52,7 @@ had already shipped.
 | How much to automate | An alert plus a draft PR for the mechanical part |
 | What drafts the PR | A deterministic script in GitHub Actions, no LLM |
 | Structure | Extend `bangermeter-rank sync` and the existing `weight-sync` job |
-| `param.rs` and `vm-ranker/params.rs` disagree | Write nothing for that param; report it as needs-you |
+| `param.rs` and `vm-ranker/params.rs` disagree | **Amended 2026-10-17 (Ryan):** `param.rs` wins and is auto-applied. vm-ranker loads the same live config `param.rs` mirrors (`vm-ranker/config_sync.rs`), and its own file lags. The lag is listed in the issue as information |
 | Stamp `paramRsLastSync` | Bumped only when the PR resolves every weight finding |
 
 ## Architecture
@@ -86,20 +86,20 @@ Every finding lands in one bucket.
 
 | Bucket | Finding kinds (from `check()`) | Effect |
 |---|---|---|
-| **auto** | `value`, where every upstream file that declares the param agrees on the new value | `--write` applies it |
-| **needs-you** | `disagree`; `added`; `removed`; a head declared in only one of the two files; `badcitation`, a cited path missing at its own baseline, which would otherwise go unwatched without anyone noticing | Listed in the issue, never written |
+| **auto** | `value` against `param.rs` where it declares the param, else against `vm-ranker/params.rs` | `--write` applies it |
+| **needs-you** | `added`; `removed`; a head declared in only one of the two files; `badcitation`, a cited path missing at its own baseline, which would otherwise go unwatched without anyone noticing | Listed in the issue, never written |
 | **review** | A cited file touched since its baseline | Listed in the issue with commits and dates |
 | **fatal** | `unparseable`; `duplicate`; `nostamp`; baseline stamp not in history | Run goes red |
 
 Each needs-you finding carries a **severity**. It is **inert** when every value
 involved is 0 (for example a new head added at weight 0, which moves no score
 today). Otherwise it is **score-moving**. The issue lists score-moving findings
-first.
+first. A value on which `vm-ranker/params.rs` lags `param.rs` goes in a separate `lagging` list: information only, but in the hash, so vm-ranker catching up is news.
 
-Against `e1a0375` this yields: auto empty; needs-you holds four score-moving
-disagreements (`favorite`, `video_open`, `post_unexplored`, `cont_dwell_time`;
-`param.rs` moved, `vm-ranker/params.rs` did not) and four new heads, all inert.
-So the first real run opens an issue and no PR.
+Against `e1a0375`, under the original rule, this yielded no auto items, four score-moving
+disagreements and four inert new heads. Under the amended rule those four
+disagreements would be auto at the `param.rs` values; since weights.js now follows
+`param.rs`, they appear only as `lagging`.
 
 ## Dates
 
@@ -270,7 +270,7 @@ also written to the issue.
 
 TDD in `packages/bangermeter-rank/test/`, `node --test`:
 
-- **Classification:** agree → auto; disagree → needs-you; head in one file
+- **Classification:** value against param.rs → auto; vm-ranker lag → lagging note; head in one file
   only → needs-you; added at 0 → inert; stampless or unparseable → fatal.
 - **Dates:** a throwaway git repo built in the test with fixed
   `GIT_COMMITTER_DATE`s: a single change; a change and revert; a vm-only

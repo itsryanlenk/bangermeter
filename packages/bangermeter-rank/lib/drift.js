@@ -45,10 +45,9 @@ function classify(result, exp, config) {
       out.needsYou.push(Object.assign(base, { kind: "added", repo: null, live, severity: severity(Object.values(live)) }));
     } else if (of("removed").length) {
       out.needsYou.push(Object.assign(base, { kind: "removed", repo: e.value, live: {}, missingFrom: of("removed").map(p => p.file), severity: severity([e.value]) }));
-    } else if (of("disagree").length) {
-      const d = of("disagree")[0];
-      out.needsYou.push(Object.assign(base, { kind: "disagree", repo: e.value, live: d.values, path: e.path, severity: severity([e.value, ...Object.values(d.values)]) }));
     } else {
+      // check() reports a value against param.rs where it declares one, so a
+      // lagging vm-ranker never blocks auto: the param.rs value is applied.
       out.auto.push(Object.assign(base, { kind: "value", repo: e.value, live: of("value")[0].live, path: e.path, files: e.files }));
     }
   }
@@ -106,7 +105,8 @@ function canonical(v) {
 
 function hash(report) {
   const norm = arr => (arr || []).map(x => JSON.stringify(canonical(x))).sort();
-  const body = JSON.stringify({ fatal: norm(report.fatal), auto: norm(report.auto), needsYou: norm(report.needsYou), review: norm(report.review) });
+  // lagging is in the hash: vm-ranker catching up with param.rs is news worth a comment.
+  const body = JSON.stringify({ fatal: norm(report.fatal), auto: norm(report.auto), needsYou: norm(report.needsYou), review: norm(report.review), lagging: norm(report.lagging) });
   return crypto.createHash("sha256").update(body).digest("hex").slice(0, 16);
 }
 
@@ -115,6 +115,7 @@ function sortReport(r) {
   r.auto.sort((a, b) => cmp(key(a), key(b)));
   r.needsYou.sort((a, b) => (SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]) || cmp(key(a), key(b)));
   r.review.sort((a, b) => cmp(a.path + "@" + a.baseline, b.path + "@" + b.baseline));
+  (r.lagging || []).sort((a, b) => cmp(a.param, b.param));
 }
 
 function buildReport(opts) {
@@ -129,7 +130,9 @@ function buildReport(opts) {
   const report = {
     version: 1, upstreamHead: upstream.headCommit(clone, head),
     pinnedStamp: config.paramRsLastSync, liveStamp: result.lastSync, baseline: null,
-    fatal: cls.fatal, auto: cls.auto, needsYou: cls.needsYou, review: [], stampBump: false, hash: null
+    fatal: cls.fatal, auto: cls.auto, needsYou: cls.needsYou, review: [], stampBump: false, hash: null,
+    // Where vm-ranker/params.rs lags param.rs. Information only: param.rs wins.
+    lagging: (result.lagging || []).map(l => ({ param: l.param, label: labelFor(sync.expected()[l.param], config), values: l.values }))
   };
   try { report.baseline = upstream.findBaseline(clone, config.paramRsLastSync, { head, cache }); }
   catch (e) { report.fatal.push({ kind: "baseline", file: null, message: e.message }); }

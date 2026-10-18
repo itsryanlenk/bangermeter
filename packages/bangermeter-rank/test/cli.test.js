@@ -87,9 +87,10 @@ test("sync --history --report: drift is reported with exit 0, not a failure", ()
     const r = run("sync", "--history", up.dir, "--report", out);
     assert.equal(r.status, 0, r.stderr);
     const rep = JSON.parse(fs.readFileSync(out, "utf8"));
-    assert.equal(rep.needsYou.find(f => f.param === FAVP).kind, "disagree");
+    assert.equal(rep.auto.find(f => f.param === FAVP).live, FAV_NEW, "param.rs wins over a lagging vm-ranker");
     assert.equal(rep.write, undefined);
-    assert.match(r.stdout, /NEEDS YOU/);
+    assert.match(r.stdout, /AUTO/);
+    assert.match(r.stdout, /LAGGING/);
   } finally { up.cleanup(); }
 });
 

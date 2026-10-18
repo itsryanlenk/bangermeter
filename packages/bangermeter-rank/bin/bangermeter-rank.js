@@ -141,6 +141,7 @@ function printDrift(r) {
   r.needsYou.forEach(f => console.log("NEEDS YOU  [" + f.severity + "] " + plain(bmr.render.needsYouLine(f))));
   r.auto.forEach(f => console.log("AUTO       " + plain(bmr.render.datedLine(f))));
   r.review.forEach(x => console.log("RE-VERIFY  " + plain(bmr.render.reviewLine(x))));
+  (r.lagging || []).forEach(l => console.log("LAGGING    " + (l.label || l.param) + ": param.rs " + l.values.paramRs + ", vm-ranker " + l.values.vmParams + " (weights.js follows param.rs)"));
   if (r.write) console.log("wrote " + (r.write.changed.join(", ") || "nothing"));
   if (!r.fatal.length && !r.needsYou.length && !r.auto.length && !r.review.length) console.log("upstream sync ok: nothing moved");
 }
@@ -192,6 +193,7 @@ async function main() {
     else if (r.ok) {
       console.log("sync ok: " + r.headsChecked + "/" + r.headsChecked + " heads + rescorers match live (upstream stamp " + r.lastSync +
         (r.stampMatchesPin ? ")" : "; weights.js pins " + r.pinnedSync + " — values unchanged, bump paramRsLastSync when convenient)"));
+      if (r.lagging.length) console.log("note: vm-ranker/params.rs lags param.rs on " + r.lagging.length + " value(s); param.rs wins");
     } else {
       console.error("WEIGHT DRIFT — " + r.problems.length + " problem(s), upstream stamp " + r.lastSync + ":");
       r.problems.forEach(p => console.error("  " + (p.critical ? "CRITICAL " : "") + p.message));

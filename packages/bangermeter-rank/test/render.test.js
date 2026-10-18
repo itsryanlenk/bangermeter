@@ -27,15 +27,22 @@ test("September is 'Sept', matching every date already in the repo", () => {
 
 test("issueBody carries the hash marker, cc's the owner, and lists score-moving before inert", () => {
   const report = Object.assign({}, base, { needsYou: [
-    { kind: "disagree", param: "rust_home_mixer_favorite_weight", label: "Likes", severity: "score-moving", repo: 0.5,
-      live: { paramRs: 0.6, vmParams: 0.5 }, arrivals: { paramRs: auto.arrivals.paramRs } },
+    { kind: "removed", param: "rust_home_mixer_favorite_weight", label: "Likes", severity: "score-moving", repo: 0.5,
+      live: {}, missingFrom: ["paramRs"], arrivals: { paramRs: auto.arrivals.paramRs } },
     { kind: "added", param: "rust_home_mixer_react_with_video_weight", label: null, severity: "inert", repo: null, live: { paramRs: 0, vmParams: 0 }, arrivals: {} }
   ] });
   const md = render.issueBody(report, { owner: "itsryanlenk" });
   assert.match(md, /^<!-- findings-hash: 0123456789abcdef -->/);
   assert.match(md, /cc @itsryanlenk/);
   assert.ok(md.indexOf("score-moving") < md.indexOf("inert"));
-  assert.match(md, /upstream files disagree — param\.rs 0\.6 \(Oct 12, 2026 sync, published Oct 13, `e1a0375`\), vm-ranker\/params\.rs 0\.5\. weights\.js has 0\.5\./);
+  assert.match(md, /\*\*Likes\*\* \(`rust_home_mixer_favorite_weight`\) is gone from param\.rs \(Oct 12, 2026 sync, published Oct 13, `e1a0375`\)/);
+});
+
+test("the issue notes where vm-ranker lags param.rs, as information", () => {
+  const md = render.issueBody(Object.assign({}, base, { lagging: [
+    { param: "rust_home_mixer_favorite_weight", label: "Likes", values: { paramRs: 0.66, vmParams: 0.5 } }] }), {});
+  assert.match(md, /### For information: vm-ranker\/params\.rs lags param\.rs/);
+  assert.match(md, /- Likes \(`rust_home_mixer_favorite_weight`\): param\.rs 0\.66, vm-ranker\/params\.rs 0\.5/);
 });
 
 test("a long review list shows 5 commits per path and stays under GitHub's body limit", () => {

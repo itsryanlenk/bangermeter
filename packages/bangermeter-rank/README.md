@@ -75,7 +75,8 @@ diversity live only in the second file. `sync` exits 1 in any of these cases:
 
 - a weight or rescorer value changed
 - a head was removed or added upstream
-- the two upstream files disagree
+- a value differs from `param.rs`, which wins where it declares one
+  (vm-ranker/params.rs lagging behind it is reported, not a failure)
 - a file can't be parsed
 
 Favorite, Reply, Report, OON, VideoOpen, Vqv and Dwell are flagged `CRITICAL`. If the
@@ -90,8 +91,8 @@ daily CI job uses `--history`, below.
 `sync --history CLONE` reads both param files from a local clone of
 `xai-org/x-algorithm` and sorts every finding into one bucket:
 
-- **auto**: both upstream files agree on a new value.
-- **needs you**: a head was added or removed, the two files disagree, or a citation does not resolve.
+- **auto**: a value moved in `param.rs` (or in vm-ranker/params.rs, for values only it declares). `param.rs` wins when the two disagree.
+- **needs you**: a head was added or removed, or a citation does not resolve.
 - **re-verify**: a file weights.js cites has been touched since it was checked.
 
 Each value is dated from the history of its own file. The publication date
