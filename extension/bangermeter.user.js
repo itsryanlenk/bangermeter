@@ -57,7 +57,7 @@ var BANGERMETER_CONFIG = {
   //
   // That is a materially stronger claim than the 2023 release made — these are
   // asserted to BE the production values, not merely plausible defaults.
-  weightsSnapshot: "October 16, 2026 — xai-org/x-algorithm home-mixer/params/param.rs (upstream last-sync stamp 2026-10-16T16:00:32Z). param.rs and vm-ranker/params.rs no longer agree. This table follows param.rs, the cron snapshot of production defaults. vm-ranker/params.rs, the served scorer's compiled defaults, still has the September 29 numbers for five heads (favorite 0.5, video_open 0.07, post_unexplored 0.02, cont_dwell_time 0.004, not_interested −47.52). param.rs moved post_unexplored 0.02→0.015 in the Oct 6 sync (published Oct 7); video_open 0.07→0.02, cont_dwell_time 0.004→0.006 and favorite 0.5→0.6 in the Oct 12 sync (published Oct 13); favorite 0.6→0.66 and not_interested −47.52→−52.272 in the Oct 13 sync (published Oct 14). Six heads were added: video_continuation, user_video_continuation and profile_visit_secs at 0 in vm-ranker only (published Oct 6); react_with_video 0 in both files (Oct 12 sync, published Oct 13); video_carousel_video_open 1 and video_carousel_immersive_vqv 0 in param.rs only (Oct 14 sync, published Oct 15). Earlier, the September 29, 2026 sync (stamp 2026-09-29T17:02:52Z) changed click 0.4→0.3, cont_click_dwell_time 0.0→0.4, not_interested −43.2→−47.52, with both files agreeing on all 25. X deleted a 26th head, cont_active_secs_5m_residual_norm, weighted 0.0, in the Sept 23 sync, and three changed on Aug 25 — vqv 0.05→0.0, binary dwell 0.0→0.05, video_open 0.05→0.07",
+  weightsSnapshot: "October 16, 2026 — xai-org/x-algorithm home-mixer/params/param.rs (upstream last-sync stamp 2026-10-16T16:00:32Z). param.rs and vm-ranker/params.rs no longer agree. This table follows param.rs, the cron snapshot of production defaults. vm-ranker/params.rs, the served scorer's compiled defaults, still has the September 29 numbers for five heads (favorite 0.5, video_open 0.07, post_unexplored 0.02, cont_dwell_time 0.004, not_interested −47.52). param.rs moved post_unexplored 0.02→0.015 in the Oct 6 sync (published Oct 7); video_open 0.07→0.02, cont_dwell_time 0.004→0.006 and favorite 0.5→0.6 in the Oct 12 sync (published Oct 13); favorite 0.6→0.66 and not_interested −47.52→−52.272 in the Oct 13 sync (published Oct 14). Four heads were added, all at 0: video_continuation, user_video_continuation and profile_visit_secs in vm-ranker only (published Oct 6), and react_with_video in both files (Oct 12 sync, published Oct 13). Two video-carousel weights also appeared in param.rs (Oct 14 sync, published Oct 15); they are not ranking heads and the carousel is off by default. Why param.rs: vm-ranker's config_sync.rs polls the same live rust_home_mixer.yml that param.rs mirrors and reads the same rust_home_mixer_* keys, so its compiled defaults apply only when a key is missing. This snapshot is the Oct 16, 2026 sync, published Oct 17 (862a123). Earlier, the September 29, 2026 sync (stamp 2026-09-29T17:02:52Z) changed click 0.4→0.3, cont_click_dwell_time 0.0→0.4, not_interested −43.2→−47.52, with both files agreeing on all 25. X deleted a 26th head, cont_active_secs_5m_residual_norm, weighted 0.0, in the Sept 23 sync, and three changed on Aug 25 — vqv 0.05→0.0, binary dwell 0.0→0.05, video_open 0.05→0.07",
   // Machine-readable copy of the stamp above. Every score card pins this, and
   // packages/bangermeter-rank's sync job fails when live param.rs drifts from it.
   // Only param.rs carries a stamp; vm-ranker/params.rs has none.
@@ -134,7 +134,7 @@ var BANGERMETER_CONFIG = {
       provenance: "2026-published", label: "Quoted-post click" },
     post_unexplored: { weight: 0.015, param: "rust_home_mixer_post_unexplored_weight",
       provenance: "2026-published", label: "Post unexplored",
-      note: "In-network only — hard-wired in xai-value-model since Sept 24, 2026 (until then the PostUnexploredWeightInNetworkOnly switch, default true). Viewer-specific novelty — excluded from the content score. Cut from 0.02 to 0.015 in the Oct 6, 2026 param.rs sync, published Oct 7; vm-ranker/params.rs still compiles 0.02." },
+      note: "In-network only by default. Since the Oct 5, 2026 sync (published Oct 6, e62790c) a switch, post_unexplored_include_out_of_network, can extend it out of network; it defaults to false. It was hard-wired in-network from Sept 24, 2026, and before that was the PostUnexploredWeightInNetworkOnly switch (default true). Viewer-specific novelty — excluded from the content score. Cut from 0.02 to 0.015 in the Oct 6, 2026 param.rs sync, published Oct 7; vm-ranker/params.rs still compiles 0.02." },
     react_with_video: { weight: 0.0, param: "rust_home_mixer_react_with_video_weight",
       provenance: "2026-published", label: "React with video",
       note: "ZEROED. Added at 0.0 to both param.rs and vm-ranker/params.rs in the Oct 12, 2026 sync, published Oct 13. It is in positive_sum (xai-value-model/weights.rs), so turning it on would move the negative-offset scale. Bangermeter cannot see a video reaction." },
@@ -166,14 +166,6 @@ var BANGERMETER_CONFIG = {
       provenance: "2026-published", label: "Profile visit time", continuous: true,
       upstream: "vmParams",
       note: "ZEROED. Published only in vm-ranker/params.rs, first in the Oct 6, 2026 push. scoring.rs multiplies P(profile click) by predicted home profile-visit seconds. Like cont_dwell_time it is outside positive_sum, so at 0.0 it does not move the negative-offset scale." },
-    video_carousel_video_open: { weight: 1.0, param: "rust_home_mixer_video_carousel_video_open_weight",
-      provenance: "2026-published", label: "Carousel video open",
-      upstream: "paramRs",
-      note: "Published only in param.rs, at 1.0, from the Oct 14, 2026 sync (published Oct 15). It is not a For You value-model head: xai-value-model/weights.rs does not carry it, and it is not in positive_sum. It weights the video carousel, separate from video_open (0.02)." },
-    video_carousel_immersive_vqv: { weight: 0.0, param: "rust_home_mixer_video_carousel_immersive_vqv_weight",
-      provenance: "2026-published", label: "Carousel immersive view",
-      upstream: "paramRs",
-      note: "ZEROED. Published only in param.rs, from the Oct 14, 2026 sync (published Oct 15). Same carousel surface as video_carousel_video_open, and likewise outside the For You value-model sum." },
     vqv: { weight: 0.0, param: "rust_home_mixer_vqv_weight",
       provenance: "2026-published", label: "Video quality view",
       note: "ZEROED August 25, 2026 — it shipped at 0.05 through v0.10.0. The duration gate is still live and this tool still evaluates it: the clip must run STRICTLY LONGER than MinVideoDurationMs = 10,000, so a 10.000s clip and every GIF fail it (xai-value-model/proto.rs). The second gate — a VIEWER with 10,000 or more followers getting no vqv weight — no longer reaches the served ranking: since Sept 24, 2026 the final score comes from vm-ranker, which checks duration only, and the follower gate survives only in home-mixer's local fallback score (candidates_util.rs). Either way the gate now guards a term worth nothing. Kept because the machinery is intact and X can re-enable it by moving one number." },
@@ -200,6 +192,17 @@ var BANGERMETER_CONFIG = {
     not_dwelled: { weight: -0.02, param: "rust_home_mixer_not_dwelled_weight",
       provenance: "2026-published", label: "Not dwelled",
       note: "Scrolling straight past is now a scored penalty. Tiny per impression, but it applies to the majority of impressions, so in aggregate it is the largest negative an ordinary post carries." }
+  },
+  // NOT ranking heads. X publishes these in param.rs only (from the Oct 14,
+  // 2026 sync, published Oct 15). xai-value-model's weights_mut() lists 29
+  // heads and neither is one: home-mixer's video-carousel selector reads them,
+  // and EnableVideoCarousel defaults to false in param.rs (Oct 16, 2026 sync).
+  // Kept here so the weight sync checks them; nothing scores them.
+  carouselWeights: {
+    video_carousel_video_open: { weight: 1.0, param: "rust_home_mixer_video_carousel_video_open_weight",
+      provenance: "2026-published", label: "Carousel video open", upstream: "paramRs" },
+    video_carousel_immersive_vqv: { weight: 0.0, param: "rust_home_mixer_video_carousel_immersive_vqv_weight",
+      provenance: "2026-published", label: "Carousel immersive view", upstream: "paramRs" }
   },
 
   // reply_weight_for(candidate), xai-value-model/weights.rs. Applies ONLY when the
@@ -299,7 +302,7 @@ var BANGERMETER_CONFIG = {
       note: "TaskInitialBangerFilter rejects any post with `ancestors` (i.e. any reply) and any post from a protected account. Quality is carried as a boolean `isHighQuality`, not a numeric threshold." },
     negativeOffsetRule: {
       provenance: "xai-value-model/scoring.rs offset_score (formerly ranking_scorer.rs)",
-      note: "Any post whose weighted sum is net-negative is rescaled into [0, 0.000897) — negative_sum/total_sum × the 0.001 offset — so it ranks below every net-positive post regardless of how good the rest of it was. (The ceiling was 0.000896 until X's October 2026 param.rs reweights, and 0.000894 until Sept 29.)" },
+      note: "Any post whose weighted sum is net-negative is rescaled into [0, 0.000897) — negative_sum/total_sum × the 0.001 offset — so it ranks below every net-positive post regardless of how good the rest of it was. (The ceiling was 0.000896 until the Oct 13, 2026 param.rs sync (published Oct 14), and 0.000894 until Sept 29.)" },
 
     // ── Published by X on Aug 14 2026 ─────────────────────────────────────
     reportBaselineRatio: { value: 1000, provenance: "2026-published",
@@ -1350,7 +1353,7 @@ var BangermeterEngine = (function () {
       smoothingNote: views < K
         ? "Only " + views.toLocaleString() + " views — rates are smoothed toward the median (empirical Bayes, K=" + K.toLocaleString() + "), so small samples can't spike or tank the score."
         : null,
-      excludedNote: "Scored from the three heads a browser can see: likes (0.66), replies (" + replyW + "), reposts (1.0). The other 28 heads — shares (2.0 / 5.0 / 20.0), follows (4.0), clicks, dwell time and the negatives (−0.02 to −234.0) — need Phoenix's predictions, not counts."
+      excludedNote: "Scored from the three heads a browser can see: likes (" + BANGERMETER_CONFIG.heads.favorite.weight + "), replies (" + replyW + "), reposts (" + BANGERMETER_CONFIG.heads.retweet.weight + "). The other " + (Object.keys(BANGERMETER_CONFIG.heads).length - 3) + " heads — shares (2.0 / 5.0 / 20.0), follows (4.0), clicks, dwell time and the negatives (−0.02 to −234.0) — need Phoenix's predictions, not counts."
     };
   }
 
@@ -2337,12 +2340,12 @@ var BangermeterEngine = (function () {
         { icon: "repost", n: counts.retweets, one: "repost", many: "reposts",
           worth: "each worth " + likesEquiv(BANGERMETER_CONFIG.heads.retweet.weight) + " likes",
           tip: "Weight " + BANGERMETER_CONFIG.heads.retweet.weight + " vs " +
-            BANGERMETER_CONFIG.heads.favorite.weight + " for a like (param.rs). A ratio of coefficients on " +
+            BANGERMETER_CONFIG.heads.favorite.weight + " for a like (param.rs, " + BANGERMETER_CONFIG.paramRsLastSync.slice(0, 10) + " sync). A ratio of coefficients on " +
             "same-denominator rates — meaningful inside this score, and only here. X warns that " +
             "weight ratios are NOT count equivalences in general; see the fine print below." },
         { icon: "like", n: counts.likes, one: "like", many: "likes",
           worth: "the baseline unit",
-          tip: "Weight " + BANGERMETER_CONFIG.heads.favorite.weight + " (param.rs)" },
+          tip: "Weight " + BANGERMETER_CONFIG.heads.favorite.weight + " (param.rs, " + BANGERMETER_CONFIG.paramRsLastSync.slice(0, 10) + " sync)" },
         { icon: "bookmark", n: counts.bookmarks, one: "bookmark", many: "bookmarks",
           worth: "not a scored action — X publishes no bookmark weight",
           tip: BANGERMETER_CONFIG.unweightedSignals.bookmark.note }
