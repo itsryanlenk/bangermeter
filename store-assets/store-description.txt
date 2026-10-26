@@ -29,7 +29,7 @@ WHAT YOU GET
 
 • A weight table in the popup. All 29 ranking heads, their published values, and which ones the extension can measure versus estimate.
 
-• Reply mode. Reply drafts are scored as replies (they take a ×0.75 factor in the published math), and the breakdown explains what X publishes about replies: out-of-network replies never reach For You at all, replies never get the mutual-follow boost, and replies to accounts over 250K followers (as of 30 September) are quality-scored by a Grok model whose rubric X withholds.
+• Reply mode. Reply drafts are scored as replies (they take a ×0.75 factor in the published math), and the breakdown explains what X publishes about replies: out-of-network replies never reach For You at all, replies never get the mutual-follow boost, and replies to accounts over 250K followers (as of 24 October) are quality-scored by a Grok model whose rubric X withholds.
 
 • Draft comparison. Save up to three variants of a draft and pick the best-scoring one before posting. Variants live in memory only.
 
@@ -81,6 +81,17 @@ OPEN SOURCE
 MIT licensed, with the full research record and 363 automated tests that check every published weight against X's source individually.
 
 github.com/itsryanlenk/bangermeter
+
+
+WHAT'S NEW IN 0.10.5
+
+• The Brazil election filter now covers 25 accounts, not 2,795. After a letter and dispatch from Brazil's Electoral Court presidency, X cut its list on 13 October (published 14 October) to 25 accounts tied to the 25 October runoff: candidates, plus fan, campaign and party accounts. Version 0.10.4 still said 2,795. For You still removes their posts, reposts and quotes of them, and replies anywhere in a thread below their posts, unless you follow the account. The runoff is over, so expect X to change this list again.
+
+• No scoring weight changed. X published five more updates between 20 and 24 October, and every ranking weight still matches its 16 October values, through the 23 October sync (published 24 October). One pipeline change did land: X published a new filter on 21 October, and switched it on in the 21 October sync (published 22 October). It can cap the posts sent to scoring at 2,800 per request, keeping the same share from each source that found them. It changes which posts get scored, not how any post scores.
+
+• The "Visibility limited" details are re-checked against X's 24 October code. X rewrote its visibility-filtering code that week, but the rules For You applies to these posts did not change: X's published code still usually removes them from For You for everyone but the author.
+
+• Two smaller notes. Out-of-network replies are still dropped from For You by default; since the 2 October sync (published 3 October), X has a switch that could let some through, and it ships off. And the exemption from X's risky high-visibility reply label, which also covers grey-badge accounts, now needs a credibility score of at least 66 when X has one for the account. That cutoff dates from the 7 October sync (published 8 October), after 60 and then 62 earlier that month; 0.10.4 missed it.
 
 
 WHAT'S NEW IN 0.10.4

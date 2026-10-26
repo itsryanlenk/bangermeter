@@ -143,7 +143,7 @@ what the published weights actually say.
   block/report campaigns mostly shift what gets recommended to users similar to the
   brigaders rather than burying the post for everyone.
 - **Hard filters sit outside scoring.** `Brazil2026ElectionFilter` removes posts from 25 accounts (as of
-  Oct 24, 2026; cut from 2,795 to the runoff candidates on Oct 14) reported to Brazil's Electoral Court from For You unless you follow them. It runs before
+  Oct 24, 2026; cut from 2,795 to accounts tied to the Oct 25 runoff on Oct 14) reported to Brazil's Electoral Court from For You unless you follow them. It runs before
   ranking, so no weight offsets it — a reminder that the weighted sum is not the whole
   system.
 - **The honest boundary.** The weights are X's. The probabilities are ours. X predicts them
