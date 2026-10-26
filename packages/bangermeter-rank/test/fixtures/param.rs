@@ -1,4 +1,4 @@
-// mirrored from config feature-switch defaults; last sync 2026-10-16T16:00:32Z
+// mirrored from config feature-switch defaults; last sync 2026-10-23T16:00:34Z
 use xai_feature_switches::param;
 
 param!(FavoriteWeight, f64, "rust_home_mixer_favorite_weight", 0.66);
