@@ -11,7 +11,7 @@ const vmParams = fx("vm-params.rs");
 
 test("parse reads the last-sync stamp and numeric defaults (including 10_000 literals)", () => {
   const p = sync.parse(paramRs);
-  assert.equal(p.lastSync, "2026-10-16T16:00:32Z");
+  assert.equal(p.lastSync, "2026-10-23T16:00:34Z");
   assert.equal(p.params.rust_home_mixer_favorite_weight, 0.66);
   assert.equal(p.params.rust_home_mixer_report_weight, -234.0);
   assert.equal(p.params.rust_home_mixer_min_video_duration_ms, 10000);
@@ -31,7 +31,7 @@ test("acceptance: pinned fixtures match the repo", () => {
   assert.equal(r.live.rust_home_mixer_dwell_weight, 0.05);
   assert.equal(r.live.rust_home_mixer_click_weight, 0.3);
   assert.equal(r.live.rust_home_mixer_cont_click_dwell_time_weight, 0.4);
-  assert.equal(r.lastSync, "2026-10-16T16:00:32Z");
+  assert.equal(r.lastSync, "2026-10-23T16:00:34Z");
   assert.equal(r.stampMatchesPin, true);
 });
 
@@ -72,10 +72,10 @@ test("param.rs wins when the files disagree: vm-ranker lagging is a note, not dr
 });
 
 test("an advanced stamp with unchanged values passes but is reported", () => {
-  const r = sync.check({ paramRs: paramRs.replace("2026-10-16T16:00:32Z", "2026-10-17T00:00:00Z"), vmParams });
+  const r = sync.check({ paramRs: paramRs.replace("2026-10-23T16:00:34Z", "2026-10-24T00:00:00Z"), vmParams });
   assert.equal(r.ok, true, JSON.stringify(r.problems, null, 1));
   assert.equal(r.stampMatchesPin, false);
-  assert.equal(r.lastSync, "2026-10-17T00:00:00Z");
+  assert.equal(r.lastSync, "2026-10-24T00:00:00Z");
 });
 
 test("a head X publishes in only one file is required there and not in the other", () => {
