@@ -78,18 +78,20 @@ Everything runs locally in your browser. The source is public and reviewable.
 
 OPEN SOURCE
 
-MIT licensed, with the full research record and 363 automated tests that check every published weight against X's source individually.
+MIT licensed, with the full research record and 364 automated tests that check every published weight against X's source individually.
 
 github.com/itsryanlenk/bangermeter
 
 
 WHAT'S NEW IN 0.10.5
 
-• The Brazil election filter now covers 25 accounts, not 2,795. After a letter and dispatch from Brazil's Electoral Court presidency, X cut its list on 13 October (published 14 October) to 25 accounts tied to the 25 October runoff: candidates, plus fan, campaign and party accounts. Version 0.10.4 still said 2,795. For You still removes their posts, reposts and quotes of them, and replies anywhere in a thread below their posts, unless you follow the account. The runoff is over, so expect X to change this list again.
+• The Brazil election filter is gone. X removed it from For You after the election: X's own notes date the removal 26 October, and the code removal was published 28 October. It no longer removes posts from the accounts it covered, and the breakdown no longer lists it. Before that, after a letter and dispatch from Brazil's Electoral Court presidency, X had cut the list on 13 October (published 14 October) from 2,795 accounts to 25 tied to the 25 October runoff. Version 0.10.4 still said 2,795. A separate rule is unaffected: for requests from Brazil, For You still hides posts carrying X's BRAZIL_ELECTION_LEGAL label (AI-generated election media) out-of-network, along with posts that quote them or reply under them.
 
-• No scoring weight changed. X published five more updates between 20 and 24 October, and every ranking weight still matches its 16 October values, through the 23 October sync (published 24 October). One pipeline change did land: X published a new filter on 21 October, and switched it on in the 21 October sync (published 22 October). It can cap the posts sent to scoring at 2,800 per request, keeping the same share from each source that found them. It changes which posts get scored, not how any post scores.
+• No ranking weight changed. X published eight more updates between 20 and 29 October, and every ranking weight is unchanged since the 13 October sync (published 14 October), through the 28 October sync (published 29 October). A third video-carousel weight appeared in that last sync, at 0; the carousel is still off by default. One change to which posts get ranked was switched on: X published a new filter on 21 October and turned it on in the 21 October sync (published 22 October). X already kept at most 2,800 posts after scoring; this filter now trims to 2,800 before scoring, keeping the same share from each source that found them. It changes which posts get scored, not how any post scores. Two new ranking steps from the same updates, a page-level reranker and an exploration step, ship off.
 
-• The "Visibility limited" details are re-checked against X's 24 October code. X rewrote its visibility-filtering code that week, but the rules For You applies to these posts did not change: X's published code still usually removes them from For You for everyone but the author.
+• Since the 26 October sync (published 27 October), X also sends its scoring service, vm-ranker, the seven content facts it collects about each post (video, photo, text length, newlines, links and so on), along with the viewer's engagement history. No published vm-ranker code reads the content facts. The history is read by a new step that adjusts predictions per user, and that step ships off and needs a model and a library X has not published.
+
+• The "Visibility limited" details are re-checked against X's 29 October code. X reworked its visibility-filtering code in nearly every late-October update, but the rules For You applies to these posts did not change: X's published code still usually removes them from For You for everyone but the author.
 
 • Two smaller notes. Out-of-network replies are still dropped from For You by default; since the 2 October sync (published 3 October), X has a switch that could let some through, and it ships off. And the exemption from X's risky high-visibility reply label, which also covers grey-badge accounts, now needs a credibility score of at least 66 when X has one for the account. That cutoff dates from the 7 October sync (published 8 October), after 60 and then 62 earlier that month; 0.10.4 missed it.
 
