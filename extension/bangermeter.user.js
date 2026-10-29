@@ -57,11 +57,11 @@ var BANGERMETER_CONFIG = {
   //
   // That is a materially stronger claim than the 2023 release made — these are
   // asserted to BE the production values, not merely plausible defaults.
-  weightsSnapshot: "October 23, 2026 — xai-org/x-algorithm home-mixer/params/param.rs (upstream last-sync stamp 2026-10-23T16:00:34Z). param.rs and vm-ranker/params.rs no longer agree. This table follows param.rs, the cron snapshot of production defaults. vm-ranker/params.rs, the served scorer's compiled defaults, still has the September 29 numbers for five heads (favorite 0.5, video_open 0.07, post_unexplored 0.02, cont_dwell_time 0.004, not_interested −47.52). param.rs moved post_unexplored 0.02→0.015 in the Oct 6 sync (published Oct 7); video_open 0.07→0.02, cont_dwell_time 0.004→0.006 and favorite 0.5→0.6 in the Oct 12 sync (published Oct 13); favorite 0.6→0.66 and not_interested −47.52→−52.272 in the Oct 13 sync (published Oct 14). Four heads were added, all at 0: video_continuation, user_video_continuation and profile_visit_secs in vm-ranker only (published Oct 6), and react_with_video in both files (Oct 12 sync, published Oct 13). Two video-carousel weights also appeared in param.rs (Oct 14 sync, published Oct 15); they are not ranking heads and the carousel is off by default. Why param.rs: vm-ranker's config_sync.rs polls the same live rust_home_mixer.yml that param.rs mirrors, and both use the same rust_home_mixer_* keys. How the scorer resolves a key missing from that config is in a feature-switch library X has not published. The values were last changed in the Oct 16, 2026 sync, published Oct 17 (862a123), and are unchanged through the Oct 23 sync, published Oct 24 (6258a15). Earlier, the September 29, 2026 sync (stamp 2026-09-29T17:02:52Z) changed click 0.4→0.3, cont_click_dwell_time 0.0→0.4, not_interested −43.2→−47.52, with both files agreeing on all 25. X deleted a 26th head, cont_active_secs_5m_residual_norm, weighted 0.0, in the Sept 23 sync, and three changed on Aug 25 — vqv 0.05→0.0, binary dwell 0.0→0.05, video_open 0.05→0.07",
+  weightsSnapshot: "October 28, 2026 — xai-org/x-algorithm home-mixer/params/param.rs (upstream last-sync stamp 2026-10-28T16:00:35Z). param.rs and vm-ranker/params.rs no longer agree. This table follows param.rs, the cron snapshot of production defaults. vm-ranker/params.rs, the served scorer's compiled defaults, still has the September 29 numbers for five heads (favorite 0.5, video_open 0.07, post_unexplored 0.02, cont_dwell_time 0.004, not_interested −47.52). param.rs moved post_unexplored 0.02→0.015 in the Oct 6 sync (published Oct 7); video_open 0.07→0.02, cont_dwell_time 0.004→0.006 and favorite 0.5→0.6 in the Oct 12 sync (published Oct 13); favorite 0.6→0.66 and not_interested −47.52→−52.272 in the Oct 13 sync (published Oct 14). Four heads were added, all at 0: video_continuation, user_video_continuation and profile_visit_secs in vm-ranker only (published Oct 6), and react_with_video in both files (Oct 12 sync, published Oct 13). Two video-carousel weights also appeared in param.rs (Oct 14 sync, published Oct 15); they are not ranking heads and the carousel is off by default. Why param.rs: vm-ranker's config_sync.rs polls the same live rust_home_mixer.yml that param.rs mirrors, and both use the same rust_home_mixer_* keys. How the scorer resolves a key missing from that config is in a feature-switch library X has not published. The values were last changed in the Oct 16, 2026 sync, published Oct 17 (862a123), and are unchanged through the Oct 28 sync, published Oct 29 (606b254). A third video-carousel weight, at 0, appeared in that sync. Earlier, the September 29, 2026 sync (stamp 2026-09-29T17:02:52Z) changed click 0.4→0.3, cont_click_dwell_time 0.0→0.4, not_interested −43.2→−47.52, with both files agreeing on all 25. X deleted a 26th head, cont_active_secs_5m_residual_norm, weighted 0.0, in the Sept 23 sync, and three changed on Aug 25 — vqv 0.05→0.0, binary dwell 0.0→0.05, video_open 0.05→0.07",
   // Machine-readable copy of the stamp above. Every score card pins this, and
   // packages/bangermeter-rank's sync job fails when live param.rs drifts from it.
   // Only param.rs carries a stamp; vm-ranker/params.rs has none.
-  paramRsLastSync: "2026-10-23T16:00:34Z",
+  paramRsLastSync: "2026-10-28T16:00:35Z",
   // WHERE THE SCORE IS COMPUTED (moved Sept 24, 2026 — 44d37eb). home-mixer's
   // RankingScorer (ranking_scorer.rs) was deleted. home-mixer now sends each
   // slate to a separate vm-ranker service, which computes the final score with
@@ -193,16 +193,22 @@ var BANGERMETER_CONFIG = {
       provenance: "2026-published", label: "Not dwelled",
       note: "Scrolling straight past is now a scored penalty. Tiny per impression, but it applies to the majority of impressions, so in aggregate it is the largest negative an ordinary post carries." }
   },
-  // NOT ranking heads. X publishes these in param.rs only (from the Oct 14,
-  // 2026 sync, published Oct 15). xai-value-model's weights_mut() lists 29
-  // heads and neither is one: home-mixer's video-carousel selector reads them,
-  // and EnableVideoCarousel defaults to false in param.rs (Oct 16, 2026 sync).
+  // NOT ranking heads. X publishes these in param.rs only (the first two from
+  // the Oct 14, 2026 sync, published Oct 15; the third from the Oct 28 sync,
+  // published Oct 29). xai-value-model's weights_mut() lists 29 heads and none
+  // of these is one: home-mixer's video-carousel code reads them only when
+  // EnableVideoCarousel is on, and it defaults to false in param.rs (still
+  // false at the Oct 28, 2026 sync).
   // Kept here so the weight sync checks them; nothing scores them.
   carouselWeights: {
     video_carousel_video_open: { weight: 1.0, param: "rust_home_mixer_video_carousel_video_open_weight",
       provenance: "2026-published", label: "Carousel video open", upstream: "paramRs" },
     video_carousel_immersive_vqv: { weight: 0.0, param: "rust_home_mixer_video_carousel_immersive_vqv_weight",
-      provenance: "2026-published", label: "Carousel immersive view", upstream: "paramRs" }
+      provenance: "2026-published", label: "Carousel immersive view", upstream: "paramRs" },
+    // Added in the Oct 28, 2026 sync (published Oct 29, 606b254), at 0.
+    video_carousel_open_times_immersive_dwell: { weight: 0.0,
+      param: "rust_home_mixer_video_carousel_open_times_immersive_dwell_weight",
+      provenance: "2026-published", label: "Carousel open × immersive dwell", upstream: "paramRs" }
   },
 
   // reply_weight_for(candidate), xai-value-model/weights.rs. Applies ONLY when the
@@ -314,12 +320,13 @@ var BANGERMETER_CONFIG = {
     brigadingResistance: { provenance: "2026-published",
       note: "Mass block/report campaigns do not straightforwardly suppress reach. X gives two reasons: the model predicts an individual viewer's likelihood of the action rather than summing weights over counts, and recommendations are personalized — so reports from bad actors mainly affect what gets recommended to users similar to those bad actors, rather than moving the post for everyone." },
 
-    // Counted at 6258a15: numeric literals in the FxHashSet, all unique. The
-    // file's own test module holds three more numeric lines; don't count those.
-    brazil2026ElectionFilter: { accounts: 25, accountsAsOf: "2026-10-24", provenance: "2026-published",
-      verifiedAt: "6258a15",
-      param: "home-mixer/filters/brazil_2026_election_filter.rs",
-      note: "For You removes posts from 25 accounts reported to Brazil's Electoral Court for the 2026 election, unless the viewer follows the account (count read Oct 24, 2026). Reposts and quotes of those accounts, and replies anywhere in a thread below their posts, are removed too. The list grew for two months — 665 accounts when X first published it on Aug 14, 2,328 on Aug 25, 2,776 by Sept 18, 2,795 on Sept 30 — and then shrank: after a letter and dispatch from the Electoral Court's presidency, X cut it on Oct 13 (published Oct 14, 17c96bf) to 25 accounts tied to the Oct 25 runoff — candidates, plus fan, campaign and party accounts. Version 0.10.4, built Oct 17, still said 2,795. With the runoff over, expect the filter to change again; treat the count as a reading, not a constant. Compiled in rather than feature-switched: IDs obfuscated, usernames left in source for transparency. A hard filter that runs before scoring, so no weight can offset it." },
+    // HISTORY ONLY. X deleted home-mixer/filters/brazil_2026_election_filter.rs in
+    // 5ed7963, so this fact cites no file: there is nothing left for the drift job
+    // to watch. Counts were unique numeric literals inside the FxHashSet (the
+    // file's test module held three more numeric lines; those were not counted).
+    brazil2026ElectionFilter: { removed: true, removedAsOf: "2026-10-28", provenance: "2026-published",
+      verifiedAt: "606b254", accountsAtRemoval: 25,
+      note: "REMOVED. X deleted the filter from For You after the election: its own release notes date the removal Oct 26, 2026, and the code went out in the Oct 27 sync (published Oct 28, 5ed7963). Posts from the accounts it covered are no longer filtered out because of it. While it ran, For You removed posts from accounts reported to Brazil's Electoral Court for the 2026 election, and reposts and quotes of them and replies anywhere in a thread below their posts, unless the viewer followed the account. A hard filter that ran before scoring, so no weight could offset it. The list grew for two months — 665 accounts when X first published it on Aug 14, 2,328 on Aug 25, 2,776 by Sept 18, 2,795 on Sept 30 — then, after a letter and dispatch from the Electoral Court's presidency, X cut it on Oct 13 (published Oct 14, 17c96bf) to 25 accounts tied to the Oct 25 runoff. Version 0.10.4, built Oct 17, still said 2,795. A separate safety label, BRAZIL_ELECTION_LEGAL (AI-generated election media), is a different rule and is unaffected: a labeled post is still dropped out-of-network for viewers whose request comes from Brazil (tweet_rules.rs and levels.rs at 606b254)." },
 
     // ── Author cold start (verified against the repo 2026-09-30) ─────────
     // The one published mechanism that deliberately promotes newer posts from
@@ -356,7 +363,7 @@ var BANGERMETER_CONFIG = {
         "weighted_text_len", "newline_count", "has_url"],
       urlWeightedLen: 23, wideCharWeight: 2,
       mediaAttachmentIsNotExternalUrl: true,
-      note: "Added to the published repo on Sept 8, 2026 and sent to Phoenix with every candidate: seven facts about a post's content — whether it has video, the longest video's duration, whether it has a photo, how many media items, the weighted text length, the newline count, and whether it has a URL. No published model code reads them yet: the published Phoenix feature prep never touches these fields, and the only other published consumer is an off-by-default vm-ranker debias payload. So the repo shows X SENDING them to the ranker, not what the ranker does with them. Weighted length follows X's text rules in simplified form — any http:// or https:// token counts 23 regardless of its real length, CJK and emoji count 2, Latin counts 1. Note is_url matches only those two prefixes, so a bare domain is counted character by character. Two consequences worth knowing: a media attachment's own t.co link is subtracted before has_url is decided, so posting an image does NOT make your post 'have a link'; and newline_count is a field in its own right, the first published sign that X considers post SHAPE — not just length — worth sending to the ranker. No weights are attached to any of these, so this tool reports them and does not score them." },
+      note: "Added to the published repo on Sept 8, 2026 and sent to Phoenix with every candidate: seven facts about a post's content — whether it has video, the longest video's duration, whether it has a photo, how many media items, the weighted text length, the newline count, and whether it has a URL. No published model code reads them yet: the published Phoenix feature prep never touches these fields. Since the Oct 26, 2026 sync (published Oct 27, 2f25214) home-mixer also sends them to vm-ranker by default, inside the debias payload (vm_ranker_send_debias_inputs flipped to true), but no published vm-ranker code reads that per-post payload: vm-ranker's new user-debias step reads only the request's engagement sequence, and it ships off (user_debias_enabled false, strength 0.0) and needs a model from a library X has not published. A rewrite of content_features.rs published Oct 27 (2f25214) only made the length count faster; X's own test checks it against the old method. So the repo shows X SENDING them to the ranker, not what the ranker does with them. Weighted length follows X's text rules in simplified form — any http:// or https:// token counts 23 regardless of its real length, CJK and emoji count 2, Latin counts 1. Note is_url matches only those two prefixes, so a bare domain is counted character by character. Two consequences worth knowing: a media attachment's own t.co link is subtracted before has_url is decided, so posting an image does NOT make your post 'have a link'; and newline_count is a field in its own right, the first published sign that X considers post SHAPE — not just length — worth sending to the ranker. No weights are attached to any of these, so this tool reports them and does not score them." },
 
     // ── Reply-specific facts (verified against the repo 2026-09-19) ───────
     conversationRanker: { published: false, provenance: "2026-published",
@@ -366,7 +373,7 @@ var BANGERMETER_CONFIG = {
       source: "home-mixer/filters/oon_retweet_reply_filter.rs",
       note: "OONRetweetReplyFilter removes replies (and reposts) from unfollowed accounts from For You candidates entirely — an out-of-network reply is not down-weighted, it is gone. Replies with a missing parent are dropped too. Since the Oct 2, 2026 sync (published Oct 3, b412112) a switch, enable_phoenix_oon_replies, can let out-of-network replies that Phoenix retrieval found through, optionally only those replying directly to the thread root. It defaults to false, so at published defaults the filter still removes them all." },
 
-    // ── The "Visibility limited" notice (first verified at 77d431a, 2026-09-30; re-verified at 862a123, 2026-10-17, and at 6258a15, 2026-10-24) ──
+    // ── The "Visibility limited" notice (first verified at 77d431a, 2026-09-30; re-verified at 862a123, 2026-10-17, at 6258a15, 2026-10-24, and at 606b254, 2026-10-29) ──
     // Through v0.10.2 the panel said "reach suppressed (magnitude unpublished)"
     // and cited FreedomOfSpeechNotReach.scala. That file is the 2023 archive.
     // The 2026 code has no reach magnitude to withhold: For You drops these
@@ -375,7 +382,7 @@ var BANGERMETER_CONFIG = {
     // itself was first published Jan 20, at aaa167b.)
     visibilityLimited: {
       provenance: "2026-published",
-      verifiedAt: "6258a15", verifiedAsOf: "2026-10-24",
+      verifiedAt: "606b254", verifiedAsOf: "2026-10-29",
       forYouLevels: ["TimelineHome", "TimelineHomeRecommendations"],
       droppedExceptAuthor: ["FOSNR_HATEFUL_CONDUCT", "FOSNR_VIOLENT_SPEECH",
         "FOSNR_ABUSE", "FOSNR_CIVIC_INTEGRITY"],
@@ -386,23 +393,23 @@ var BANGERMETER_CONFIG = {
       fosnrLimitedEngagementHydrationAuthorSince: "2026-10-08",
       noticeRenderingPublished: false,
       sources: [
-        "home-mixer/candidate_hydrators/vf_candidate_hydrator.rs@6258a15 (lines 67-106: in-network posts and reposted originals at TimelineHome; out-of-network posts, ancestors and quoted posts at TimelineHomeRecommendations)",
-        "home-mixer/candidate_hydrators/vf_candidate_hydrator.rs@6258a15 (lines 140-170: a post whose quoted post, reposted original or ancestor is dropped is flagged, and AncillaryVFFilter removes it)",
-        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs@6258a15 (lines 482, 507-508: wired into For You)",
-        "home-mixer/filters/vf_filter.rs@6258a15 (lines 14-27: Drop, Tombstone and NotEvaluated are removed; a post with no verdict is kept)",
-        "home-mixer/candidate_pipeline/for_you_candidate_pipeline.rs@6258a15 (lines 218-227: PushToHomeSource posts get no VF filter)",
-        "home-mixer/sources/thunder_source.rs@6258a15 (lines 93-99: an in-network reply's ancestors are its parent and thread root)",
-        "visibility-filtering/rules/tweet_rules.rs@6258a15 (lines 131-157: four labels dropped except for the author; lines 159-164: FOSNR_ABUSE_INSULTS)",
-        "visibility-filtering/rules/levels.rs@6258a15 (lines 112-115, 171-174, 211: the four drops run at both levels, FOSNR_ABUSE_INSULTS at the out-of-network level only; registry.rs was deleted in 862a123)",
-        "visibility-filtering/models/verdict.rs@6258a15 (lines 179-193: the verdict model's LimitedEngagementReason has no FOSNR variant; lines 19-26: an author's FOSNR limits travel as a Notice::Appealable instead)",
-        "visibility-filtering-client/graphql_results.rs@6258a15 (lines 186-203: decodes a FosnrReason in limited_engagements; since Oct 8, 2026 one published rule emits it, for the author only, at TimelineHomeHydration: tweet_rules.rs lines 191-196, levels.rs line 238, treatment.rs lines 58-73 and 263-277)",
-        "home-mixer/candidate_hydrators/vf_following_candidate_hydrator.rs@6258a15 (line 63: the chronological Following feed checks every post at TimelineHome)",
-        "home-mixer/server.rs@6258a15 (line 559: the ranked Following feed sets in_network_only and runs the For You pipeline)",
-        "under-the-hood/strato/lib/underTheHoodLabels.strato@6258a15 (lines 75-104: X's own description of the notice)"
+        "home-mixer/candidate_hydrators/vf_candidate_hydrator.rs@606b254 (lines 67-106: in-network posts and reposted originals at TimelineHome; out-of-network posts, ancestors and quoted posts at TimelineHomeRecommendations)",
+        "home-mixer/candidate_hydrators/vf_candidate_hydrator.rs@606b254 (lines 140-170: a post whose quoted post, reposted original or ancestor is dropped is flagged, and AncillaryVFFilter removes it)",
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs@606b254 (lines 478, 503-504: wired into For You)",
+        "home-mixer/filters/vf_filter.rs@606b254 (lines 14-27: Drop, Tombstone and NotEvaluated are removed; a post with no verdict is kept)",
+        "home-mixer/candidate_pipeline/for_you_candidate_pipeline.rs@606b254 (lines 228-237: PushToHomeSource posts get no VF filter)",
+        "home-mixer/sources/thunder_source.rs@606b254 (lines 89-95: an in-network reply's ancestors are its parent and thread root)",
+        "visibility-filtering/rules/tweet_rules.rs@606b254 (lines 134-160: four labels dropped except for the author; lines 162-167: FOSNR_ABUSE_INSULTS)",
+        "visibility-filtering/rules/levels.rs@606b254 (lines 102-107, grouped as FOSNR_DROPS and used at 205 and 237; line 254: the four drops run at both levels, FOSNR_ABUSE_INSULTS at the out-of-network level only; registry.rs was deleted in 862a123)",
+        "visibility-filtering/models/verdict.rs@606b254 (lines 209-223: the verdict model's LimitedEngagementReason has no FOSNR variant; lines 18-25: an author's FOSNR limits travel as a Notice::Appealable instead)",
+        "visibility-filtering-client/graphql_results.rs@606b254 (lines 186-203: decodes a FosnrReason in limited_engagements; since Oct 8, 2026 one published rule emits it, for the author only, at TimelineHomeHydration: tweet_rules.rs lines 194-199, levels.rs line 279, treatment.rs lines 65-80 and 279-293)",
+        "home-mixer/candidate_hydrators/vf_following_candidate_hydrator.rs@606b254 (line 63: the chronological Following feed checks every post at TimelineHome)",
+        "home-mixer/server.rs@606b254 (line 559: the ranked Following feed sets in_network_only and runs the For You pipeline)",
+        "under-the-hood/strato/lib/underTheHoodLabels.strato@606b254 (lines 75-104: X's own description of the notice)"
       ],
       panel: "Visibility limited by X — X's published code usually removes it from For You for everyone but the author",
       panelDetail: "One exception: a post labeled FOSNR_ABUSE_INSULTS is removed only out-of-network, so the author's followers can still get it. Where the post still appears, as here, X shows this notice. That rendering is not in X's published code.",
-      note: "X's own descriptions say five FOSNR labels come with 'a label explaining that the post has limited visibility', shown to all users (underTheHoodLabels.strato). The on-screen words 'Visibility limited' are not in source. For You checks in-network posts and reposted originals at the TimelineHome safety level, and out-of-network posts, plus every candidate's ancestors and quoted post, at TimelineHomeRecommendations. FOSNR_HATEFUL_CONDUCT, FOSNR_VIOLENT_SPEECH, FOSNR_ABUSE and FOSNR_CIVIC_INTEGRITY are dropped at both levels for every viewer except the author. FOSNR_ABUSE_INSULTS is dropped at the out-of-network level only. vf_filter.rs removes every Drop verdict, so these posts are gone from For You, not ranked lower. A post that quotes one, or whose parent or thread root is one, is removed with it. Two published paths skip all of this: a post whose visibility check fails gets no verdict and is kept, and posts from PushToHomeSource pass through no VF filter. The chronological Following feed checks every post at TimelineHome, so it removes the same four labels. The ranked Following feed runs the For You checks. No For You level emits a FOSNR notice or a FOSNR limited-engagement verdict. Only TimelineHomeHydration does, which no published For You code calls: since Oct 6, 2026 (e62790c) a soft-intervention notice for a follower of the author of a FOSNR_ABUSE_INSULTS post, and since Oct 8 (35650fb) an appealable notice for the author on all five labels, which carries a FOSNR limited-engagement verdict for the author. Every one of these rules also requires the client's FOSNR rules switch, which is on by default. Where and how X renders the notice is not in the published code. Bangermeter's score assumes the post can reach For You. Apart from those two paths, a post carrying this notice reaches only its author in For You, plus, when the label is FOSNR_ABUSE_INSULTS, the author's followers. A FOSNR_ABUSE_INSULTS post that an account the viewer follows reposts is checked at TimelineHome, which keeps it, so the published For You code lets that repost through to anyone following the account that reposts it. That path is contested: X's TimelineHomeHydration level, which X compares against its production tweet hydration (getTweetFields) and which no published For You code calls, drops FOSNR_ABUSE_INSULTS for every non-follower of the author (fosnr_abuse_insults_non_follower, on by default) and, since Oct 6, 2026, gives the author's followers a soft-intervention notice instead, and a repost takes its original's verdict when the original is withheld (retweet.rs merge_source; before Oct 15, 2026, merge_verdict). Whether such a repost reaches a non-follower is not settled by the published code." },
+      note: "X's own descriptions say five FOSNR labels come with 'a label explaining that the post has limited visibility', shown to all users (underTheHoodLabels.strato). The on-screen words 'Visibility limited' are not in source. For You checks in-network posts and reposted originals at the TimelineHome safety level, and out-of-network posts, plus every candidate's ancestors and quoted post, at TimelineHomeRecommendations. FOSNR_HATEFUL_CONDUCT, FOSNR_VIOLENT_SPEECH, FOSNR_ABUSE and FOSNR_CIVIC_INTEGRITY are dropped at both levels for every viewer except the author. FOSNR_ABUSE_INSULTS is dropped at the out-of-network level only. vf_filter.rs removes every Drop verdict, so these posts are gone from For You, not ranked lower. A post that quotes one, or whose parent or thread root is one, is removed with it. Two published paths skip all of this: a post whose visibility check fails gets no verdict and is kept, and posts from PushToHomeSource pass through no VF filter. The chronological Following feed checks every post at TimelineHome, so it removes the same four labels. The ranked Following feed runs the For You checks. No For You level emits a FOSNR notice or a FOSNR limited-engagement verdict. Only TimelineHomeHydration does, which no published For You code calls: since Oct 6, 2026 (e62790c) a soft-intervention notice for a follower of the author of a FOSNR_ABUSE_INSULTS post, and since Oct 8 (35650fb) an appealable notice for the author on all five labels, which carries a FOSNR limited-engagement verdict for the author. Every one of these rules also requires the client's FOSNR rules switch, which is on by default. Where and how X renders the notice is not in the published code. Bangermeter's score assumes the post can reach For You. Apart from those two paths, a post carrying this notice reaches only its author in For You, plus, when the label is FOSNR_ABUSE_INSULTS, the author's followers. A FOSNR_ABUSE_INSULTS post that an account the viewer follows reposts is checked at TimelineHome, which keeps it, so the published For You code lets that repost through to anyone following the account that reposts it. That path is contested: X's TimelineHomeHydration level, which X compares against its production tweet hydration (getTweetFields) and which no published For You code calls, drops FOSNR_ABUSE_INSULTS for every non-follower of the author (fosnr_abuse_insults_non_follower, on by default) and, since Oct 6, 2026, gives the author's followers a soft-intervention notice instead, and a repost takes its original's verdict when the original is withheld (post_evaluator/retweet.rs merge_source, moved there Oct 27, 2026 in 2f25214; before Oct 15, 2026, merge_verdict). Whether such a repost reaches a non-follower is not settled by the published code." },
 
     replyQualityGate: {
       followerThreshold: 250000, scoreMin: 0, scoreMax: 3,
@@ -476,29 +483,29 @@ var BANGERMETER_CONFIG = {
         "AbusiveHighRecall", "DoNotAmplify"]
     },
 
-    // ── A post that quotes a "Visibility limited" post (verified 2026-09-30; re-verified at 862a123, 2026-10-17, and at 6258a15, 2026-10-24) ──
+    // ── A post that quotes a "Visibility limited" post (verified 2026-09-30; re-verified at 862a123, 2026-10-17, at 6258a15, 2026-10-24, and at 606b254, 2026-10-29) ──
     // X's client draws the quoted post's notice inside the quote card (its
     // soft-intervention component takes an inQuoteTweet prop). The label is
     // the quoted post's, so the panel gives this case its own row.
     quotedVisibilityLimited: {
       provenance: "2026-published",
-      verifiedAt: "6258a15", verifiedAsOf: "2026-10-24",
+      verifiedAt: "606b254", verifiedAsOf: "2026-10-29",
       sources: [
-        "home-mixer/candidate_hydrators/vf_candidate_hydrator.rs@6258a15 (lines 79-80, 100-106: a candidate's quoted post is checked at TimelineHomeRecommendations; lines 109-110: a post that is also checked in-network keeps that verdict; lines 119-120: a post whose own check errors gets an error result; lines 140-170: should_drop_ancillary flags a post whose quoted post is dropped)",
-        "home-mixer/filters/ancillary_vf_filter.rs@6258a15 (line 15: every flagged post is removed)",
-        "home-mixer/filters/vf_filter.rs@6258a15 (lines 22-27: NotEvaluated counts as a drop)",
-        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs@6258a15 (lines 482, 508: the check and the filter are in the Phoenix pipeline)",
-        "home-mixer/scored_posts_server.rs@6258a15 (lines 59-60: ScoredPostsSource runs the Phoenix pipeline)",
-        "home-mixer/candidate_pipeline/for_you_candidate_pipeline.rs@6258a15 (lines 209-211: For You takes its posts from ScoredPostsSource; lines 218-227, 251-252, 320-322: PushToHomeSource posts get no VF filter)",
-        "home-mixer/candidate_pipeline/ranked_following_candidate_pipeline.rs@6258a15 (lines 132-135: so does the ranked Following feed)",
-        "home-mixer/candidate_hydrators/quote_hydrator.rs@6258a15 (lines 224-239: a failed quote lookup leaves no quoted post, and is cached)",
-        "candidate-pipeline/hydrator.rs@6258a15 (lines 63-68: an error result leaves the post as it was, unflagged)",
-        "visibility-filtering-client/vf_client.rs@6258a15 (lines 552-560: a post missing from a response is NotEvaluated; lines 564-577: an RPC error gives no verdict)",
-        "visibility-filtering/rules/tweet_rules.rs@6258a15 (lines 131-164: the five FOSNR drops, each for NonAuthors, which rules/rule_spec/rule.rs line 111 and rules/rule_spec/engine.rs line 75 define as every viewer but the author)",
-        "visibility-filtering/rules/levels.rs@6258a15 (lines 112-115: four labels drop at TimelineHome; lines 171-174, 211: all five at TimelineHomeRecommendations)",
-        "home-mixer/candidate_hydrators/vf_following_candidate_hydrator.rs@6258a15 (lines 49-50, 63: the chronological Following feed checks quoted posts at TimelineHome)",
-        "home-mixer/candidate_pipeline/reverse_chron_posts_pipeline.rs@6258a15 (lines 163, 177: and removes flagged posts)",
-        "under-the-hood/strato/lib/underTheHoodLabels.strato@6258a15 (lines 75-104: the five FOSNR labels come with a label all users can see)"
+        "home-mixer/candidate_hydrators/vf_candidate_hydrator.rs@606b254 (lines 79-80, 100-106: a candidate's quoted post is checked at TimelineHomeRecommendations; lines 109-110: a post that is also checked in-network keeps that verdict; lines 119-120: a post whose own check errors gets an error result; lines 140-170: should_drop_ancillary flags a post whose quoted post is dropped)",
+        "home-mixer/filters/ancillary_vf_filter.rs@606b254 (line 15: every flagged post is removed)",
+        "home-mixer/filters/vf_filter.rs@606b254 (lines 22-27: NotEvaluated counts as a drop)",
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs@606b254 (lines 478, 504: the check and the filter are in the Phoenix pipeline)",
+        "home-mixer/scored_posts_server.rs@606b254 (lines 60-61: ScoredPostsSource runs the Phoenix pipeline)",
+        "home-mixer/candidate_pipeline/for_you_candidate_pipeline.rs@606b254 (lines 219-221: For You takes its posts from ScoredPostsSource; lines 228-237, 262-263, 336-338: PushToHomeSource posts get no VF filter)",
+        "home-mixer/candidate_pipeline/ranked_following_candidate_pipeline.rs@606b254 (lines 142-145: so does the ranked Following feed)",
+        "home-mixer/candidate_hydrators/quote_hydrator.rs@606b254 (lines 224-239: a failed quote lookup leaves no quoted post, and is cached)",
+        "candidate-pipeline/hydrator.rs@606b254 (lines 63-68: an error result leaves the post as it was, unflagged)",
+        "visibility-filtering-client/vf_client.rs@606b254 (lines 552-560: a post missing from a response is NotEvaluated; lines 564-577: an RPC error gives no verdict)",
+        "visibility-filtering/rules/tweet_rules.rs@606b254 (lines 134-167: the five FOSNR drops, each for NonAuthors, which rules/rule_spec/rule.rs line 111 and rules/rule_spec/engine.rs line 75 define as every viewer but the author)",
+        "visibility-filtering/rules/levels.rs@606b254 (lines 102-107, 205: the four labels, grouped as FOSNR_DROPS, drop at TimelineHome; lines 237, 254: all five at TimelineHomeRecommendations)",
+        "home-mixer/candidate_hydrators/vf_following_candidate_hydrator.rs@606b254 (lines 49-50, 63: the chronological Following feed checks quoted posts at TimelineHome)",
+        "home-mixer/candidate_pipeline/reverse_chron_posts_pipeline.rs@606b254 (lines 163, 177: and removes flagged posts)",
+        "under-the-hood/strato/lib/underTheHoodLabels.strato@606b254 (lines 75-104: the five FOSNR labels come with a label all users can see)"
       ],
       panel: "Quotes a post X limited — X's published code usually removes posts like this from For You",
       note: "X's own descriptions say five FOSNR labels come with a notice that the post has limited visibility (underTheHoodLabels.strato). That the notice shown here is one of them is an inference: where and how X renders it is not in the published code. For You checks each candidate's quoted post at the TimelineHomeRecommendations safety level, where all five are dropped. When the quoted post is dropped, should_drop_ancillary flags the quoting post and AncillaryVFFilter removes it, whether or not it has a label of its own. That can happen while the quoted post would be shown on its own: a FOSNR_ABUSE_INSULTS post from an account the viewer follows, unless that post is also a candidate in the same request. The drops exempt the quoted post's author, who can still be shown the quoting post. At least five paths skip the removal: the quote lookup fails, so there is no quoted post to check; the quoted post's check fails with an RPC error (a post missing from a successful response counts as dropped); the quoting post's own check errors, so it is never flagged; the quoted post is also checked in-network in the same request and keeps that verdict, where FOSNR_ABUSE_INSULTS is not dropped; or the post arrives from PushToHomeSource, which passes through no VF filter. The ranked Following feed takes its posts from the same Phoenix pipeline as For You, so it removes them too. The chronological Following feed checks quoted posts at TimelineHome, so it removes a post quoting one with any of the four labels other than FOSNR_ABUSE_INSULTS." }
@@ -2499,10 +2506,7 @@ var BangermeterEngine = (function () {
         "media count, weighted text length, NEWLINE COUNT, and whether there's a link — though " +
         "no published model code reads them yet. A link " +
         "counts as " + F.contentFeatures.urlWeightedLen + " characters no matter how long it is, " +
-        "and an image's own t.co doesn't count as a link at all.",
-      "· Brazil's 2026 election: For You hard-filters " +
-        F.brazil2026ElectionFilter.accounts.toLocaleString() + " accounts reported to the " +
-        "Electoral Court, unless you follow them. It runs before scoring, so no weight offsets it."
+        "and an image's own t.co doesn't count as a link at all."
     ].forEach(function (line) {
       var mark = line.charAt(0);
       var row = el("div", "bangermeter-mod");

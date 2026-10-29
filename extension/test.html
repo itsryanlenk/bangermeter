@@ -41,7 +41,7 @@
 
     // ================================================================
     // WEIGHT LAYER — verbatim against xai-org/x-algorithm
-    // home-mixer/params/param.rs (sync 2026-10-23T16:00:34Z)
+    // home-mixer/params/param.rs (sync 2026-10-28T16:00:35Z)
     // Every value below was transcribed from the published file. If any
     // of these fail, the tool is lying about X's algorithm.
     // ================================================================
@@ -88,7 +88,7 @@
     check("retired head cont_active_secs_5m_residual_norm is gone",
       H.cont_active_secs_5m_residual_norm === undefined);
     check("param.rs last-sync stamp is pinned for score cards",
-      C.paramRsLastSync === "2026-10-23T16:00:34Z", C.paramRsLastSync);
+      C.paramRsLastSync === "2026-10-28T16:00:35Z", C.paramRsLastSync);
 
     // ── Facts X published on Aug 14 2026 ──────────────────────────────
     // The weights themselves did not move; these are the clarifications
@@ -100,13 +100,17 @@
       !!SF.homeTimelineOnly && /no ranking impact/i.test(SF.homeTimelineOnly.note));
     check("brigading-resistance explanation is recorded",
       !!SF.brigadingResistance && /personalized/i.test(SF.brigadingResistance.note));
-    // Counted at 6258a15 (Oct 24): numeric literals in the FxHashSet, all unique.
-    // X cut the list from 2,795 to the runoff candidates on Oct 14 (17c96bf).
-    check("Brazil 2026 election filter recorded with its account count",
-      SF.brazil2026ElectionFilter && SF.brazil2026ElectionFilter.accounts === 25,
-      SF.brazil2026ElectionFilter && SF.brazil2026ElectionFilter.accounts);
-    check("Brazil count carries the date it was read",
-      SF.brazil2026ElectionFilter.accountsAsOf === "2026-10-24");
+    // X deleted brazil_2026_election_filter.rs in 5ed7963 (Oct 27 sync,
+    // published Oct 28). The fact stays as history; nothing may present it as live.
+    check("Brazil 2026 election filter recorded as removed, with the date",
+      SF.brazil2026ElectionFilter && SF.brazil2026ElectionFilter.removed === true &&
+      SF.brazil2026ElectionFilter.removedAsOf === "2026-10-28",
+      SF.brazil2026ElectionFilter && SF.brazil2026ElectionFilter.removedAsOf);
+    check("the removed Brazil filter cites no file for the drift job to watch",
+      !SF.brazil2026ElectionFilter.param && !SF.brazil2026ElectionFilter.source &&
+      !SF.brazil2026ElectionFilter.sources);
+    check("the removed Brazil filter carries no live account count",
+      SF.brazil2026ElectionFilter.accounts === undefined);
     // A dated fact with no commit of its own is watched by the drift job only
     // from weights.js's pinned sync, so a pin bump hides older upstream changes
     // to it. That is how the Oct 14 Brazil cut went unflagged.
@@ -177,16 +181,16 @@
     check("July 13 'mutuals' announcement mapped to the EXISTING boost, still 15.0",
       /July 13/.test(H.reply.note) && C.bidirectionalFollowReplyBoost === 15.0);
 
-    // ── The "Visibility limited" notice (first verified at 77d431a, 2026-09-30; re-verified at 862a123, 2026-10-17, and at 6258a15, 2026-10-24) ──
+    // ── The "Visibility limited" notice (first verified at 77d431a, 2026-09-30; re-verified at 862a123, 2026-10-17, at 6258a15, 2026-10-24, and at 606b254, 2026-10-29) ──
     // Through 0.10.2 the panel called this "reach suppressed (magnitude
     // unpublished)", citing the 2023 archive. The 2026 code does not shrink
     // these posts in For You. It removes them.
     var VL = SF.visibilityLimited || {};
     var FOSNR_LEVEL_3 = ["FOSNR_HATEFUL_CONDUCT", "FOSNR_VIOLENT_SPEECH",
       "FOSNR_ABUSE", "FOSNR_CIVIC_INTEGRITY"];
-    check("visibility-limited fact recorded, verified at 6258a15 with a date",
-      VL.provenance === "2026-published" && VL.verifiedAt === "6258a15" &&
-      VL.verifiedAsOf === "2026-10-24");
+    check("visibility-limited fact recorded, verified at 606b254 with a date",
+      VL.provenance === "2026-published" && VL.verifiedAt === "606b254" &&
+      VL.verifiedAsOf === "2026-10-29");
     check("For You calls exactly two VF safety levels",
       JSON.stringify(VL.forYouLevels) === '["TimelineHome","TimelineHomeRecommendations"]',
       JSON.stringify(VL.forYouLevels));
@@ -237,12 +241,12 @@
       /check fails/.test(VL.note || "") && /PushToHomeSource/.test(VL.note || ""));
     check("the removal of quoting posts and replies is cited where it happens",
       Array.isArray(VL.sources) && VL.sources.some(function (s) {
-        return /^home-mixer\/candidate_hydrators\/vf_candidate_hydrator\.rs@6258a15 \(lines 140-170/.test(s);
+        return /^home-mixer\/candidate_hydrators\/vf_candidate_hydrator\.rs@606b254 \(lines 140-170/.test(s);
       }));
     check("both Following feeds are accounted for",
       /chronological Following/.test(VL.note || "") && /ranked Following/.test(VL.note || "") &&
       Array.isArray(VL.sources) && VL.sources.some(function (s) {
-        return /^home-mixer\/server\.rs@6258a15/.test(s);
+        return /^home-mixer\/server\.rs@606b254/.test(s);
       }));
     check("47c1bcd is not called the first publication (that is aaa167b, Jan 20)",
       !/first publication/.test((VL.note || "") + (VL.panelDetail || "")));
@@ -978,10 +982,10 @@
     // For You removes a post whose quoted post is dropped. Sourced, so the
     // panel row for the quoted case can cite it.
     var QVL = C.sourcedFacts.quotedVisibilityLimited;
-    check("quoted-label removal is sourced at 6258a15",
-      !!QVL && QVL.verifiedAt === "6258a15" &&
-      QVL.sources.some(function (s) { return /vf_candidate_hydrator\.rs@6258a15.*should_drop_ancillary/.test(s); }) &&
-      QVL.sources.some(function (s) { return /ancillary_vf_filter\.rs@6258a15/.test(s); }));
+    check("quoted-label removal is sourced at 606b254",
+      !!QVL && QVL.verifiedAt === "606b254" &&
+      QVL.sources.some(function (s) { return /vf_candidate_hydrator\.rs@606b254.*should_drop_ancillary/.test(s); }) &&
+      QVL.sources.some(function (s) { return /ancillary_vf_filter\.rs@606b254/.test(s); }));
     check("quoted-label note names the author exemption and PushToHomeSource",
       !!QVL && /author/.test(QVL.note) && /PushToHomeSource/.test(QVL.note) && !!QVL.panel);
 

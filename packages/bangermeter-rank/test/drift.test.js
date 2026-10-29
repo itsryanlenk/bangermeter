@@ -89,9 +89,11 @@ test("citedPaths takes the citation's sha, else verifiedAt, else the default bas
 test("the real weights.js cites the files the last catch-up had to re-check", () => {
   const paths = drift.citedPaths(C, "BASE").map(c => c.path);
   for (const p of ["grox/flows/reply_spam/task_filter.py", "home-mixer/scorers/author_cold_start.rs",
-    "home-mixer/filters/brazil_2026_election_filter.rs", "home-mixer/filters/vf_filter.rs", "xai-value-model/scoring.rs"]) {
+    "home-mixer/models/content_features.rs", "home-mixer/filters/vf_filter.rs", "xai-value-model/scoring.rs"]) {
     assert.ok(paths.includes(p), p);
   }
+  // X deleted this file on Oct 28, 2026 (5ed7963): a removed fact must not keep it on the watch list.
+  assert.ok(!paths.includes("home-mixer/filters/brazil_2026_election_filter.rs"));
 });
 
 const cfg = Object.assign({}, C, {

@@ -887,10 +887,7 @@
         "media count, weighted text length, NEWLINE COUNT, and whether there's a link — though " +
         "no published model code reads them yet. A link " +
         "counts as " + F.contentFeatures.urlWeightedLen + " characters no matter how long it is, " +
-        "and an image's own t.co doesn't count as a link at all.",
-      "· Brazil's 2026 election: For You hard-filters " +
-        F.brazil2026ElectionFilter.accounts.toLocaleString() + " accounts reported to the " +
-        "Electoral Court, unless you follow them. It runs before scoring, so no weight offsets it."
+        "and an image's own t.co doesn't count as a link at all."
     ].forEach(function (line) {
       var mark = line.charAt(0);
       var row = el("div", "bangermeter-mod");

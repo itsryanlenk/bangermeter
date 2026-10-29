@@ -102,7 +102,7 @@ what the published weights actually say.
   when X moved scoring into its vm-ranker service on Sept 24, 2026 — same math at published defaults), not an
   approximation of it.
 - **Weights:** the published production set, following param.rs (stamp
-  2026-10-23T16:00:34Z). Likes **0.66** · replies 5.0 (**20.0** on an
+  2026-10-28T16:00:35Z). Likes **0.66** · replies 5.0 (**20.0** on an
   original post from a mutual follow) · reposts 1.0 · quotes 5.0 · shares 2.0 · DM shares
   5.0 · **copy-link shares 20.0** · follow-author 4.0 · **post clicks 0.3** · **click dwell 0.4** · link opens 0.2 ·
   photo expand / quoted click 0.05 · **video open 0.02** · **binary dwell 0.05** · dwell
@@ -142,10 +142,10 @@ what the published weights actually say.
 - **Brigading is structurally weak.** Predictions are per-viewer and personalized, so mass
   block/report campaigns mostly shift what gets recommended to users similar to the
   brigaders rather than burying the post for everyone.
-- **Hard filters sit outside scoring.** `Brazil2026ElectionFilter` removes posts from 25 accounts (as of
-  Oct 24, 2026; cut from 2,795 to accounts tied to the Oct 25 runoff on Oct 14) reported to Brazil's Electoral Court from For You unless you follow them. It runs before
-  ranking, so no weight offsets it — a reminder that the weighted sum is not the whole
-  system.
+- **Hard filters sit outside scoring.** `OONRetweetReplyFilter` removes replies and reposts
+  from accounts you don't follow before ranking, so no weight offsets it — a reminder that the
+  weighted sum is not the whole system. `Brazil2026ElectionFilter` was another until X
+  removed it after the election (code published Oct 28, 2026).
 - **The honest boundary.** The weights are X's. The probabilities are ours. X predicts them
   with Phoenix, a transformer we don't have; Bangermeter derives three of them from real
   counts (likes, replies, reposts) and estimates the rest from content signals. Every
@@ -231,7 +231,7 @@ what the published weights actually say.
 | `extension/content.js` | Badges, breakdown panel, compose meter |
 | `extension/background.js` | Service worker. One listener: open the quick start on first install, never on update |
 | `extension/welcome.html` | The quick start itself — self-contained, loads nothing over the network |
-| `extension/test.html` | Engine self-test — open in any browser (363 assertions) |
+| `extension/test.html` | Engine self-test — open in any browser (364 assertions) |
 | `extension/fixture.html` | X-DOM fixture harness for the content script |
 | `extension/fixture-thread.html` | Reply-detection harness — asserts the conversation, `with_replies` and home-timeline surfaces separately, because X marks a reply differently on each. Needs `serve-fixtures.js` (it reads `location.pathname`) |
 | `extension/serve-fixtures.js` | Tiny static server for the harnesses, including the x.com-shaped paths the reply-detection cases need |
@@ -249,7 +249,7 @@ happened when those numbers were hardcoded.
 
 ## Verification status
 
-- Engine math: **363/363 self-tests pass** (`test.html`). Every published
+- Engine math: **364/364 self-tests pass** (`test.html`). Every published
   weight and its feature-switch parameter name is asserted individually against
   `param.rs`, or `vm-ranker/params.rs` for the three heads only it publishes, so a silent transcription error fails the suite rather than shipping.
   param.rs moved five heads between the Oct 6 and Oct 13, 2026 syncs (published
