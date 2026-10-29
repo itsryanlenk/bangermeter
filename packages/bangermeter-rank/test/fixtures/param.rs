@@ -1,4 +1,4 @@
-// mirrored from config feature-switch defaults; last sync 2026-10-23T16:00:34Z
+// mirrored from config feature-switch defaults; last sync 2026-10-28T16:00:35Z
 use xai_feature_switches::param;
 
 param!(FavoriteWeight, f64, "rust_home_mixer_favorite_weight", 0.66);
@@ -147,5 +147,11 @@ param!(
     VideoCarouselImmersiveVqvWeight,
     f64,
     "rust_home_mixer_video_carousel_immersive_vqv_weight",
+    0.0
+);
+param!(
+    VideoCarouselOpenTimesImmersiveDwellWeight,
+    f64,
+    "rust_home_mixer_video_carousel_open_times_immersive_dwell_weight",
     0.0
 );
