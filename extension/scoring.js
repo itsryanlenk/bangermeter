@@ -781,6 +781,28 @@ var BangermeterEngine = (function () {
     return t.normalize ? t.normalize("NFC") : t;
   }
 
+  // X's text length (C.textWeighting, twitter-text v3): 1 per code point inside
+  // the configured ranges, 2 for everything else, and 2 per emoji however many
+  // code points build it (skin tones, ZWJ families, variation selectors).
+  var EMOJI_OR_CHAR = /\p{Extended_Pictographic}(?:️|[\u{1F3FB}-\u{1F3FF}]|‍\p{Extended_Pictographic}️?)*|[\s\S]/gu;
+  function weightedLength(s) {
+    var W = C.textWeighting;
+    var total = 0;
+    (String(s).match(EMOJI_OR_CHAR) || []).forEach(function (unit) {
+      if (/^\p{Extended_Pictographic}/u.test(unit)) { total += W.emojiWeight; return; }
+      var cp = unit.codePointAt(0);
+      var inRange = W.ranges.some(function (r) { return cp >= r[0] && cp <= r[1]; });
+      total += inRange ? W.rangeWeight : W.defaultWeight;
+    });
+    return total;
+  }
+
+  // Hashtags in a draft, where there are no rendered hashtag links to count.
+  // X links the full-width ＃ (U+FF03) as well as #.
+  function countDraftHashtags(text) {
+    return (String(text).match(/[#＃][\wÀ-￿]+/g) || []).length;
+  }
+
   function analyzeText(text) {
     var t = normalizeForMatch(text || "");
     // Case detection is Latin-only by nature: Devanagari and other caseless
@@ -790,6 +812,7 @@ var BangermeterEngine = (function () {
     var caps = t.replace(/[^A-Z]/g, "");
     return {
       length: t.length,
+      weightedLength: weightedLength(t),
       hasQuestion: /\?/.test(t),
       isBait: BAIT_RE.test(t),
       mostlyCaps: letters.length >= 12 && caps.length / letters.length > 0.7
@@ -851,13 +874,13 @@ var BangermeterEngine = (function () {
     C.contentModifiers.forEach(function (mod) {
       switch (mod.id) {
         case "question": if (text.hasQuestion) applyMod(mod); break;
-        case "conversation_length": if (text.length >= 100) applyMod(mod); break;
+        case "conversation_length": if (text.weightedLength >= 100) applyMod(mod); break;
         case "thread_starter": if (features.isThreadStarter) applyMod(mod); break;
         case "media_image": if (features.hasImage && !features.hasVideo) applyMod(mod); break;
         case "has_video": if (features.hasVideo) applyMod(mod); break;
         case "external_link": if (features.hasExternalLink) applyMod(mod); break;
         case "link_no_context":
-          if (features.hasExternalLink && text.length < 50) applyMod(mod); break;
+          if (features.hasExternalLink && text.weightedLength < 50) applyMod(mod); break;
         case "many_hashtags": if ((features.hashtagCount || 0) >= 3) applyMod(mod); break;
         case "engagement_bait": if (text.isBait) applyMod(mod); break;
         case "all_caps_shout": if (text.mostlyCaps) applyMod(mod); break;
@@ -926,6 +949,8 @@ var BangermeterEngine = (function () {
     oonApplies: oonApplies,
     vqvEligible: vqvEligible,
     diversityMultiplier: diversityMultiplier,
+    weightedLength: weightedLength,
+    countDraftHashtags: countDraftHashtags,
     engagementScore: engagementScore,
     contentScore: contentScore,
     scoreTweet: scoreTweet,

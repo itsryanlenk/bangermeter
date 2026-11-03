@@ -1078,7 +1078,7 @@
     var scope = (composeRoot && composeRoot.parentElement && composeRoot.parentElement.parentElement) || document;
     var hasImage = !!scope.querySelector('[data-testid="attachments"] img');
     var hasVideo = !!scope.querySelector('[data-testid="attachments"] video');
-    var hashtagCount = (text.match(/#[\w\u00c0-\uffff]+/g) || []).length;
+    var hashtagCount = BangermeterEngine.countDraftHashtags(text);
     var hasExternalLink = /https?:\/\/\S+|\w+\.[a-z]{2,}\/\S*/i.test(text);
     return {
       text: text,
