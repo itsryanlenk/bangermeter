@@ -34,7 +34,26 @@ $items = @(
   "$ext\_locales",
   "$ext\icons"
 )
-Compress-Archive -Path $items -DestinationPath $zip
+# Not Compress-Archive: in Windows PowerShell 5.1 it writes backslashes into
+# entry names (icons\icon16.png), and Chrome finds _locales/en/messages.json only
+# by its forward-slash path. A folder item is added file by file, keeping its tree.
+Add-Type -AssemblyName System.IO.Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$archive = [System.IO.Compression.ZipFile]::Open($zip, [System.IO.Compression.ZipArchiveMode]::Create)
+try {
+  foreach ($item in $items) {
+    $files = if (Test-Path $item -PathType Container) {
+      Get-ChildItem $item -Recurse -File | ForEach-Object { $_.FullName }
+    } else { @($item) }
+    foreach ($file in $files) {
+      $entry = $file.Substring($ext.Length + 1).Replace([string][char]92, "/")
+      [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $file, $entry,
+        [System.IO.Compression.CompressionLevel]::Optimal) | Out-Null
+    }
+  }
+} finally {
+  $archive.Dispose()
+}
 "packaged: $zip (" + [math]::Round((Get-Item $zip).Length / 1KB, 1) + " KB)"
 
 # Record which commit this artifact came from, then read the artifact back and
