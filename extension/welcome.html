@@ -220,6 +220,16 @@
   footer a:focus-visible { outline: 3px solid var(--ts-blue); outline-offset: 2px; }
   .links { display: flex; gap: 18px; flex-wrap: wrap; }
   .inline-bolt { vertical-align: -3px; margin: 0 1px; }
+
+  /* Japanese (welcome.js sets lang). The brand fonts have no Japanese glyphs,
+     and uppercasing the step headings and the button turns "x.com" into
+     "X.COM" (found by sysCat). */
+  :root[lang="ja"] {
+    --ts-font-display: 'Archivo Black', 'Arial Black', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic UI', Meiryo, sans-serif;
+    --ts-font-body: 'Space Grotesk', Arial, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', Meiryo, sans-serif;
+  }
+  :root[lang="ja"] .step h2, :root[lang="ja"] .cta { text-transform: none; letter-spacing: normal; }
+  :root[lang="ja"] body { line-break: strict; }
 </style>
 </head>
 <body>

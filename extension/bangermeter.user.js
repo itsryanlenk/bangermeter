@@ -1789,7 +1789,86 @@ var BANGERMETER_I18N = (function () {
     "X sends the ranker seven facts about your content: video, longest video length, photo, media count, weighted text length, NEWLINE COUNT, and whether there's a link — though no published model code reads them yet. A link counts as {urlLen} characters no matter how long it is, and an image's own t.co doesn't count as a link at all.": "Xはランキングモデルに、投稿内容に関する7つの事実を送っています。動画の有無、最長の動画の長さ、写真の有無、メディアの数、重み付きの文字数、改行の数、リンクの有無です。ただし、公開されているモデルのコードは、まだこれらを読んでいません。リンクは実際の長さに関係なく {urlLen} 文字として数えられ、画像自体のt.coはリンクとして数えられません。",
     // sysCat translated these two as one passage; weightsMeaningNote is the first half.
     "Weights multiply a PREDICTED PROBABILITY, not a count. X's own code comment calls the ratio reading — 'one report cancels 468 likes' — incorrect, and says a Report's baseline probability is over 1000x lower than a Like's, which is why its coefficient is large.": "重みが掛かるのは「予測された確率」であって、件数ではありません。Xのコードのコメントは、「報告1件がいいね 468 件を打ち消す」という比の読み方は誤りだとし、報告の基準確率はいいねの 1000x 以下だからこそ係数が大きいのだと述べています。",
-    "These are values per event, not per post: a heavy weight on a rare action still moves fewer posts than a light weight on a common one. Only likes, replies and reposts above come from this post's real counts — the rest need Phoenix's own predictions, so they inform what you read here without entering the score above.": "これらは投稿ごとではなく、行動1回あたりの値です。まれな行動にかかる大きな重みは、ありふれた行動にかかる小さな重みより、動かす投稿が少ないままです。上のうち、この投稿の実際の件数に基づくのはいいね・リプライ・リポストだけです。残りはPhoenixの予測が必要なため、ここで読める内容の参考にはなっても、上のスコアには入りません。"
+    "These are values per event, not per post: a heavy weight on a rare action still moves fewer posts than a light weight on a common one. Only likes, replies and reposts above come from this post's real counts — the rest need Phoenix's own predictions, so they inform what you read here without entering the score above.": "これらは投稿ごとではなく、行動1回あたりの値です。まれな行動にかかる大きな重みは、ありふれた行動にかかる小さな重みより、動かす投稿が少ないままです。上のうち、この投稿の実際の件数に基づくのはいいね・リプライ・リポストだけです。残りはPhoenixの予測が必要なため、ここで読める内容の参考にはなっても、上のスコアには入りません。",
+
+    // Popup and welcome page. sysCat's exact entries, then their patterns as templates.
+    "(no text)": "（本文なし）",
+    "+ compare": "+ 比較",
+    ", or": "」「",
+    ", so you always know which is which.": "」のどれかを表示するので、どれがどれか、いつでもわかります。",
+    "2023 verified boost (×4/×2, historical)": "2023年の認証加点（×4/×2、過去の仕様）",
+    "50 is a typical post.": "50は標準的な投稿です。",
+    "A live meter scores your draft as you write, and names what's helping and what isn't — asks a question, substantive text, bare link, hashtag pile, engagement bait.": "書いている間、下書きをリアルタイムで採点し、何がプラスで何がマイナスかを示します。質問になっている、しっかりした文章量、リンクだけ、ハッシュタグの羅列、反応誘導など。",
+    "Active weight set": "使用中の重みセット",
+    "Apply the ×0.75 out-of-network multiplier as if the viewer does not follow the author": "閲覧者が投稿者をフォローしていないものとして、フォロー外の×0.75を適用します",
+    "Assume mutual follow (reply 5.0 → 20.0)": "相互フォローと仮定（リプライ 5.0 → 20.0）",
+    "Assume out-of-network view (×0.75)": "フォロー外として見たと仮定（×0.75）",
+    "Auto (match X)": "自動（Xに合わせる）",
+    "Bangermeter": "Bangermeter",
+    "Bangermeter icon any time.": "Bangermeterのアイコンをクリックしてください。",
+    "Bangermeter is installed.": "Bangermeterをインストールしました。",
+    "Bangermeter — Quick Start": "Bangermeter — クイックスタート",
+    "Clear": "クリア",
+    "Click a badge": "バッジをクリック",
+    "Dark": "ダーク",
+    "Delete the local score history. This cannot be undone.": "保存したスコア履歴を削除します。元に戻せません。",
+    "Every number is cited to the line of X's published code it came from.": "すべての数字に、出どころとなったXの公開コードの行が示されています。",
+    "Every post picks up a badge with two numbers, 0–100.": "すべての投稿に、0〜100の2つの数字が入ったバッジが付きます。",
+    "Hide this": "閉じる",
+    "Hide this tip": "このヒントを閉じる",
+    "Hit": "",
+    "How it works": "しくみ",
+    "Import report JSON…": "レポートJSONを読み込む…",
+    "It's a comparison against a median post, not a grade — and not a prediction of reach.": "中央値の投稿との比較であって、成績でも、リーチの予測でもありません。",
+    "Keep local score history": "スコア履歴をこのブラウザに保存",
+    "Light": "ライト",
+    "Live meter in compose box": "投稿作成欄にリアルタイムメーターを表示",
+    "Logged when you open a breakdown panel. Local to this browser only.": "内訳パネルを開いたときに記録されます。このブラウザ内だけに保存されます。",
+    "Looks like": "表示例",
+    "New here? How to use it →": "はじめての方へ：使い方 →",
+    "No visibility-impacting labels in this report period. Clean month.": "このレポート期間に、可視性に影響するラベルはありません。問題のない月でした。",
+    "Off by default. When on, the score is logged each time you open a breakdown panel, so you can compare formats over time. Stored only in this browser (chrome.storage.local, capped at 200 entries) — never synced, never sent anywhere.": "初期設定ではオフです。オンにすると、内訳パネルを開くたびにスコアを記録し、投稿の型ごとの違いを時間をかけて比べられます。このブラウザ内（chrome.storage.local、最大200件）だけに保存され、同期も外部送信もされません。",
+    "One thing worth knowing": "知っておきたいこと",
+    "Only likes, replies and reposts come from real counts — the rest is inferred from the post. The popup labels all 29 ranking heads as": "実際の件数に基づくのは、いいね・リプライ・リポストだけです。残りは投稿から推測しています。ポップアップでは、29のランキング項目それぞれに「",
+    "Open x.com →": "x.comを開く →",
+    "Panel and draft-meter theme. Auto follows X's own theme (default / dim / lights out).": "パネルと下書きメーターのテーマです。「自動」はXのテーマ（ライト／ダークブルー／ブラック）に合わせます。",
+    "Panel theme": "パネルのテーマ",
+    "Recent scores": "最近のスコア",
+    "Remove": "削除",
+    "Score as if the viewer mutually follows the author. X pays 20.0 instead of 5.0 for a reply in that case (BidirectionalFollowReplyWeightBoost = 15.0) — but only on original posts, never on replies or reposts.": "閲覧者と投稿者が相互フォローしているものとして採点します。その場合、リプライの重みは5.0ではなく20.0になります（BidirectionalFollowReplyWeightBoost = 15.0）。ただし対象は元の投稿だけで、リプライやリポストには適用されません。",
+    "Score badges on timeline tweets": "タイムラインの投稿にスコアバッジを表示",
+    "Scores posts with X's published For You ranking weights and the real scorer arithmetic (xai-org/x-algorithm, Aug 13 2026).": "Xが公開したおすすめ（For You）のランキング重みと、実際のスコア計算式で投稿を採点します（xai-org/x-algorithm、2026年8月13日時点）。",
+    "Scroll x.com": "x.comをスクロール",
+    "Settings": "設定",
+    "Settings, the full weight table and your score history live behind the toolbar icon — click the": "設定、重みの全表、スコア履歴は、ツールバーのアイコンから開けます。いつでも",
+    "Simulate the 2023-era verified boost (×4 in-network / ×2 out-of-network, archived commit ec83d01dca). No such multiplier exists in the Aug 2026 release — off by default because it floors every verified author near the top of the scale.": "2023年当時の認証アカウント加点（フォロー内×4／フォロー外×2、アーカイブ済みコミット ec83d01dca）を再現します。2026年8月版にはこの倍率は存在しません。認証済みアカウントがすべて上限付近に張り付いてしまうため、初期設定ではオフです。",
+    "Source on GitHub": "GitHubのソース",
+    "Start typing a post": "投稿を書き始める",
+    "That file is over 2 MB — an Under the Hood report is a few KB. Not imported.": "このファイルは2 MBを超えています。Under the Hoodのレポートは数KBです。読み込みませんでした。",
+    "The research": "調査資料",
+    "The weights are X's. The probabilities are estimates.": "重みはXのものですが、確率は推定です。",
+    "Three things and you're using it.": "3つのことだけで、すぐ使えます。",
+    "Under the Hood": "Under the Hood（可視性レポート）",
+    "You get the breakdown in plain English: which signals fired, what each reply and repost is actually worth, and what age cost it.": "内訳がやさしい言葉で表示されます。どのシグナルが働いたか、リプライやリポスト1件が実際にどれだけの価値か、投稿の古さでどれだけ減ったか。",
+    "estimated": "推定",
+    "from counts": "実際の件数から",
+    "measured": "実測",
+    "on any section opens the full weight × probability table.": "を各セクションで開くと、重み×確率の表がすべて表示されます。",
+    "period unknown": "期間不明",
+    "to save up to three variants and pick the best one before you send it. Replies are scored as replies.": "を押すと、最大3つの案を保存して、送信前にいちばん良いものを選べます。リプライはリプライとして採点されます。",
+    "viewer-specific": "閲覧者ごとに異なる",
+    "zeroed by X": "Xがゼロにした",
+    "— what the content alone would be predicted to earn": "— 内容だけから予測される値",
+    "— what the post actually earned, per view": "— 投稿が実際に獲得した値（表示1回あたり）",
+    "“Show the math”": "「計算式を見る」",
+    "reply": "リプライ",
+    "{label} (not in the public allowlist)": "{label}（公開許可リストにない）",
+    "{n} posts": "{n} 件の投稿",
+    "{n} day": "{n}日",
+    "{n} days": "{n}日",
+    "Your imported report ({period}, {posts} posts). These are X's OWN labels on your account — not estimates.": "読み込んだレポート（{period}、{posts} 件の投稿）。これはあなたのアカウントにXが実際に付けたラベルで、推定ではありません。",
+    "Your imported report ({period}). These are X's OWN labels on your account — not estimates.": "読み込んだレポート（{period}）。これはあなたのアカウントにXが実際に付けたラベルで、推定ではありません。",
+    "That file does not look like an Under the Hood report (expected the JSON downloaded from {path}). Nothing was imported.": "このファイルはUnder the Hoodのレポートではないようです（{path} からダウンロードしたJSONが必要です）。何も読み込みませんでした。"
   };
 
   var JA_DRAFT = {
@@ -1806,7 +1885,18 @@ var BANGERMETER_I18N = (function () {
     "Score = Σ(weight × P) over the Phoenix heads, then offset_score (xai-value-model/scoring.rs), × rescorers, normalized so a median post = 50 (√ curve, capped at 100). Raw: {raw}": "スコア = Phoenix の各項目の Σ(重み × P)、続いて offset_score（xai-value-model/scoring.rs）、× 補正係数。中央値の投稿が 50 になるよう正規化しています（√ カーブ、上限 100）。Raw: {raw}",
     "NET NEGATIVE: X rescales any post whose weighted sum goes below zero into [0, {ceiling}), which puts it under every positive-scoring post in the feed.": "合計がマイナス: Xは重み付き合計がゼロを下回った投稿を [0, {ceiling}) の範囲に縮めるため、フィード内でスコアがプラスのどの投稿よりも下に置かれます。",
     "Engagement rates = count ÷ views, smoothed toward the median with K={k} pseudo-views (empirical Bayes), then run through the same weighted-sum formula. Raw: {raw}": "反応率 = 件数 ÷ 表示回数。K={k} の疑似表示回数で中央値に寄せて補正し（経験ベイズ）、同じ重み付き合計の式に通しています。Raw: {raw}",
-    "Scored from the three heads a browser can see: likes ({like}), replies ({reply}), reposts ({repost}). The other {others} heads — shares (2.0 / 5.0 / 20.0), follows (4.0), clicks, dwell time and the negatives (−0.02 to −234.0) — need Phoenix's predictions, not counts.": "ブラウザから見える3つの項目で採点しています: いいね（{like}）、リプライ（{reply}）、リポスト（{repost}）。残りの {others} 項目 — シェア（2.0 / 5.0 / 20.0）、フォロー（4.0）、クリック、滞在時間、マイナスの項目（−0.02〜−234.0）— には、件数ではなく Phoenix の予測が必要です。"
+    "Scored from the three heads a browser can see: likes ({like}), replies ({reply}), reposts ({repost}). The other {others} heads — shares (2.0 / 5.0 / 20.0), follows (4.0), clicks, dwell time and the negatives (−0.02 to −234.0) — need Phoenix's predictions, not counts.": "ブラウザから見える3つの項目で採点しています: いいね（{like}）、リプライ（{reply}）、リポスト（{repost}）。残りの {others} 項目 — シェア（2.0 / 5.0 / 20.0）、フォロー（4.0）、クリック、滞在時間、マイナスの項目（−0.02〜−234.0）— には、件数ではなく Phoenix の予測が必要です。",
+
+    // Popup — new or reworded since sysCat's fork.
+    "Language": "言語",
+    "Language for the badge, panel, draft meter and this popup. Auto follows X's own display language.": "バッジ、パネル、下書きメーター、このポップアップの言語です。「自動」では、Xの表示言語に合わせます。",
+    "In the pilot? Download your visibility report from {path} and import it here. Parsed locally, stored only in this browser. At X's published defaults the report is monthly per-label totals — it can say how many posts carried a label, not which ones.": "パイロットに参加中の方へ: {path} から可視性レポートをダウンロードして、ここに読み込めます。解析はこの端末内だけで行われ、このブラウザにのみ保存されます。Xが公開している初期設定では、レポートは月ごとのラベル別の合計で、ラベルが付いた投稿の数はわかりますが、どの投稿かはわかりません。",
+    "{n}m": "{n}分",
+    "{n}h": "{n}時間",
+    "{n}d": "{n}日",
+    "Every value below is transcribed from {snapshot}. Replies rise to {mutual} on an original post from a mutual follow.": "以下の値はすべて {snapshot} から書き写したものです。相互フォローの相手の元の投稿へのリプライは {mutual} になります。",
+    "Score = Σ(weight × P(action)) per xai-value-model/scoring.rs.": "スコア = Σ(重み × P(行動))。xai-value-model/scoring.rs に基づきます。",
+    "Bangermeter estimates the probabilities; only likes, replies and reposts come from real counts. Relative score, not predicted reach.": "確率はBangermeterの推定で、実際の件数から取るのはいいね・リプライ・リポストだけです。相対的なスコアであり、届く範囲の予測ではありません。"
   };
 
   // Text shown as written in every language. Mostly the long prose that stays
@@ -1817,6 +1907,7 @@ var BANGERMETER_I18N = (function () {
   // missing report. The prose patterns are sysCat's tier C.
   var KEEP_ENGLISH = [
     /^English$/, /^日本語$/,
+    /^[CE]\d*$/,  // the welcome page's sample badge: C71, E48
     /^Weights: /, /kept in sync with/, /live production configuration/,
     /as current rather than historical/, /weighted sum modeled here/, /dwell-regret/,
     /switch that chose between them/, /not predicted reach/, /existed in the same code/,
@@ -1907,6 +1998,9 @@ var BANGERMETER_I18N = (function () {
       document.documentElement.lang = lang;
       callback(lang);
       translateStatic(document.body);
+      // <title> lives in <head>, outside the body walk.
+      var title = lang === "ja" ? lookup(document.title) : null;
+      if (title !== null) document.title = title;
     }
     var hasStorage = typeof chrome !== "undefined" && chrome.storage && chrome.storage.sync;
     if (!hasStorage) {

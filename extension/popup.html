@@ -262,6 +262,13 @@
       padding: 0 3px;
       color: var(--ts-ink);
     }
+
+    /* Japanese (i18n.js sets lang). The brand fonts have no Japanese glyphs. */
+    :root[lang="ja"] {
+      --ts-font-display: 'Archivo Black', 'Arial Black', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic UI', Meiryo, sans-serif;
+      --ts-font-body: 'Space Grotesk', Arial, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', Meiryo, sans-serif;
+    }
+    :root[lang="ja"] body { line-break: strict; }
   </style>
 </head>
 <body>
