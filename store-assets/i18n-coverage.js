@@ -44,7 +44,7 @@ function scriptStrings(file, found, unchecked) {
   }
 }
 
-const ENTITIES = { amp: "&", lt: "<", gt: ">", quot: "\"", "#39": "'", nbsp: " ",
+const ENTITIES = { amp: "&", lt: "<", gt: ">", quot: "\"", "#39": "'", nbsp: "\u00a0",
   mdash: "—", ndash: "–", times: "×", rarr: "→", ldquo: "“", rdquo: "”" };
 const decode = s => s.replace(/&([a-z]+|#\d+);/g, (all, name) =>
   ENTITIES[name] !== undefined ? ENTITIES[name] :

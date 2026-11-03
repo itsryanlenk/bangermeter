@@ -1501,7 +1501,7 @@ var BangermeterEngine = (function () {
   // X's text length (C.textWeighting, twitter-text v3): 1 per code point inside
   // the configured ranges, 2 for everything else, and 2 per emoji however many
   // code points build it (skin tones, ZWJ families, variation selectors).
-  var EMOJI_OR_CHAR = /\p{Extended_Pictographic}(?:️|[\u{1F3FB}-\u{1F3FF}]|‍\p{Extended_Pictographic}️?)*|[\s\S]/gu;
+  var EMOJI_OR_CHAR = /\p{Extended_Pictographic}(?:\uFE0F|[\u{1F3FB}-\u{1F3FF}]|\u200D\p{Extended_Pictographic}\uFE0F?)*|[\s\S]/gu;
   function weightedLength(s) {
     var W = C.textWeighting;
     var total = 0;
@@ -1515,13 +1515,16 @@ var BangermeterEngine = (function () {
   }
 
   // Hashtags in a draft, where there are no rendered hashtag links to count.
-  // X links the full-width ＃ (U+FF03) as well as #.
+  // X links the full-width ＃ (U+FF03) as well as #. The tag body stops at
+  // anything that is not a letter, mark, digit or underscore, so tags
+  // separated by a full-width space or 、 count one each.
   function countDraftHashtags(text) {
-    return (String(text).match(/[#＃][\wÀ-￿]+/g) || []).length;
+    return (String(text).match(/[#＃][\p{L}\p{M}\p{Nd}_]+/gu) || []).length;
   }
 
   function analyzeText(text) {
-    var t = normalizeForMatch(text || "");
+    var typed = String(text || "");
+    var t = normalizeForMatch(typed);
     // Case detection is Latin-only by nature: Devanagari and other caseless
     // scripts have no capitals to count, so this simply never fires there —
     // no false positives, and no detection either.
@@ -1529,7 +1532,8 @@ var BangermeterEngine = (function () {
     var caps = t.replace(/[^A-Z]/g, "");
     return {
       length: t.length,
-      weightedLength: weightedLength(t),
+      // Before normalizeForMatch: it strips the ZWJ that makes 👨‍👩‍👧 one emoji.
+      weightedLength: weightedLength(typed.normalize ? typed.normalize("NFC") : typed),
       hasQuestion: /\?/.test(t),
       isBait: BAIT_RE.test(t),
       mostlyCaps: letters.length >= 12 && caps.length / letters.length > 0.7
@@ -1836,6 +1840,8 @@ var BANGERMETER_I18N = (function () {
     "(no text)": "（本文なし）",
     "+ compare": "+ 比較",
     ", or": "」「",
+    // The comma between the first two of those labels; same glue as ", or".
+    ",": "」「",
     ", so you always know which is which.": "」のどれかを表示するので、どれがどれか、いつでもわかります。",
     "2023 verified boost (×4/×2, historical)": "2023年の認証加点（×4/×2、過去の仕様）",
     "50 is a typical post.": "50は標準的な投稿です。",
@@ -1996,6 +2002,20 @@ var BANGERMETER_I18N = (function () {
 
   var ATTRS = ["title", "aria-label", "placeholder"];
 
+  // CJK symbols and punctuation, kana, ideographs, full-width forms.
+  var CJK_EDGE = /[\u3000-\u30ff\u3400-\u9fff\uff00-\uffef]/;
+
+  // A static page's text node carries the whitespace of the line wrap around
+  // it. Beside Latin text that whitespace is a word gap and stays; beside
+  // Japanese it is a stray space (「 実測」, + 比較 を押すと), so a side whose
+  // translated edge is CJK or full-width drops it.
+  function placeTranslation(original, translated) {
+    var m = original.match(/^(\s*)[\s\S]*?(\s*)$/);
+    var lead = translated && CJK_EDGE.test(translated.charAt(0)) ? "" : m[1];
+    var trail = translated && CJK_EDGE.test(translated.charAt(translated.length - 1)) ? "" : m[2];
+    return lead + translated + trail;
+  }
+
   function lookup(text) {
     var key = text.replace(/\s+/g, " ").trim();
     if (!key || !Object.prototype.hasOwnProperty.call(JA, key)) return null;
@@ -2014,10 +2034,7 @@ var BANGERMETER_I18N = (function () {
         var parent = node.parentNode && node.parentNode.nodeName;
         if (parent !== "SCRIPT" && parent !== "STYLE") {
           var ja = lookup(node.nodeValue);
-          if (ja !== null) {
-            var m = node.nodeValue.match(/^(\s*)[\s\S]*?(\s*)$/);
-            node.nodeValue = m[1] + ja + m[2];
-          }
+          if (ja !== null) node.nodeValue = placeTranslation(node.nodeValue, ja);
         }
       } else if (node.nodeType === 1) {
         ATTRS.forEach(function (a) {
@@ -2066,7 +2083,7 @@ var BANGERMETER_I18N = (function () {
     t: t, setLanguage: setLanguage, getLanguage: getLanguage,
     resolveLanguage: resolveLanguage, resolvePageLanguage: resolvePageLanguage,
     translateStatic: translateStatic,
-    placeholdersOf: placeholdersOf,
+    placeholdersOf: placeholdersOf, placeTranslation: placeTranslation,
     JA: JA, JA_DRAFT: JA_DRAFT, KEEP_ENGLISH: KEEP_ENGLISH
   };
 })();
