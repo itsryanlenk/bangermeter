@@ -2649,10 +2649,6 @@ var BANGERMETER_I18N = (function () {
         "story is now provably wrong.",
       "· Profile clicks pay NOTHING (" + H.profile_click.weight + "). The 2023 table paid 12.0 " +
         "for a profile-click-and-engage — that head has been zeroed out.",
-      "· Binary dwell pays nothing either. Only dwell TIME pays, at " + H.cont_dwell_time.weight +
-        " per second.",
-      "· Video is worth " + H.vqv.weight + " per quality view, and anything under " +
-        (F.minVideoDurationMs.value / 1000) + " seconds earns none of it.",
       "· Bookmarks have no head at all — they are not a scored action in 2026.",
       "▼ Scrolling straight past costs " + H.not_dwelled.weight + ". Tiny per impression, but it " +
         "happens on most of them.",
