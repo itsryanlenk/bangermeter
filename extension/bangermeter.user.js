@@ -918,6 +918,52 @@ var BangermeterEngine = (function () {
     { t: "回覆給", m: "p" }, { t: "回覆 ", m: "p" }          // zh-Hant
   ];
 
+  // X's repost line: the social context its client draws above a repost
+  // (testID "socialContext"). The client builds it from the post itself
+  // (contextType Retweet, set when the post has a retweeted_status) and
+  // passes no server text, so the bundle string is what renders. Someone
+  // else's repost is message key fcd931ed, with the reposter's display name
+  // as its one placeholder; your own is ae408b76. fcd931ed is copied as the
+  // bundle ships it, the text before and after the name: the name leads in
+  // most locales, comes last in Italian and sits inside the phrase in
+  // Arabic. Verbatim, so each line can be checked against its bundle.
+  //
+  // Bundles: the ones named by the chunk manifest in the 2026-09-24 Wayback
+  // capture of x.com/i/flow/login, the newest still on responsive-web,
+  // fetched from abs.twimg.com 2026-11-03. The bundles named by the
+  // 2026-09-12 capture carry the same 32 strings. The renderer was read in
+  // the same build's shared chunk that holds the social context component.
+  var REPOST_MARKERS = [
+    // fcd931ed: [before, after] the name                  ae408b76: yours
+    { name: ["", " reposted"],                             self: "You reposted" },                         // en
+    { name: [" ", " reposteó"],                            self: "Reposteaste" },                          // es
+    { name: ["", " repostou"],                             self: "Você repostou" },                        // pt
+    { name: ["", " a reposté"],                            self: "Vous avez reposté" },                    // fr
+    { name: ["", " hat repostet"],                         self: "Du hast repostet" },                     // de
+    { name: ["Repost di "],                                self: "Repost da parte tua" },                  // it
+    { name: ["", " heeft deze post opnieuw geplaatst"],    self: "Je hebt deze post opnieuw geplaatst" },  // nl
+    { name: ["", " gönderiyi yeniden yayınladı"],          self: "Yeniden gönderi yayınladın" },           // tr
+    { name: ["", " memposting ulang"],                     self: "Anda memposting ulang" },                // id
+    { name: ["", "さんがリポスト"],                          self: "あなたがリポストしました" },                // ja
+    { name: ["", " 님이 재게시함"],                          self: "재게시했습니다" },                          // ko
+    { name: ["أعاد ", " النشر"],                           self: "لقد أعدتَ النشر" },                      // ar
+    { name: ["", " сделал(а) репост"],                     self: "Вы сделали репост" },                    // ru
+    { name: ["", " ने रीपोस्ट किया"],                         self: "आपने रीपोस्ट किया" },                      // hi
+    { name: ["", " 已转帖"],                                self: "你已转帖" },                              // zh
+    { name: ["", " 已轉發"],                                self: "你已轉發" }                               // zh-Hant
+  ];
+
+  // Whitespace collapsed, trimmed, lowercased: how both sides are compared.
+  // The name may be drawn as its own block (innerText then breaks the line
+  // there) or as emoji images alone (innerText then leaves it out), so the
+  // words around it are trimmed too and the name may be empty.
+  function foldSpace(s) {
+    return String(s).replace(/\s+/g, " ").trim().toLowerCase();
+  }
+  var REPOST_LINES = REPOST_MARKERS.map(function (mk) {
+    return { before: foldSpace(mk.name[0]), after: foldSpace(mk.name[1] || ""), self: foldSpace(mk.self) };
+  });
+
   // X's "Visibility limited" label: message key b3296688, the header X's
   // client gives a soft intervention whose type is "Fosnr" (one of five
   // headers in that component; the others are Misleading, Legally Required
@@ -1033,6 +1079,24 @@ var BangermeterEngine = (function () {
       var mk = REPLY_MARKERS[i];
       var idx = t.indexOf(mk.t);
       if (mk.m === "p" ? idx === 0 : idx !== -1) return true;
+    }
+    return false;
+  }
+
+  // Is this social context text X's repost line, in any of the 16 locales?
+  // The whole line must be the template: X's words before and after the
+  // name, anything between them. content.js passes the socialContext
+  // element's innerText, which holds that line and nothing else.
+  function repostMarkerIn(text) {
+    if (!text) return false;
+    var t = foldSpace(text);
+    if (!t) return false;
+    for (var i = 0; i < REPOST_LINES.length; i++) {
+      var ln = REPOST_LINES[i];
+      if (t === ln.self) return true;
+      if (t.length >= ln.before.length + ln.after.length &&
+          t.indexOf(ln.before) === 0 &&
+          t.slice(t.length - ln.after.length) === ln.after) return true;
     }
     return false;
   }
@@ -1655,6 +1719,7 @@ var BangermeterEngine = (function () {
     parseCount: parseCount,
     parseActionBarLabel: parseActionBarLabel,
     replyMarkerIn: replyMarkerIn,
+    repostMarkerIn: repostMarkerIn,
     visibilityLimitedIn: visibilityLimitedIn,
     visibilityLimitedLineIn: visibilityLimitedLineIn,
     visibilityLimitedVerdict: visibilityLimitedVerdict,
@@ -2372,8 +2437,10 @@ var BANGERMETER_I18N = (function () {
     }
     var hashtagCount = textEl ? textEl.querySelectorAll('a[href*="/hashtag/"]').length : 0;
 
+    // The repost line ("Alice reposted", "山田さんがリポスト", "Repost di
+    // Marco"). Locale table lives in the engine.
     var socialContext = article.querySelector('[data-testid="socialContext"]');
-    var isRepost = !!(socialContext && /reposted/i.test(socialContext.innerText));
+    var isRepost = !!(socialContext && BangermeterEngine.repostMarkerIn(socialContext.innerText));
 
     // Signal 1 — the "Replying to" label. It renders ABOVE the tweet's own
     // text, so scan only the header region; that keeps the contains-mode

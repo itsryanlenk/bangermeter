@@ -282,8 +282,10 @@
     }
     var hashtagCount = textEl ? textEl.querySelectorAll('a[href*="/hashtag/"]').length : 0;
 
+    // The repost line ("Alice reposted", "山田さんがリポスト", "Repost di
+    // Marco"). Locale table lives in the engine.
     var socialContext = article.querySelector('[data-testid="socialContext"]');
-    var isRepost = !!(socialContext && /reposted/i.test(socialContext.innerText));
+    var isRepost = !!(socialContext && BangermeterEngine.repostMarkerIn(socialContext.innerText));
 
     // Signal 1 — the "Replying to" label. It renders ABOVE the tweet's own
     // text, so scan only the header region; that keeps the contains-mode

@@ -297,6 +297,63 @@
     </div>
   </article>
 
+  <!-- 17: JAPANESE repost. X draws the repost line above the post as its
+       social context: message key fcd931ed, the reposter's display name
+       followed by さんがリポスト, no space. The panel must show the repost
+       line (×0.75), as it does for an English UI. Before the REPOST_MARKERS
+       table only "reposted" matched, so this scored as an original. -->
+  <article data-testid="tweet" id="t17">
+    <div><span data-testid="socialContext"><span>山田</span>さんがリポスト</span></div>
+    <div data-testid="User-Name"><span class="name">佐藤</span> <a href="/sato/status/1017"><time datetime="2026-08-02T14:30:00.000Z">30分</time></a></div>
+    <div data-testid="tweetText">今朝の駅前、桜がもう満開でした。</div>
+    <div role="group" aria-label="3件の返信、5件のリポスト、30件のいいね、2件のブックマーク、1034件の表示">
+      <button data-testid="reply">💬 3</button>
+      <button data-testid="retweet">🔁 5</button>
+      <button data-testid="like">❤ 30</button>
+      <button data-testid="bookmark">🔖 2</button>
+    </div>
+  </article>
+
+  <!-- 18: ITALIAN repost. Here fcd931ed puts the name LAST: "Repost di "
+       then the reposter. The panel must show the repost line. -->
+  <article data-testid="tweet" id="t18">
+    <div><span data-testid="socialContext">Repost di <span>Marco</span></span></div>
+    <div data-testid="User-Name"><span class="name">Giulia</span> <a href="/giulia/status/1018"><time datetime="2026-08-02T14:20:00.000Z">40 min</time></a></div>
+    <div data-testid="tweetText">Il mercato del sabato è tornato in piazza.</div>
+    <div role="group" aria-label="2 risposte, 4 repost, 25 Mi piace, 1 segnalibro, 2100 visualizzazioni">
+      <button data-testid="reply">💬 2</button>
+      <button data-testid="retweet">🔁 4</button>
+      <button data-testid="like">❤ 25</button>
+      <button data-testid="bookmark">🔖 1</button>
+    </div>
+  </article>
+
+  <!-- 19: ENGLISH repost, the control. "Alice reposted" matched before the
+       table and must still match: the panel shows the repost line. -->
+  <article data-testid="tweet" id="t19">
+    <div><span data-testid="socialContext"><span>Alice</span> reposted</span></div>
+    <div data-testid="User-Name"><span class="name">Bob</span> <a href="/bob/status/1019"><time datetime="2026-08-02T14:10:00.000Z">50m</time></a></div>
+    <div data-testid="tweetText">The library extended its weekend hours.</div>
+    <div role="group" aria-label="1 reply, 2 reposts, 14 likes, 900 views">
+      <button data-testid="reply" aria-label="1 Reply. Reply">💬 1</button>
+      <button data-testid="retweet" aria-label="2 reposts. Repost">🔁 2</button>
+      <button data-testid="like" aria-label="14 Likes. Like">❤ 14</button>
+    </div>
+  </article>
+
+  <!-- 20: CONTROL. A pinned post: the social context is X's "Pinned post"
+       (j355f008), not a repost. The panel must NOT show the repost line. -->
+  <article data-testid="tweet" id="t20">
+    <div><span data-testid="socialContext">Pinned post</span></div>
+    <div data-testid="User-Name"><span class="name">Dana</span> <a href="/dana/status/1020"><time datetime="2026-08-01T09:00:00.000Z">Aug 1</time></a></div>
+    <div data-testid="tweetText">Start here: what this account posts about, and how often.</div>
+    <div role="group" aria-label="3 replies, 2 reposts, 40 likes, 5000 views">
+      <button data-testid="reply" aria-label="3 Replies. Reply">💬 3</button>
+      <button data-testid="retweet" aria-label="2 reposts. Repost">🔁 2</button>
+      <button data-testid="like" aria-label="40 Likes. Like">❤ 40</button>
+    </div>
+  </article>
+
   <script src="weights.js"></script>
   <script src="scoring.js"></script>
   <script src="i18n.js"></script>
