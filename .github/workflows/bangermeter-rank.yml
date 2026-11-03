@@ -30,6 +30,9 @@ jobs:
         run: node extension/run-tests.js
       - name: Version and test-count claims
         run: node store-assets/check-versions.js
+      # Informational: lists missing and draft Japanese, never fails the build.
+      - name: Japanese coverage report
+        run: node store-assets/i18n-coverage.js
       - name: Package tests
         working-directory: packages/bangermeter-rank
         run: npm test
