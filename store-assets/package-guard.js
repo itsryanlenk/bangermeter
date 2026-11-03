@@ -39,6 +39,8 @@ const die = lines => {
 // Walks the central directory rather than scanning for local headers, so a
 // stray signature inside compressed data cannot desynchronise it. Handles the
 // two methods Compress-Archive emits: stored (0) and deflate (8).
+const backslashNames = [];
+
 function readZip(file) {
   const buf = fs.readFileSync(file);
   let eocd = -1;
@@ -60,8 +62,12 @@ function readZip(file) {
     const cmtLen = buf.readUInt16LE(p + 32);
     const localOff = buf.readUInt32LE(p + 42);
     // Compress-Archive writes Windows separators into entry names; every other
-    // zip tool writes forward slashes. Normalise so comparisons are stable.
-    const name = buf.toString("utf8", p + 46, p + 46 + nameLen).replace(/\\/g, "/");
+    // zip tool writes forward slashes. Normalize so comparisons are stable, and
+    // remember the raw name: verify() refuses a backslash, because Chrome finds
+    // _locales/en/messages.json only by its forward-slash path.
+    const rawName = buf.toString("utf8", p + 46, p + 46 + nameLen);
+    const name = rawName.replace(/\\/g, "/");
+    if (rawName !== name) backslashNames.push(rawName);
 
     const lNameLen = buf.readUInt16LE(localOff + 26);
     const lExtraLen = buf.readUInt16LE(localOff + 28);
@@ -129,6 +135,10 @@ function verify(zipArg) {
 
   const icons = [...entries.keys()].filter(k => k.startsWith("icons/"));
   if (!icons.length) problems.push("the package contains no icons/");
+  if (backslashNames.length) {
+    problems.push("entry names use backslashes (" + backslashNames.slice(0, 3).join(", ") +
+      ") — Chrome resolves _locales by forward-slash path; rebuild with make-package.ps1");
+  }
 
   // BOM in a shipped file makes Chrome reject the manifest; this already
   // happened to two releases.
