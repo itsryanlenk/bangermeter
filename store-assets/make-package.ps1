@@ -29,6 +29,9 @@ $items = @(
   "$ext\popup.js",
   "$ext\background.js",
   "$ext\welcome.html",
+  "$ext\welcome.js",
+  "$ext\i18n.js",
+  "$ext\_locales",
   "$ext\icons"
 )
 Compress-Archive -Path $items -DestinationPath $zip

@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "Bangermeter — X Algorithm Scorer"
+  },
+  "extDescription": {
+    "message": "Scores posts with X's published For You ranking weights and the real scorer arithmetic. Every factor cited to source."
+  },
+  "actionTitle": {
+    "message": "Bangermeter"
+  }
+}
