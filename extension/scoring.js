@@ -784,7 +784,7 @@ var BangermeterEngine = (function () {
   // X's text length (C.textWeighting, twitter-text v3): 1 per code point inside
   // the configured ranges, 2 for everything else, and 2 per emoji however many
   // code points build it (skin tones, ZWJ families, variation selectors).
-  var EMOJI_OR_CHAR = /\p{Extended_Pictographic}(?:️|[\u{1F3FB}-\u{1F3FF}]|‍\p{Extended_Pictographic}️?)*|[\s\S]/gu;
+  var EMOJI_OR_CHAR = /\p{Extended_Pictographic}(?:\uFE0F|[\u{1F3FB}-\u{1F3FF}]|\u200D\p{Extended_Pictographic}\uFE0F?)*|[\s\S]/gu;
   function weightedLength(s) {
     var W = C.textWeighting;
     var total = 0;
@@ -798,13 +798,16 @@ var BangermeterEngine = (function () {
   }
 
   // Hashtags in a draft, where there are no rendered hashtag links to count.
-  // X links the full-width ＃ (U+FF03) as well as #.
+  // X links the full-width ＃ (U+FF03) as well as #. The tag body stops at
+  // anything that is not a letter, mark, digit or underscore, so tags
+  // separated by a full-width space or 、 count one each.
   function countDraftHashtags(text) {
-    return (String(text).match(/[#＃][\wÀ-￿]+/g) || []).length;
+    return (String(text).match(/[#＃][\p{L}\p{M}\p{Nd}_]+/gu) || []).length;
   }
 
   function analyzeText(text) {
-    var t = normalizeForMatch(text || "");
+    var typed = String(text || "");
+    var t = normalizeForMatch(typed);
     // Case detection is Latin-only by nature: Devanagari and other caseless
     // scripts have no capitals to count, so this simply never fires there —
     // no false positives, and no detection either.
@@ -812,7 +815,8 @@ var BangermeterEngine = (function () {
     var caps = t.replace(/[^A-Z]/g, "");
     return {
       length: t.length,
-      weightedLength: weightedLength(t),
+      // Before normalizeForMatch: it strips the ZWJ that makes 👨‍👩‍👧 one emoji.
+      weightedLength: weightedLength(typed.normalize ? typed.normalize("NFC") : typed),
       hasQuestion: /\?/.test(t),
       isBait: BAIT_RE.test(t),
       mostlyCaps: letters.length >= 12 && caps.length / letters.length > 0.7

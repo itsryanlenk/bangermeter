@@ -1304,6 +1304,16 @@
       lengthMods("あ".repeat(24), { hasExternalLink: true }).indexOf("link_no_context") !== -1 &&
       lengthMods("あ".repeat(25), { hasExternalLink: true }).indexOf("link_no_context") === -1);
     check("draft hashtags count full-width ＃", E.countDraftHashtags("#a ＃タグ ＃日本 ＃") === 3);
+    // Japanese input methods type a full-width space (U+3000) between tags, and
+    // 、 is the list separator; both fell inside the old [\u00c0-\uffff] body.
+    check("full-width tags separated by U+3000 or 、 count one each",
+      E.countDraftHashtags("＃日本　＃東京　＃大阪") === 3 &&
+      E.countDraftHashtags("＃日本、＃東京、＃大阪") === 3);
+    // analyzeText strips zero-width characters for the bait patterns; a ZWJ
+    // family emoji is still ONE emoji to X, so length is weighed before that.
+    check("length is weighed before zero-width characters are stripped",
+      lengthMods("a".repeat(94) + "👨‍👩‍👧").indexOf("conversation_length") === -1 &&
+      lengthMods("a".repeat(98) + "👨‍👩‍👧").indexOf("conversation_length") !== -1);
 
     // ================================================================
     section("Japanese localization (i18n.js)");
@@ -1341,6 +1351,16 @@
     ].every(function (c) { return I.resolveLanguage(c[0], c[1], c[2]) === c[3]; }));
     I.setLanguage("en");
     check("settings default to the Auto language", BANGERMETER_DEFAULT_SETTINGS.uiLanguage === "auto");
+    // Static pages wrap lines inside sentences, so a text node carries the
+    // wrap's whitespace. Beside Japanese that whitespace shows as stray spaces
+    // (「 実測」, + 比較 を押すと); beside Latin text it is a real word gap.
+    check("static translation drops wrap whitespace beside Japanese, keeps it beside Latin",
+      I.placeTranslation("\n      inferred from the post. The popup labels all 29 ranking heads as\n      ", "項目それぞれに「") === "項目それぞれに「" &&
+      I.placeTranslation(" …and more ", "…ほか") === " …ほか" &&
+      I.placeTranslation(" to save up to three", "を押すと") === "を押すと" &&
+      I.placeTranslation("\n  Settings\n", "設定") === "設定" &&
+      I.placeTranslation("  Bangermeter  ", "Bangermeter") === "  Bangermeter  " &&
+      I.placeTranslation(" x.com ", "x.comを開く") === " x.comを開く");
 
     // ================================================================
     section("Composite");
