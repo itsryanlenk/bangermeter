@@ -17,11 +17,16 @@
 3. Add a `WHAT'S NEW IN <version>` block to `store-assets/store-description.txt`, above
    the previous one.
 
-4. Run the tests:
+4. Run the tests, then read the Japanese coverage report:
 
    ```
    node extension/run-tests.js
+   node store-assets/i18n-coverage.js
    ```
+
+   The report never fails. Every line it lists as MISSING or DRAFT ships in English. If the
+   release notes or the store listing are still DRAFT, use the English versions for this
+   release, and ask sysCat to review the drafts.
 
 5. Build. This runs the version check, refuses a dirty or behind-upstream tree, writes
    provenance beside the zip, and reads the artifact back to confirm it matches the repo:
