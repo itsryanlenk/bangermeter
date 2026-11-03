@@ -1,0 +1,7 @@
+{
+  "_note": "Japanese captions for make-screenshot.ps1 -Lang ja. The .ps1 must stay ASCII, so its Japanese lives here. Awaiting native review by sysCat.",
+  "brand": "BANGERMETER",
+  "headline": ["すべての投稿を、", "Xが公開した", "ランキングの仕組みで採点。"],
+  "points": ["公開された実際の重み。", "すべての要素にコードの出典つき。", "データ収集はゼロ。"],
+  "chip": "素通りされることも、スコアの減点になる。"
+}
