@@ -23,7 +23,8 @@ const { execFileSync } = require("child_process");
 
 const root = path.join(__dirname, "..");
 const SHIPPED = ["manifest.json", "weights.js", "scoring.js", "content.js",
-  "styles.css", "popup.html", "popup.js", "background.js", "welcome.html"];
+  "styles.css", "popup.html", "popup.js", "background.js", "welcome.html", "welcome.js", "i18n.js",
+  "_locales/en/messages.json", "_locales/ja/messages.json"];
 
 const git = (...args) =>
   execFileSync("git", args, { cwd: root, encoding: "utf8" }).trim();

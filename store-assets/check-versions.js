@@ -24,7 +24,8 @@ const problems = [];
 // already happened once, to two releases, before anything noticed.
 const SHIPPED = ["extension/manifest.json", "extension/weights.js", "extension/scoring.js",
   "extension/content.js", "extension/popup.js", "extension/popup.html", "extension/styles.css",
-  "extension/background.js", "extension/welcome.html"];
+  "extension/background.js", "extension/welcome.html", "extension/welcome.js", "extension/i18n.js",
+  "extension/_locales/en/messages.json", "extension/_locales/ja/messages.json"];
 for (const f of SHIPPED) {
   const b = fs.readFileSync(path.join(root, f));
   if (b[0] === 0xEF && b[1] === 0xBB && b[2] === 0xBF) {
@@ -212,7 +213,7 @@ try {
 
   const names = s => new Set([...s.matchAll(/"([^"]+)"/g)]
     .map(m => m[1].replace(/^\$ext[\\/]/, "").replace(/^extension[\\/]/, ""))
-    .filter(n => n !== "icons"));
+    .filter(n => n !== "icons" && n !== "_locales" && !n.startsWith("_locales/")));
 
   const sets = {
     "check-versions.js": names(JSON.stringify(SHIPPED)),
@@ -220,6 +221,22 @@ try {
     "make-package.ps1": names(psList)
   };
   const union = new Set(Object.values(sets).flatMap(s => [...s]));
+  // _locales is compared on its own. Compress-Archive keeps a directory tree
+  // only for a folder item, so make-package.ps1 names the folder, while the two
+  // JS lists name each messages.json inside it (the guard byte-compares them).
+  const localeFiles = l => [...l.matchAll(/"(?:extension[\\/])?(_locales\/[^"]+)"/g)].map(m => m[1]).sort();
+  const shippedLocales = localeFiles(JSON.stringify(SHIPPED));
+  if (shippedLocales.join() !== localeFiles(guardList).join()) {
+    problems.push("check-versions.js and package-guard.js list different _locales files");
+  }
+  if (shippedLocales.length && !/"\$ext[\\/]_locales"/.test(psList)) {
+    problems.push("make-package.ps1 does not ship the _locales folder");
+  }
+  for (const f of shippedLocales) {
+    if (!fs.existsSync(path.join(root, "extension", f))) {
+      problems.push(`packaging lists name extension/${f}, which does not exist`);
+    }
+  }
 
   for (const [where, set] of Object.entries(sets)) {
     for (const f of union) {
