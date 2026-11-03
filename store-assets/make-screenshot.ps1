@@ -2,11 +2,32 @@
 #
 # Caption numbers come from extension/weights.js via weights-export.js, never
 # typed here — a hardcoded ratio on a store asset outlives the code that made it true.
+#
+# -Lang ja builds the Japanese listing's screenshot from clip-raw.ja.png. Its
+# captions come from screenshot-captions.ja.json: Windows PowerShell 5.1 reads a
+# BOM-less .ps1 as ANSI, so no Japanese may appear in this file.
+param([ValidateSet("en", "ja")][string]$Lang = "en")
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Drawing
 
 $W = & node (Join-Path $PSScriptRoot "weights-export.js") | ConvertFrom-Json
 if (-not $W -or -not $W.facts) { throw "weights-export.js produced no data - cannot build the screenshot" }
+
+$suffix = if ($Lang -eq "ja") { ".ja" } else { "" }
+$bodyFont = "Arial"
+$copy = @{
+  headline = @("Every post scored with", "X's own open-sourced", "ranking algorithm.")
+  points = @("Real published weights.", "Every factor cited to code.", "Zero data collected.")
+  chip = $W.facts.shortChipCaption
+}
+if ($Lang -eq "ja") {
+  $ja = Get-Content (Join-Path $PSScriptRoot "screenshot-captions.ja.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+  $copy = @{ headline = @($ja.headline); points = @($ja.points); chip = $ja.chip }
+  # The brand fonts have no Japanese glyphs; use the first installed Japanese UI face.
+  $installed = (New-Object System.Drawing.Text.InstalledFontCollection).Families | ForEach-Object { $_.Name }
+  $bodyFont = @("Yu Gothic UI", "Meiryo", "MS Gothic") | Where-Object { $installed -contains $_ } | Select-Object -First 1
+  if (-not $bodyFont) { throw "no Japanese font installed (Yu Gothic UI, Meiryo or MS Gothic)" }
+}
 
 $BLACK  = [System.Drawing.ColorTranslator]::FromHtml("#000000")
 $CREAM  = [System.Drawing.ColorTranslator]::FromHtml("#F5F0E6")
@@ -39,7 +60,7 @@ function Txt($g, $text, $fontName, $sizePx, $style, $color, $x, $y) {
   $font.Dispose()
 }
 
-$shot = [System.Drawing.Image]::FromFile("D:\Twitter Tweet Scan\store-assets\clip-raw.png")
+$shot = [System.Drawing.Image]::FromFile("D:\Twitter Tweet Scan\store-assets\clip-raw$suffix.png")
 
 $bmp = New-Object System.Drawing.Bitmap(1280, 800, [System.Drawing.Imaging.PixelFormat]::Format24bppRgb)
 $g = [System.Drawing.Graphics]::FromImage($bmp)
@@ -51,23 +72,22 @@ $g.Clear($CREAM)
 # Left brand column
 BoltBox $g 48 60 64 4 6
 Txt $g "BANGERMETER" "Arial Black" 30 ([System.Drawing.FontStyle]::Regular) $BLACK 44 152
-Txt $g "Every post scored with" "Arial" 18 ([System.Drawing.FontStyle]::Bold) $GRAY1 48 210
-Txt $g "X's own open-sourced" "Arial" 18 ([System.Drawing.FontStyle]::Bold) $GRAY1 48 236
-Txt $g "ranking algorithm." "Arial" 18 ([System.Drawing.FontStyle]::Bold) $GRAY1 48 262
+for ($i = 0; $i -lt 3; $i++) {
+  Txt $g $copy.headline[$i] $bodyFont 18 ([System.Drawing.FontStyle]::Bold) $GRAY1 48 (210 + 26 * $i)
+}
+for ($i = 0; $i -lt 3; $i++) {
+  Txt $g $copy.points[$i] $bodyFont 15 ([System.Drawing.FontStyle]::Bold) $GRAY1 48 (330 + 24 * $i)
+}
 
-Txt $g "Real published weights." "Arial" 15 ([System.Drawing.FontStyle]::Bold) $GRAY1 48 330
-Txt $g "Every factor cited to code." "Arial" 15 ([System.Drawing.FontStyle]::Bold) $GRAY1 48 354
-Txt $g "Zero data collected." "Arial" 15 ([System.Drawing.FontStyle]::Bold) $GRAY1 48 378
-
-# Caption comes from extension/weights.js; the chip is sized to the measured
-# text so a longer caption can never overflow the box.
-$capFont = New-Object System.Drawing.Font("Arial", 19, [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
-$capW = [int]$g.MeasureString($W.facts.shortChipCaption, $capFont).Width
+# Caption comes from extension/weights.js (or the Japanese captions file); the
+# chip is sized to the measured text so a longer caption can never overflow the box.
+$capFont = New-Object System.Drawing.Font($bodyFont, 19, [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
+$capW = [int]$g.MeasureString($copy.chip, $capFont).Width
 $capFont.Dispose()
 $CHIP_X = 48; $CHIP_SHADOW = 5
 $chipW = $capW + 36
 NeoBox $g $CHIP_X 690 $chipW 42 $YELLOW 3 $CHIP_SHADOW
-Txt $g $W.facts.shortChipCaption "Arial" 19 ([System.Drawing.FontStyle]::Bold) $BLACK 66 700
+Txt $g $copy.chip $bodyFont 19 ([System.Drawing.FontStyle]::Bold) $BLACK 66 700
 
 # ── Place the capture so it can never collide with the left column ──────────
 # Both the chip and the capture grow with their content (caption length, crop
@@ -95,6 +115,6 @@ $pen = New-Object System.Drawing.Pen($BLACK, 3)
 $g.DrawRectangle($pen, ($sx + 1.5), ($sy + 1.5), ($shotW - 3), ($shotH - 3))
 $pen.Dispose()
 
-$bmp.Save("D:\Twitter Tweet Scan\store-assets\screenshot-1280x800.png", [System.Drawing.Imaging.ImageFormat]::Png)
+$bmp.Save("D:\Twitter Tweet Scan\store-assets\screenshot-1280x800$suffix.png", [System.Drawing.Imaging.ImageFormat]::Png)
 $g.Dispose(); $bmp.Dispose(); $shot.Dispose()
 "generated"
