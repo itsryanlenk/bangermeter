@@ -88,7 +88,8 @@ what the published weights actually say.
   applied to the score (it is slate-relative and viewer-specific).
 - **Under the Hood import.** Pilot-cohort users can import the JSON report X lets them
   download from `x.com/i/jf/under_the_hood`; the popup summarizes the visibility labels X
-  itself applied (monthly aggregates — the report carries no post IDs). Parsed locally,
+  itself applied (monthly aggregates; at X's published defaults the report carries no post
+  IDs). Parsed locally,
   stored locally, validated against the published label allowlist.
 
 ## Methodology and honesty
@@ -231,7 +232,7 @@ what the published weights actually say.
 | `extension/content.js` | Badges, breakdown panel, compose meter |
 | `extension/background.js` | Service worker. One listener: open the quick start on first install, never on update |
 | `extension/welcome.html` | The quick start itself — self-contained, loads nothing over the network |
-| `extension/test.html` | Engine self-test — open in any browser (364 assertions) |
+| `extension/test.html` | Engine self-test — open in any browser (365 assertions) |
 | `extension/fixture.html` | X-DOM fixture harness for the content script |
 | `extension/fixture-thread.html` | Reply-detection harness — asserts the conversation, `with_replies` and home-timeline surfaces separately, because X marks a reply differently on each. Needs `serve-fixtures.js` (it reads `location.pathname`) |
 | `extension/serve-fixtures.js` | Tiny static server for the harnesses, including the x.com-shaped paths the reply-detection cases need |
@@ -249,7 +250,7 @@ happened when those numbers were hardcoded.
 
 ## Verification status
 
-- Engine math: **364/364 self-tests pass** (`test.html`). Every published
+- Engine math: **365/365 self-tests pass** (`test.html`). Every published
   weight and its feature-switch parameter name is asserted individually against
   `param.rs`, or `vm-ranker/params.rs` for the three heads only it publishes, so a silent transcription error fails the suite rather than shipping.
   param.rs moved five heads between the Oct 6 and Oct 13, 2026 syncs (published

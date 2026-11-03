@@ -41,7 +41,7 @@
 
     // ================================================================
     // WEIGHT LAYER — verbatim against xai-org/x-algorithm
-    // home-mixer/params/param.rs (sync 2026-10-28T16:00:35Z)
+    // home-mixer/params/param.rs (sync 2026-11-02T16:00:39Z)
     // Every value below was transcribed from the published file. If any
     // of these fail, the tool is lying about X's algorithm.
     // ================================================================
@@ -53,7 +53,7 @@
       vqv: 0.0, share: 2.0,
       share_via_dm: 5.0, share_via_copy_link: 20.0, dwell: 0.05, quote: 5.0,
       quoted_click: 0.05, quoted_vqv: 0.0, follow_author: 4.0, post_unexplored: 0.015,
-      react_with_video: 0.0,
+      post_video: 0.0,
       cont_dwell_time: 0.006, cont_click_dwell_time: 0.4,
       video_continuation: 0.0, user_video_continuation: 0.0,
       not_interested: -52.272, block_author: -31.2, mute_author: -58.8,
@@ -80,15 +80,17 @@
     check("one-file heads name the upstream file that publishes them",
       C.carouselWeights.video_carousel_video_open.upstream === "paramRs" &&
       C.carouselWeights.video_carousel_immersive_vqv.upstream === "paramRs" &&
+      C.carouselWeights.video_carousel_weighted_score.upstream === "paramRs" &&
+      C.carouselWeights.video_carousel_weighted_score.weight === 0.0 && !H.video_carousel_weighted_score &&
       !H.video_carousel_video_open && C.carouselWeights.video_carousel_video_open.weight === 1.0 &&
       H.video_continuation.upstream === "vmParams" &&
       H.user_video_continuation.upstream === "vmParams" &&
       H.profile_visit_secs.upstream === "vmParams" &&
-      H.react_with_video.upstream === undefined && H.favorite.upstream === undefined);
+      H.post_video.upstream === undefined && H.favorite.upstream === undefined);
     check("retired head cont_active_secs_5m_residual_norm is gone",
       H.cont_active_secs_5m_residual_norm === undefined);
     check("param.rs last-sync stamp is pinned for score cards",
-      C.paramRsLastSync === "2026-10-28T16:00:35Z", C.paramRsLastSync);
+      C.paramRsLastSync === "2026-11-02T16:00:39Z", C.paramRsLastSync);
 
     // ── Facts X published on Aug 14 2026 ──────────────────────────────
     // The weights themselves did not move; these are the clarifications
@@ -178,19 +180,26 @@
       SF.underTheHood.path === "x.com/i/jf/under_the_hood", SF.underTheHood.path);
     check("Under the Hood note no longer asserts the page never renders the labels",
       !/does not render the label data into the DOM/.test(SF.underTheHood.note));
+    // Since Oct 31, 2026 (9106e9f) the report can list each label's posts,
+    // behind a switch that defaults to false. "No post IDs" holds only at defaults.
+    check("Under the Hood 'no post IDs' is hedged to X's published defaults, verified at b220448",
+      SF.underTheHood.postIdsSwitch === "under_the_hood_report_post_ids_enabled" &&
+      SF.underTheHood.verifiedAt === "b220448" &&
+      /At X's published defaults/.test(SF.underTheHood.note) &&
+      /defaults to false/.test(SF.underTheHood.note));
     check("July 13 'mutuals' announcement mapped to the EXISTING boost, still 15.0",
       /July 13/.test(H.reply.note) && C.bidirectionalFollowReplyBoost === 15.0);
 
-    // ── The "Visibility limited" notice (first verified at 77d431a, 2026-09-30; re-verified at 862a123, 2026-10-17, at 6258a15, 2026-10-24, and at 606b254, 2026-10-29) ──
+    // ── The "Visibility limited" notice (first verified at 77d431a, 2026-09-30; re-verified at 862a123, 2026-10-17, at 6258a15, 2026-10-24, at 606b254, 2026-10-29, and at b220448, 2026-11-03) ──
     // Through 0.10.2 the panel called this "reach suppressed (magnitude
     // unpublished)", citing the 2023 archive. The 2026 code does not shrink
     // these posts in For You. It removes them.
     var VL = SF.visibilityLimited || {};
     var FOSNR_LEVEL_3 = ["FOSNR_HATEFUL_CONDUCT", "FOSNR_VIOLENT_SPEECH",
       "FOSNR_ABUSE", "FOSNR_CIVIC_INTEGRITY"];
-    check("visibility-limited fact recorded, verified at 606b254 with a date",
-      VL.provenance === "2026-published" && VL.verifiedAt === "606b254" &&
-      VL.verifiedAsOf === "2026-10-29");
+    check("visibility-limited fact recorded, verified at b220448 with a date",
+      VL.provenance === "2026-published" && VL.verifiedAt === "b220448" &&
+      VL.verifiedAsOf === "2026-11-03");
     check("For You calls exactly two VF safety levels",
       JSON.stringify(VL.forYouLevels) === '["TimelineHome","TimelineHomeRecommendations"]',
       JSON.stringify(VL.forYouLevels));
@@ -241,12 +250,12 @@
       /check fails/.test(VL.note || "") && /PushToHomeSource/.test(VL.note || ""));
     check("the removal of quoting posts and replies is cited where it happens",
       Array.isArray(VL.sources) && VL.sources.some(function (s) {
-        return /^home-mixer\/candidate_hydrators\/vf_candidate_hydrator\.rs@606b254 \(lines 140-170/.test(s);
+        return /^home-mixer\/candidate_hydrators\/vf_candidate_hydrator\.rs@b220448 \(lines 140-170/.test(s);
       }));
     check("both Following feeds are accounted for",
       /chronological Following/.test(VL.note || "") && /ranked Following/.test(VL.note || "") &&
       Array.isArray(VL.sources) && VL.sources.some(function (s) {
-        return /^home-mixer\/server\.rs@606b254/.test(s);
+        return /^home-mixer\/server\.rs@b220448/.test(s);
       }));
     check("47c1bcd is not called the first publication (that is aaa167b, Jan 20)",
       !/first publication/.test((VL.note || "") + (VL.panelDetail || "")));
@@ -348,8 +357,9 @@
       C.weightSums.positiveMembers.indexOf("cont_dwell_time") === -1);
     check("cont_click_dwell_time excluded from positive_sum, though now weighted 0.4",
       C.weightSums.positiveMembers.indexOf("cont_click_dwell_time") === -1);
-    check("react_with_video is in positive_sum; continuation and profile-visit heads are not",
-      C.weightSums.positiveMembers.indexOf("react_with_video") !== -1 &&
+    check("post_video (react_with_video until Oct 30) is in positive_sum; continuation and profile-visit heads are not",
+      C.weightSums.positiveMembers.indexOf("post_video") !== -1 &&
+      C.weightSums.positiveMembers.indexOf("react_with_video") === -1 && !H.react_with_video &&
       ["video_continuation", "user_video_continuation", "profile_visit_secs"].every(function (h) {
         return C.weightSums.positiveMembers.indexOf(h) === -1;
       }));
@@ -982,10 +992,10 @@
     // For You removes a post whose quoted post is dropped. Sourced, so the
     // panel row for the quoted case can cite it.
     var QVL = C.sourcedFacts.quotedVisibilityLimited;
-    check("quoted-label removal is sourced at 606b254",
-      !!QVL && QVL.verifiedAt === "606b254" &&
-      QVL.sources.some(function (s) { return /vf_candidate_hydrator\.rs@606b254.*should_drop_ancillary/.test(s); }) &&
-      QVL.sources.some(function (s) { return /ancillary_vf_filter\.rs@606b254/.test(s); }));
+    check("quoted-label removal is sourced at b220448",
+      !!QVL && QVL.verifiedAt === "b220448" &&
+      QVL.sources.some(function (s) { return /vf_candidate_hydrator\.rs@b220448.*should_drop_ancillary/.test(s); }) &&
+      QVL.sources.some(function (s) { return /ancillary_vf_filter\.rs@b220448/.test(s); }));
     check("quoted-label note names the author exemption and PushToHomeSource",
       !!QVL && /author/.test(QVL.note) && /PushToHomeSource/.test(QVL.note) && !!QVL.panel);
 
