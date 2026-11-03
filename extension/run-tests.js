@@ -35,7 +35,7 @@ const document = {
 
 const ctx = { document, console, Math, Object, Array, JSON, String, Number, isNaN, parseFloat, parseInt };
 vm.createContext(ctx);
-for (const f of ["weights.js", "scoring.js"]) {
+for (const f of ["weights.js", "scoring.js", "i18n.js"]) {
   vm.runInContext(fs.readFileSync(path.join(ext, f), "utf8"), ctx, { filename: f });
 }
 try {

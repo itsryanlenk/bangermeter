@@ -17,6 +17,7 @@
   <div id="out"></div>
   <script src="weights.js"></script>
   <script src="scoring.js"></script>
+  <script src="i18n.js"></script>
   <script>
     var out = document.getElementById("out");
     var passed = 0, failed = 0;
@@ -1280,6 +1281,42 @@
     }));
     check("oversize strings truncated",
       uthLong.postLabels[0].about.length <= 400 && uthLong.postLabels[0].effect.length <= 400);
+
+    // ================================================================
+    section("Japanese localization (i18n.js)");
+    // English stays in the code as the key. Japanese is served only from JA;
+    // JA_DRAFT holds Japanese that no native speaker has reviewed yet.
+    var I = BANGERMETER_I18N;
+    I.JA["Show the math"] = I.JA["Show the math"] || "計算式を見る";
+    I.setLanguage("en");
+    check("i18n: English mode returns the key", I.t("Show the math") === "Show the math");
+    I.setLanguage("ja");
+    check("i18n: Japanese mode returns JA", I.t("Show the math") === "計算式を見る");
+    check("i18n: missing Japanese falls back to English",
+      I.t("A label X added next week") === "A label X added next week");
+    check("i18n: drafts are never served", (function () {
+      I.JA_DRAFT["Draft only line"] = "下書き";
+      var served = I.t("Draft only line");
+      delete I.JA_DRAFT["Draft only line"];
+      return served === "Draft only line";
+    })());
+    check("i18n: placeholders fill in both languages, literally",
+      I.t("Raw: {x}", { x: "$&{y}$1" }) === "Raw: $&{y}$1");
+    check("i18n: unknown placeholder is left visible", I.t("Raw: {x}") === "Raw: {x}");
+    check("i18n: every JA and JA_DRAFT entry keeps its key's placeholders",
+      Object.keys(I.JA).concat(Object.keys(I.JA_DRAFT)).every(function (k) {
+        var v = I.JA[k] !== undefined ? I.JA[k] : I.JA_DRAFT[k];
+        return I.placeholdersOf(k).join() === I.placeholdersOf(v).join();
+      }));
+    // An explicit non-Japanese <html lang> beats navigator.language; the
+    // browser language decides only when the attribute is missing or empty.
+    check("i18n: resolveLanguage", [
+      ["auto", "ja", "en-US", "ja"], ["auto", "ja-JP", null, "ja"], ["auto", "JA", null, "ja"],
+      ["auto", null, "ja-JP", "ja"], ["auto", "", "ja", "ja"], ["auto", "es", "ja-JP", "en"],
+      ["auto", "hi", null, "en"], ["auto", null, null, "en"], ["en", "ja", "ja", "en"],
+      ["ja", "en", "en", "ja"]
+    ].every(function (c) { return I.resolveLanguage(c[0], c[1], c[2]) === c[3]; }));
+    I.setLanguage("en");
 
     // ================================================================
     section("Composite");
