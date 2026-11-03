@@ -7,7 +7,12 @@
   var settings = Object.assign({}, BANGERMETER_DEFAULT_SETTINGS);
   var scanTimer = null;
   var I18N = BANGERMETER_I18N;
+  // t() takes one string literal, so store-assets/i18n-coverage.js can read
+  // every key. tl() is the same lookup for data: labels and panel text that
+  // live in weights.js or scoring.js, which the coverage script reads from the
+  // config instead.
   var t = I18N.t;
+  var tl = I18N.t;
   var lastXLanguage = null;
 
   // Auto follows X's own display language (<html lang>); the popup can pin
@@ -271,8 +276,8 @@
     if (textEl) {
       var anchors = textEl.querySelectorAll("a");
       for (var i = 0; i < anchors.length; i++) {
-        var t = (anchors[i].textContent || "").trim();
-        if (!/^[@#$]/.test(t) && /\w+\.[a-z]{2,}/i.test(t)) { linkishAnchor = true; break; }
+        var anchorText = (anchors[i].textContent || "").trim();
+        if (!/^[@#$]/.test(anchorText) && /\w+\.[a-z]{2,}/i.test(anchorText)) { linkishAnchor = true; break; }
       }
     }
     var hashtagCount = textEl ? textEl.querySelectorAll('a[href*="/hashtag/"]').length : 0;
@@ -429,7 +434,7 @@
     var c = document.createElement("span");
     c.className = "bangermeter-seg bangermeter-" + scoreLevel(result.content.score);
     c.textContent = "C" + result.content.score;
-    c.title = "Content score (prospective)";
+    c.title = t("Content score (prospective)");
     badge.appendChild(c);
 
     if (result.engagement.available) {
@@ -437,8 +442,8 @@
       e.className = "bangermeter-seg bangermeter-" + scoreLevel(result.engagement.score);
       e.textContent = "E" + (result.engagement.lowSample ? "~" : "") + result.engagement.score;
       e.title = result.engagement.lowSample
-        ? "Engagement score — low view sample, smoothed toward median"
-        : "Engagement score (how the weights value actual engagement)";
+        ? t("Engagement score — low view sample, smoothed toward median")
+        : t("Engagement score (how the weights value actual engagement)");
       badge.appendChild(e);
     }
 
@@ -492,31 +497,55 @@
     return (p * 100).toPrecision(2) + "%";
   }
 
-  // Plain-English one-liners per detected signal (math lives in the tooltip + details)
-  var PLAIN_SIGNALS = {
-    question: "Asks a question — invites replies, the algorithm's favorite signal",
-    conversation_length: "Meaty text — gives people a conversation to click into",
-    thread_starter: "Starts a thread — keeps readers on the post longer",
-    media_image: "Has a picture — small boost to likes",
-    has_video: "Has video — watches barely count (0.05, and nothing under 10 seconds)",
-    external_link: "Contains a link — opening it pays 0.2, small but not zero",
-    link_no_context: "Mostly just a link — low-context link posts do worse",
-    many_hashtags: "3+ hashtags — the old algorithm flags hashtag piles",
-    engagement_bait: "“Like if…” bait — invites “show less” clicks and penalties",
-    all_caps_shout: "MOSTLY CAPS — reads as shouting, invites negative feedback"
-  };
+  // Plain-English one-liners per detected signal (math lives in the tooltip +
+  // details). Figures come from the weight table: the video line said 0.05 for
+  // two months after X zeroed vqv on Aug 25, 2026, because it was typed in.
+  function plainSignal(id) {
+    var H = BANGERMETER_CONFIG.heads;
+    switch (id) {
+      case "question": return t("Asks a question — invites replies, the algorithm's favorite signal");
+      case "conversation_length": return t("Meaty text — gives people a conversation to click into");
+      case "thread_starter": return t("Starts a thread — keeps readers on the post longer");
+      case "media_image": return t("Has a picture — small boost to likes");
+      case "has_video":
+        return H.vqv.weight === 0
+          ? t("Has video — opening it pays {videoOpen}; a full watch earns nothing extra (vqv is 0)",
+            { videoOpen: H.video_open.weight })
+          : t("Has video — opening it pays {videoOpen}; a watch over {seconds} seconds pays {vqv}",
+            { videoOpen: H.video_open.weight, vqv: H.vqv.weight,
+              seconds: BANGERMETER_CONFIG.sourcedFacts.minVideoDurationMs.value / 1000 });
+      case "external_link":
+        return t("Contains a link — opening it pays {openLink}, small but not zero", { openLink: H.open_link.weight });
+      case "link_no_context": return t("Mostly just a link — low-context link posts do worse");
+      case "many_hashtags": return t("3+ hashtags — the old algorithm flags hashtag piles");
+      case "engagement_bait": return t("“Like if…” bait — invites “show less” clicks and penalties");
+      case "all_caps_shout": return t("MOSTLY CAPS — reads as shouting, invites negative feedback");
+    }
+    return null;
+  }
 
+  // r.reason and r.label are compared in English: scoring.js writes them, and
+  // only what is returned here is translated.
   function plainRescorerText(r) {
-    if (r.reason === "Out-of-network view assumed") return "Out-of-network view assumed — scored at 75%";
-    if (r.reason === "In-network reply") return "This is a reply — replies take the same 75% discount as out-of-network posts";
-    if (r.reason === "In-network repost") return "This is a repost — reposts take the same 75% discount as out-of-network posts";
+    if (r.reason === "Out-of-network view assumed") return t("Out-of-network view assumed — scored at 75%");
+    if (r.reason === "In-network reply") return t("This is a reply — replies take the same 75% discount as out-of-network posts");
+    if (r.reason === "In-network repost") return t("This is a repost — reposts take the same 75% discount as out-of-network posts");
     if (r.label.indexOf("Verified") === 0) {
-      return "Verified author — ×" + r.factor + " boost per 2023 code (absent from the 2026 release)";
+      return t("Verified author — ×{factor} boost per 2023 code (absent from the 2026 release)", { factor: r.factor });
     }
     if (r.label.indexOf("Community-noted") === 0) {
-      return "Community Note attached — future engagement suppressed ~50% (three causal studies)";
+      return t("Community Note attached — future engagement suppressed ~50% (three causal studies)");
     }
-    return r.label;
+    return rescorerLabel(r);
+  }
+
+  // The verified rescorer's label carries its factor, so it has a template;
+  // the others are fixed labels from weights.js.
+  function rescorerLabel(r) {
+    if (r.label.indexOf("Verified author ×") === 0) {
+      return t("Verified author ×{factor} (2023 code, absent from the 2026 release)", { factor: r.factor });
+    }
+    return tl(r.label);
   }
 
   // Reply weight is viewer-dependent: 5.0 normally, 20.0 on an original post from
@@ -534,13 +563,13 @@
     });
     var likes = likesEquiv(w);
     return settings.assumeMutualFollow
-      ? "each worth " + likes + " likes (mutual-follow boost on)"
-      : "each worth " + likes + " likes";
+      ? t("each worth {likes} likes (mutual-follow boost on)", { likes: likes })
+      : t("each worth {likes} likes", { likes: likes });
   }
 
   function mathDetails(summaryText) {
     var d = el("details", "bangermeter-math");
-    d.appendChild(el("summary", null, summaryText || "Show the math"));
+    d.appendChild(el("summary", null, summaryText || t("Show the math")));
     return d;
   }
 
@@ -568,9 +597,10 @@
       row.appendChild(bar);
       // A continuous head multiplies predicted SECONDS, not a probability —
       // formatting 3.0s of dwell as "P 300.0%" read as an impossible chance.
-      var lbl = el("div", "bangermeter-contrib-label",
-        (head ? head.label : c.head) + "  ·  w " + c.weight +
-        (head && head.continuous ? " × " + c.p.toFixed(1) + " s predicted" : " × P " + fmtP(c.p)));
+      var name = head ? tl(head.label) : c.head;
+      var lbl = el("div", "bangermeter-contrib-label", head && head.continuous
+        ? t("{label}  ·  w {w} × {p} s predicted", { label: name, w: c.weight, p: c.p.toFixed(1) })
+        : t("{label}  ·  w {w} × P {p}", { label: name, w: c.weight, p: fmtP(c.p) }));
       row.appendChild(lbl);
       var val = el("div", "bangermeter-contrib-val", c.contribution.toFixed(4));
       row.appendChild(val);
@@ -630,7 +660,7 @@
     panel = el("div", "bangermeter-panel");
     panel.setAttribute("lang", I18N.getLanguage());
     panel.setAttribute("role", "dialog");
-    panel.setAttribute("aria-label", "Bangermeter score breakdown");
+    panel.setAttribute("aria-label", t("Bangermeter score breakdown"));
     applyTheme(panel);
     lastBadgeFocus = anchor;
     var head = el("div", "bangermeter-panel-head");
@@ -639,7 +669,7 @@
     title.appendChild(document.createTextNode("Bangermeter"));
     head.appendChild(title);
     var close = el("button", "bangermeter-panel-close");
-    close.setAttribute("aria-label", "Close breakdown");
+    close.setAttribute("aria-label", t("Close breakdown"));
     // SVG × so it is optically centered (a text glyph sits on its baseline)
     close.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="square" aria-hidden="true"><path d="M5.5 5.5 18.5 18.5M18.5 5.5 5.5 18.5"/></svg>';
     close.addEventListener("click", closePanel);
@@ -648,8 +678,8 @@
 
     // ── Content appeal (plain English; math collapsed) ──
     var sec1 = el("div", "bangermeter-panel-section");
-    sectionScoreRow(sec1, "Content appeal", result.content.score, null);
-    subtitle(sec1, "What the algorithm would predict from the content alone. 50 = a typical post.");
+    sectionScoreRow(sec1, t("Content appeal"), result.content.score, null);
+    subtitle(sec1, t("What the algorithm would predict from the content alone. 50 = a typical post."));
 
     if (result.content.modifiers.length) {
       result.content.modifiers.forEach(function (m) {
@@ -660,32 +690,32 @@
         var cls = neutral ? "" : (bad ? " bangermeter-down" : " bangermeter-up");
         var mrow = el("div", "bangermeter-mod");
         mrow.appendChild(el("span", "bangermeter-mod-dir" + cls, dir));
-        mrow.appendChild(el("span", "bangermeter-mod-label", PLAIN_SIGNALS[m.id] || m.label));
+        mrow.appendChild(el("span", "bangermeter-mod-label", plainSignal(m.id) || tl(m.label)));
         mrow.title = m.why + (m.factor != null ? " (×" + m.factor + ", " + m.provenance + ")" : "");
         sec1.appendChild(mrow);
       });
     } else {
-      sec1.appendChild(el("div", "bangermeter-sub", "No special signals — scored as a typical post."));
+      sec1.appendChild(el("div", "bangermeter-sub", t("No special signals — scored as a typical post.")));
     }
     result.content.rescorers.forEach(function (r) {
       var rrow = el("div", "bangermeter-rescorer",
         (r.factor >= 1 ? "▲ " : "▼ ") + plainRescorerText(r));
-      rrow.title = r.label;
+      rrow.title = rescorerLabel(r);
       sec1.appendChild(rrow);
     });
     if (result.features.visibilityLimited) {
       var VL = BANGERMETER_CONFIG.sourcedFacts.visibilityLimited;
-      var vl = el("div", "bangermeter-rescorer", "▼ " + VL.panel);
+      var vl = el("div", "bangermeter-rescorer", "▼ " + tl(VL.panel));
       vl.title = VL.note + " (xai-org/x-algorithm at " + VL.verifiedAt + ", " +
         VL.verifiedAsOf + ": " + VL.sources.map(function (s) {
           return s.split(" (")[0];
         }).join(", ") + ")";
       sec1.appendChild(vl);
-      sec1.appendChild(el("div", "bangermeter-fineprint", VL.panelDetail));
+      sec1.appendChild(el("div", "bangermeter-fineprint", tl(VL.panelDetail)));
     }
     if (result.features.quotedVisibilityLimited) {
       var QVL = BANGERMETER_CONFIG.sourcedFacts.quotedVisibilityLimited;
-      var qvl = el("div", "bangermeter-rescorer", "▼ " + QVL.panel);
+      var qvl = el("div", "bangermeter-rescorer", "▼ " + tl(QVL.panel));
       qvl.title = QVL.note + " (xai-org/x-algorithm at " + QVL.verifiedAt + ", " +
         QVL.verifiedAsOf + ": " + QVL.sources.map(function (s) {
           return s.split(" (")[0];
@@ -702,25 +732,22 @@
       // Reply-specific scoring facts, all verified against the published repo.
       // The ×0.75 rescorer row above already covers the in-feed discount.
       var RQ = BANGERMETER_CONFIG.sourcedFacts.replyQualityGate;
-      sec1.appendChild(el("div", "bangermeter-subhead", "Reply scoring"));
+      sec1.appendChild(el("div", "bangermeter-subhead", t("Reply scoring")));
+      // The tooltips are X's own notes and stay English; the row text is translated.
       [
-        { mark: "·", text: "Out-of-network, this reply never reaches For You at all — replies " +
-            "from unfollowed accounts are hard-filtered, not down-weighted.",
+        { mark: "·", text: t("Out-of-network, this reply never reaches For You at all — replies from unfollowed accounts are hard-filtered, not down-weighted."),
           tip: BANGERMETER_CONFIG.sourcedFacts.oonReplyFilter.note + " (" +
             BANGERMETER_CONFIG.sourcedFacts.oonReplyFilter.source + ")" },
-        { mark: "·", text: "No mutual-follow boost here: the +15.0 reply boost needs an " +
-            "ORIGINAL post — replies are ineligible.",
+        { mark: "·", text: t("No mutual-follow boost here: the +{boost} reply boost needs an ORIGINAL post — replies are ineligible.",
+            { boost: BANGERMETER_CONFIG.bidirectionalFollowReplyBoost.toFixed(1) }),
           tip: "bidirectional_boost_eligible requires in_reply_to_tweet_id to be none " +
             "(bidirectional_boost_eligible, xai-value-model/inputs.rs). " + BANGERMETER_CONFIG.heads.reply.note },
-        { mark: "·", text: "Replying to an account over " + (RQ.followerThreshold / 1000) + "K " +
-            "followers? A Grok model scores the reply " + RQ.scoreMin + "–" + RQ.scoreMax + "; a " +
-            RQ.scoreMin + " applies the " + RQ.zeroScoreLabel + " label (duration unpublished).",
+        { mark: "·", text: t("Replying to an account over {k}K followers? A Grok model scores the reply {min}–{max}; a {min} applies the {label} label (duration unpublished).",
+            { k: RQ.followerThreshold / 1000, min: RQ.scoreMin, max: RQ.scoreMax, label: RQ.zeroScoreLabel }),
           tip: RQ.note + " Signals it is shown: " + RQ.signals.join("; ") + ". (" + RQ.source + ")" },
-        { mark: "·", text: "Where this reply SORTS inside the thread is not something anyone " +
-            "outside X can score — that ranker is not open-sourced.",
+        { mark: "·", text: t("Where this reply SORTS inside the thread is not something anyone outside X can score — that ranker is not open-sourced."),
           tip: BANGERMETER_CONFIG.sourcedFacts.conversationRanker.note },
-        { mark: "·", text: "Replies are filtered out of X's Grok “banger” pipeline before it " +
-            "runs — it only ever evaluates original posts.",
+        { mark: "·", text: t("Replies are filtered out of X's Grok “banger” pipeline before it runs — it only ever evaluates original posts."),
           tip: "grox/flows/upa/task_filter.py — TaskInitialBangerFilter rejects any post with ancestors." }
       ].forEach(function (r) {
         var rrow = el("div", "bangermeter-mod");
@@ -732,16 +759,14 @@
     }
 
     var d1 = mathDetails();
-    d1.appendChild(el("div", "bangermeter-fineprint",
-      "Score = Σ(weight × P) over the Phoenix heads, then offset_score (xai-value-model/scoring.rs), " +
-      "× rescorers, normalized so a median post = 50 (√ curve, capped at 100). " +
-      "Raw: " + result.content.raw.toFixed(4) +
-      (result.content.netNegative
-        ? " — NET NEGATIVE: X rescales any post whose weighted sum goes below zero into [0, " +
-          (BANGERMETER_CONFIG.weightSums.negative / BANGERMETER_CONFIG.weightSums.total *
-            BANGERMETER_CONFIG.negativeScoresOffset).toFixed(6) +
-          "), which puts it under every positive-scoring post in the feed."
-        : "")));
+    var scoreMath = t("Score = Σ(weight × P) over the Phoenix heads, then offset_score (xai-value-model/scoring.rs), × rescorers, normalized so a median post = 50 (√ curve, capped at 100). Raw: {raw}",
+      { raw: result.content.raw.toFixed(4) });
+    if (result.content.netNegative) {
+      scoreMath += " — " + t("NET NEGATIVE: X rescales any post whose weighted sum goes below zero into [0, {ceiling}), which puts it under every positive-scoring post in the feed.",
+        { ceiling: (BANGERMETER_CONFIG.weightSums.negative / BANGERMETER_CONFIG.weightSums.total *
+          BANGERMETER_CONFIG.negativeScoresOffset).toFixed(6) });
+    }
+    d1.appendChild(el("div", "bangermeter-fineprint", scoreMath));
     contributionList(d1, result.content.contributions);
     sec1.appendChild(d1);
     panel.appendChild(sec1);
@@ -749,62 +774,69 @@
     // ── Earned engagement (plain English; math collapsed) ──
     var sec2 = el("div", "bangermeter-panel-section");
     if (result.engagement.available) {
-      sectionScoreRow(sec2, "Earned engagement", result.engagement.score, null);
-      subtitle(sec2, "How the algorithm values what this post actually earned, from " +
-        result.engagement.views.toLocaleString() + " views. 50 = the median rate measured " +
-        "across " + BANGERMETER_CONFIG.observedRates.n + " real timeline posts.");
+      sectionScoreRow(sec2, t("Earned engagement"), result.engagement.score, null);
+      subtitle(sec2, t("How the algorithm values what this post actually earned, from {views} views. 50 = the median rate measured across {n} real timeline posts.",
+        { views: result.engagement.views.toLocaleString(), n: BANGERMETER_CONFIG.observedRates.n }));
 
       var counts = result.features.counts || {};
+      var syncDate = BANGERMETER_CONFIG.paramRsLastSync.slice(0, 10);
+      // Each row counts its own noun: Japanese has no plural, English does.
       [
-        { icon: "reply", n: counts.replies, one: "reply", many: "replies",
+        { icon: "reply", n: counts.replies,
+          count: function (n) { return n === 1 ? t("{n} reply", { n: n }) : t("{n} replies", { n: n.toLocaleString() }); },
           worth: replyWorthText(),
           tip: BANGERMETER_CONFIG.heads.reply.note },
-        { icon: "repost", n: counts.retweets, one: "repost", many: "reposts",
-          worth: "each worth " + likesEquiv(BANGERMETER_CONFIG.heads.retweet.weight) + " likes",
-          tip: "Weight " + BANGERMETER_CONFIG.heads.retweet.weight + " vs " +
-            BANGERMETER_CONFIG.heads.favorite.weight + " for a like (param.rs, " + BANGERMETER_CONFIG.paramRsLastSync.slice(0, 10) + " sync). A ratio of coefficients on " +
-            "same-denominator rates — meaningful inside this score, and only here. X warns that " +
-            "weight ratios are NOT count equivalences in general; see the fine print below." },
-        { icon: "like", n: counts.likes, one: "like", many: "likes",
-          worth: "the baseline unit",
-          tip: "Weight " + BANGERMETER_CONFIG.heads.favorite.weight + " (param.rs, " + BANGERMETER_CONFIG.paramRsLastSync.slice(0, 10) + " sync)" },
-        { icon: "bookmark", n: counts.bookmarks, one: "bookmark", many: "bookmarks",
-          worth: "not a scored action — X publishes no bookmark weight",
+        { icon: "repost", n: counts.retweets,
+          count: function (n) { return n === 1 ? t("{n} repost", { n: n }) : t("{n} reposts", { n: n.toLocaleString() }); },
+          worth: t("each worth {likes} likes", { likes: likesEquiv(BANGERMETER_CONFIG.heads.retweet.weight) }),
+          tip: t("Weight {w} vs {like} for a like (param.rs, {date} sync). A ratio of coefficients on same-denominator rates — meaningful inside this score, and only here. X warns that weight ratios are NOT count equivalences in general; see the fine print below.",
+            { w: BANGERMETER_CONFIG.heads.retweet.weight, like: BANGERMETER_CONFIG.heads.favorite.weight, date: syncDate }) },
+        { icon: "like", n: counts.likes,
+          count: function (n) { return n === 1 ? t("{n} like", { n: n }) : t("{n} likes", { n: n.toLocaleString() }); },
+          worth: t("the baseline unit"),
+          tip: t("Weight {w} (param.rs, {date} sync)", { w: BANGERMETER_CONFIG.heads.favorite.weight, date: syncDate }) },
+        { icon: "bookmark", n: counts.bookmarks,
+          count: function (n) { return n === 1 ? t("{n} bookmark", { n: n }) : t("{n} bookmarks", { n: n.toLocaleString() }); },
+          worth: t("not a scored action — X publishes no bookmark weight"),
           tip: BANGERMETER_CONFIG.unweightedSignals.bookmark.note }
       ].forEach(function (r) {
         if (r.n == null) return;
         var row = el("div", "bangermeter-plainrow");
         row.appendChild(icon(r.icon));
-        row.appendChild(el("span", null,
-          r.n.toLocaleString() + " " + (r.n === 1 ? r.one : r.many)));
+        row.appendChild(el("span", null, r.count(r.n)));
         row.appendChild(el("span", "bangermeter-worth", "— " + r.worth));
         row.title = r.tip;
         sec2.appendChild(row);
       });
 
       if (result.engagement.smoothingNote) {
-        sec2.appendChild(el("div", "bangermeter-fineprint", result.engagement.smoothingNote));
+        sec2.appendChild(el("div", "bangermeter-fineprint",
+          t("Only {views} views — rates are smoothed toward the median (empirical Bayes, K={k}), so small samples can't spike or tank the score.",
+            { views: result.engagement.views.toLocaleString(),
+              k: BANGERMETER_CONFIG.engagementShrinkage.pseudoViews.toLocaleString() })));
       }
       result.engagement.rescorers.forEach(function (r) {
         var rrow = el("div", "bangermeter-rescorer",
           (r.factor >= 1 ? "▲ " : "▼ ") + plainRescorerText(r));
-        rrow.title = r.label;
+        rrow.title = rescorerLabel(r);
         sec2.appendChild(rrow);
       });
 
       var d2 = mathDetails();
       d2.appendChild(el("div", "bangermeter-fineprint",
-        "Engagement rates = count ÷ views, smoothed toward the median with K=" +
-        BANGERMETER_CONFIG.engagementShrinkage.pseudoViews.toLocaleString() +
-        " pseudo-views (empirical Bayes), then run through the same weighted-sum formula. " +
-        "Raw: " + result.engagement.raw.toFixed(4)));
+        t("Engagement rates = count ÷ views, smoothed toward the median with K={k} pseudo-views (empirical Bayes), then run through the same weighted-sum formula. Raw: {raw}",
+          { k: BANGERMETER_CONFIG.engagementShrinkage.pseudoViews.toLocaleString(), raw: result.engagement.raw.toFixed(4) })));
       contributionList(d2, result.engagement.contributions);
-      d2.appendChild(el("div", "bangermeter-fineprint", result.engagement.excludedNote));
+      d2.appendChild(el("div", "bangermeter-fineprint",
+        t("Scored from the three heads a browser can see: likes ({like}), replies ({reply}), reposts ({repost}). The other {others} heads — shares (2.0 / 5.0 / 20.0), follows (4.0), clicks, dwell time and the negatives (−0.02 to −234.0) — need Phoenix's predictions, not counts.",
+          { like: BANGERMETER_CONFIG.heads.favorite.weight, reply: result.engagement.replyWeight,
+            repost: BANGERMETER_CONFIG.heads.retweet.weight,
+            others: Object.keys(BANGERMETER_CONFIG.heads).length - 3 })));
       sec2.appendChild(d2);
     } else {
-      sec2.appendChild(el("div", "bangermeter-panel-scorelabel", "Earned engagement"));
+      sec2.appendChild(el("div", "bangermeter-panel-scorelabel", t("Earned engagement")));
       sec2.appendChild(el("div", "bangermeter-sub",
-        "Can't score this one — the view count isn't visible, so there's nothing to compute rates from."));
+        t("Can't score this one — the view count isn't visible, so there's nothing to compute rates from.")));
     }
     panel.appendChild(sec2);
 
@@ -812,13 +844,13 @@
     var sec3 = el("div", "bangermeter-panel-section");
     if (result.ageDecay) {
       var ageText = result.ageDecay.minutes < 90
-        ? Math.round(result.ageDecay.minutes) + " min"
-        : (result.ageDecay.minutes / 60).toFixed(1) + " h";
+        ? t("{n} min", { n: Math.round(result.ageDecay.minutes) })
+        : t("{n} h", { n: (result.ageDecay.minutes / 60).toFixed(1) });
       var fresh = el("div", "bangermeter-context");
       fresh.appendChild(icon("clock"));
       fresh.appendChild(el("span", null,
-        "Freshness: ×" + result.ageDecay.factor.toFixed(2) + " at " + ageText +
-        " old — posts fade over ~6 hours, never below ×0.60"));
+        t("Freshness: ×{factor} at {age} old — posts fade over ~6 hours, never below ×0.60",
+          { factor: result.ageDecay.factor.toFixed(2), age: ageText })));
       fresh.title = "Earlybird age-decay sigmoid: base 0.6, halflife 360 min, slope 0.003";
       sec3.appendChild(fresh);
     }
@@ -828,9 +860,9 @@
     var slateK = authorSlateRank(article, features.authorHandle);
     if (slateK >= 1) {
       var dmul = BangermeterEngine.diversityMultiplier(slateK);
-      var drow = el("div", "bangermeter-rescorer",
-        "▼ Posting cadence: post #" + (slateK + 1) + " from this author in the loaded stretch of " +
-        "feed — production attenuates it ×" + dmul.toFixed(2) + " (author diversity)");
+      var drow = el("div", "bangermeter-rescorer", "▼ " +
+        t("Posting cadence: post #{n} from this author in the loaded stretch of feed — production attenuates it ×{mult} (author diversity)",
+          { n: slateK + 1, mult: dmul.toFixed(2) }));
       drow.title = "diversity_multiplier(k=" + slateK + ") = (1 − floor) × decay^k + floor, with " +
         "decay 0.5 and floor 0.25 (xai-value-model/scoring.rs; flag-gated behind EnableAuthorDiversity, " +
         "which ships true — when enabled it applies to every candidate). Only currently rendered " +
@@ -840,9 +872,7 @@
     }
     if (result.features.isVerified && !settings.applyVerifiedBoost2023) {
       var vNote = el("div", "bangermeter-fineprint",
-        "Verified author: 2023-era code boosted verified posts ×4 in-network / ×2 out-of-network. " +
-        "No such multiplier appears anywhere in the Aug 2026 release. Not applied to this score — " +
-        "enable “2023 verified boost” in the popup to simulate that era.");
+        t("Verified author: 2023-era code boosted verified posts ×4 in-network / ×2 out-of-network. No such multiplier appears anywhere in the Aug 2026 release. Not applied to this score — enable “2023 verified boost” in the popup to simulate that era."));
       sec3.appendChild(vNote);
     }
 
@@ -853,78 +883,59 @@
     // heavy weight on a rare action is not the same as a big lever.
     var H = BANGERMETER_CONFIG.heads;
     var F = BANGERMETER_CONFIG.sourcedFacts;
-    var d4 = mathDetails("What X's published weights actually say");
+    var d4 = mathDetails(t("What X's published weights actually say"));
+    var AD = BANGERMETER_CONFIG.rescorers.authorDiversity;
+    var dm = BangermeterEngine.diversityMultiplier;
     [
-      "▲ Copying a post's link carries " + H.share_via_copy_link.weight + ", the heaviest positive " +
-        "coefficient X publishes. It is also one of the rarest things a reader does — which is " +
-        "part of why the number is that large.",
-      "▲ Sharing to DMs carries " + H.share_via_dm.weight + ", the same coefficient as a reply. " +
-        "The share menu itself carries " + H.share.weight + ". Musk called DM-forwarding “one of " +
-        "the strongest signals”; the 2026 file finally puts a number on it.",
-      "▲ A reply from someone you mutually follow is worth " +
-        (H.reply.weight + BANGERMETER_CONFIG.bidirectionalFollowReplyBoost) + ", not " +
-        H.reply.weight + " — but only on original posts, never on replies or reposts.",
-      "▲ Gaining a follower off a post pays " + H.follow_author.weight + ".",
-      "▲ Opening a link pays " + H.open_link.weight + ". Small, but the “links get zero credit” " +
-        "story is now provably wrong.",
-      "· Profile clicks pay NOTHING (" + H.profile_click.weight + "). The 2023 table paid 12.0 " +
-        "for a profile-click-and-engage — that head has been zeroed out.",
-      "· Bookmarks have no head at all — they are not a scored action in 2026.",
-      "▼ Scrolling straight past costs " + H.not_dwelled.weight + ". Tiny per impression, but it " +
-        "happens on most of them.",
-      "▼ Muting (" + H.mute_author.weight + ") hurts nearly twice as much as blocking (" +
-        H.block_author.weight + "). Reporting costs " + H.report.weight + ".",
-      "▼ Any post whose weighted sum goes net-negative is rescaled below every positive post, " +
-        "no matter what else it earned.",
-      "▼ Posting again while your last post is still in the same feed slate costs the newer " +
-        "one: an author's 2nd post in the slate runs ×0.625, the 3rd ×0.44, decaying to a " +
-        "×0.25 floor (author diversity — decay 0.5, floor 0.25, shipped on by default).",
-      "· Grok's “banger” pipeline only ever looks at original posts — replies and " +
-        "protected accounts are filtered out before it runs.",
-      "· Engagement only counts if the post reached the reader through their Home Timeline. " +
-        "Opening a link someone sent has no ranking impact — so passing your own post round " +
-        "a group chat does nothing for reach.",
-      "· A Report's baseline probability is over 1,000× lower than a Like's. That is WHY its " +
-        "coefficient is " + H.report.weight + ", and why dividing it by the like weight gives " +
-        "a number that means nothing.",
-      "· Mass block/report campaigns don't straightforwardly bury a post. Predictions are " +
-        "per-viewer and personalized, so brigading mostly shifts what gets recommended to " +
-        "people like the brigaders.",
-      "▲ Holding a reader for " + F.dwellMark.seconds + " seconds pays a flat " +
-        H.dwell.weight + ", on top of the " + H.cont_dwell_time.weight + "/second dwell-time " +
-        "term. X turned this head on in August 2026 — it paid nothing before. Ten seconds is a " +
-        "bar, not a slope: nine seconds earns none of it.",
-      "▼ Video-quality-view now pays " + H.vqv.weight + ". It was " +
-        "0.05 until August 2026, so finishing a clip no longer earns anything directly — " +
-        "though video still clears the " + F.dwellMark.seconds + "-second dwell bar easily.",
-      "· If you have " + F.authorColdStart.followerCap.toLocaleString() + " followers or fewer, " +
-        "at most one original post per request can be lifted to about slot " + F.authorColdStart.slotMin +
-        " of the feed — but only while it is under " + F.authorColdStart.maxPostAgeHours +
-        "h old and still under " + F.authorColdStart.impressionThreshold.toLocaleString() +
-        " Home impressions. Among the posts that qualify, early likes per impression pick a " +
-        "shortlist of two and the model's score picks the winner. One post per request, not per author.",
-      "· X sends the ranker seven facts about your content: video, longest video length, photo, " +
-        "media count, weighted text length, NEWLINE COUNT, and whether there's a link — though " +
-        "no published model code reads them yet. A link " +
-        "counts as " + F.contentFeatures.urlWeightedLen + " characters no matter how long it is, " +
-        "and an image's own t.co doesn't count as a link at all."
+      ["▲", t("Copying a post's link carries {w}, the heaviest positive coefficient X publishes. It is also one of the rarest things a reader does — which is part of why the number is that large.",
+        { w: H.share_via_copy_link.weight })],
+      ["▲", t("Sharing to DMs carries {dm}, the same coefficient as a reply. The share menu itself carries {share}. Musk called DM-forwarding “one of the strongest signals”; the 2026 file finally puts a number on it.",
+        { dm: H.share_via_dm.weight, share: H.share.weight })],
+      ["▲", t("A reply from someone you mutually follow is worth {mutual}, not {reply} — but only on original posts, never on replies or reposts.",
+        { mutual: H.reply.weight + BANGERMETER_CONFIG.bidirectionalFollowReplyBoost, reply: H.reply.weight })],
+      ["▲", t("Gaining a follower off a post pays {w}.", { w: H.follow_author.weight })],
+      ["▲", t("Opening a link pays {w}. Small, but the “links get zero credit” story is now provably wrong.",
+        { w: H.open_link.weight })],
+      ["·", t("Profile clicks pay NOTHING ({w}). The 2023 table paid 12.0 for a profile-click-and-engage — that head has been zeroed out.",
+        { w: H.profile_click.weight })],
+      ["·", t("Bookmarks have no head at all — they are not a scored action in 2026.")],
+      ["▼", t("Scrolling straight past costs {w}. Tiny per impression, but it happens on most of them.",
+        { w: H.not_dwelled.weight })],
+      ["▼", t("Muting ({mute}) hurts nearly twice as much as blocking ({block}). Reporting costs {report}.",
+        { mute: H.mute_author.weight, block: H.block_author.weight, report: H.report.weight })],
+      ["▼", t("Any post whose weighted sum goes net-negative is rescaled below every positive post, no matter what else it earned.")],
+      // The multipliers come from the decay and floor X ships, not typed figures.
+      ["▼", t("Posting again while your last post is still in the same feed slate costs the newer one: an author's 2nd post in the slate runs ×{second}, the 3rd ×{third}, decaying to a ×{floor} floor (author diversity — decay {decay}, floor {floor}, shipped on by default).",
+        { second: Number(dm(1).toFixed(3)), third: dm(2).toFixed(2), floor: AD.floor, decay: AD.decay })],
+      ["·", t("Grok's “banger” pipeline only ever looks at original posts — replies and protected accounts are filtered out before it runs.")],
+      ["·", t("Engagement only counts if the post reached the reader through their Home Timeline. Opening a link someone sent has no ranking impact — so passing your own post round a group chat does nothing for reach.")],
+      ["·", t("A Report's baseline probability is over 1,000× lower than a Like's. That is WHY its coefficient is {w}, and why dividing it by the like weight gives a number that means nothing.",
+        { w: H.report.weight })],
+      ["·", t("Mass block/report campaigns don't straightforwardly bury a post. Predictions are per-viewer and personalized, so brigading mostly shifts what gets recommended to people like the brigaders.")],
+      ["▲", t("Holding a reader for {seconds} seconds pays a flat {dwell}, on top of the {perSecond}/second dwell-time term. X turned this head on in August 2026 — it paid nothing before. Ten seconds is a bar, not a slope: nine seconds earns none of it.",
+        { seconds: F.dwellMark.seconds, dwell: H.dwell.weight, perSecond: H.cont_dwell_time.weight })],
+      ["▼", t("Video-quality-view now pays {vqv}. It was 0.05 until August 2026, so finishing a clip no longer earns anything directly — though video still clears the {seconds}-second dwell bar easily.",
+        { vqv: H.vqv.weight, seconds: F.dwellMark.seconds })],
+      ["·", t("If you have {cap} followers or fewer, at most one original post per request can be lifted to about slot {slot} of the feed — but only while it is under {hours}h old and still under {impressions} Home impressions. Among the posts that qualify, early likes per impression pick a shortlist of two and the model's score picks the winner. One post per request, not per author.",
+        { cap: F.authorColdStart.followerCap.toLocaleString(), slot: F.authorColdStart.slotMin,
+          hours: F.authorColdStart.maxPostAgeHours, impressions: F.authorColdStart.impressionThreshold.toLocaleString() })],
+      ["·", t("X sends the ranker seven facts about your content: video, longest video length, photo, media count, weighted text length, NEWLINE COUNT, and whether there's a link — though no published model code reads them yet. A link counts as {urlLen} characters no matter how long it is, and an image's own t.co doesn't count as a link at all.",
+        { urlLen: F.contentFeatures.urlWeightedLen })]
     ].forEach(function (line) {
-      var mark = line.charAt(0);
+      var mark = line[0];
       var row = el("div", "bangermeter-mod");
       row.appendChild(el("span", "bangermeter-mod-dir" +
         (mark === "▼" ? " bangermeter-down" : mark === "▲" ? " bangermeter-up" : ""), mark));
-      row.appendChild(el("span", "bangermeter-mod-label", line.slice(2)));
+      row.appendChild(el("span", "bangermeter-mod-label", line[1]));
       d4.appendChild(row);
     });
     d4.appendChild(el("div", "bangermeter-fineprint",
-      BANGERMETER_CONFIG.weightsMeaningNote + " These are values per event, not per post: a " +
-      "heavy weight on a rare action still moves fewer posts than a light weight on a common " +
-      "one. Only likes, replies and reposts above come from this post's real counts — the rest " +
-      "need Phoenix's own predictions, so they inform what you read here without entering the " +
-      "score above."));
+      tl(BANGERMETER_CONFIG.weightsMeaningNote) + " " +
+      t("These are values per event, not per post: a heavy weight on a rare action still moves fewer posts than a light weight on a common one. Only likes, replies and reposts above come from this post's real counts — the rest need Phoenix's own predictions, so they inform what you read here without entering the score above.")));
     sec3.appendChild(d4);
 
-    var d3 = mathDetails("About these scores");
+    // The body stays English: it carries X's weekly changelog.
+    var d3 = mathDetails(t("About these scores"));
     d3.appendChild(el("div", "bangermeter-fineprint",
       "Weights: " + BANGERMETER_CONFIG.weightsSnapshot + ". X states these are kept in sync with " +
       "the live production configuration by cron, which makes them the first ranking weights ever " +
@@ -1173,7 +1184,7 @@
         (v.score === best ? " bangermeter-variant-best" : ""),
         String.fromCharCode(65 + i) + " " + v.score);
       chip.type = "button";
-      chip.title = "“" + v.snippet + "”\nClick to remove this saved variant.";
+      chip.title = t("“{snippet}”\nClick to remove this saved variant.", { snippet: v.snippet });
       chip.addEventListener("click", function (ev) {
         ev.preventDefault();
         ev.stopPropagation();
@@ -1203,10 +1214,9 @@
 
     var entry = { editor: editor, meter: meter, variants: [], last: null,
       isReply: composerIsReply(editor) };
-    var save = el("button", "bangermeter-meter-save", "+ compare");
+    var save = el("button", "bangermeter-meter-save", t("+ compare"));
     save.type = "button";
-    save.title = "Save this draft's score as a variant (up to three). Rewrite, then compare " +
-      "the saved scores side by side. Variants live in memory only and vanish with the page.";
+    save.title = t("Save this draft's score as a variant (up to three). Rewrite, then compare the saved scores side by side. Variants live in memory only and vanish with the page.");
     save.addEventListener("click", function (ev) {
       ev.preventDefault();
       ev.stopPropagation();
@@ -1251,7 +1261,7 @@
     // snippet — draft text stays out of storage entirely.
     var snip = text.replace(/\s+/g, " ").trim();
     entry.last = { score: result.score, snippet: snip.length > 40 ? snip.slice(0, 39) + "…" : snip };
-    meter.setAttribute("aria-label", "Bangermeter draft score " + result.score + " out of 100");
+    meter.setAttribute("aria-label", t("Bangermeter draft score {score} out of 100", { score: result.score }));
     var fill = meter.querySelector(".bangermeter-meter-fill");
     fill.style.width = result.score + "%";
     fill.className = "bangermeter-meter-fill bangermeter-fill-" + scoreLevel(result.score);
@@ -1264,20 +1274,13 @@
     var hintsEl = meter.querySelector(".bangermeter-meter-hints");
     hintsEl.textContent = "";
     if (feats.isReply) {
-      var replyChip = el("span", "bangermeter-down", "▼ Reply ×0.75");
-      replyChip.title = "This draft is a reply. In-network replies take the same ×0.75 rescoring " +
-        "factor as out-of-network posts (oon_applies, xai-value-model/scoring.rs) — already reflected in " +
-        "the score. Replies are also excluded from the mutual-follow reply boost and from Grok's " +
-        "banger pipeline.";
+      var replyChip = el("span", "bangermeter-down", "▼ " + t("Reply ×0.75"));
+      replyChip.title = t("This draft is a reply. In-network replies take the same ×0.75 rescoring factor as out-of-network posts (oon_applies, xai-value-model/scoring.rs) — already reflected in the score. Replies are also excluded from the mutual-follow reply boost and from Grok's banger pipeline.");
       hintsEl.appendChild(replyChip);
       if (pastedEditors.has(editor)) {
-        var pasteChip = el("span", null, "· pasted text");
-        pasteChip.title = "You pasted into this reply. X's reply-quality scorer is shown an " +
-          "is_pasted flag when scoring replies to accounts over " +
-          (BANGERMETER_CONFIG.sourcedFacts.replyQualityGate.followerThreshold / 1000) +
-          "K followers " +
-          "(grox/core/lm/thread.py). What the withheld rubric does with it is unpublished — this " +
-          "chip is informational, and the score above does not move on it.";
+        var pasteChip = el("span", null, "· " + t("pasted text"));
+        pasteChip.title = t("You pasted into this reply. X's reply-quality scorer is shown an is_pasted flag when scoring replies to accounts over {k}K followers (grox/core/lm/thread.py). What the withheld rubric does with it is unpublished — this chip is informational, and the score above does not move on it.",
+          { k: BANGERMETER_CONFIG.sourcedFacts.replyQualityGate.followerThreshold / 1000 });
         hintsEl.appendChild(pasteChip);
       }
     }
@@ -1287,7 +1290,7 @@
         var bad = (m.factor != null && m.factor < 1) ||
           m.id === "engagement_bait" || m.id === "all_caps_shout";
         hintsEl.appendChild(el("span", bad ? "bangermeter-down" : "bangermeter-up",
-          (bad ? "▼ " : "▲ ") + m.label));
+          (bad ? "▼ " : "▲ ") + tl(m.label)));
       });
 
     repositionMeters();
