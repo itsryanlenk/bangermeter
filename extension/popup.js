@@ -4,6 +4,8 @@
 // so dynamic text and the static markup come out in the same language.
 BANGERMETER_I18N.resolvePageLanguage(function () {
   var t = BANGERMETER_I18N.t;
+  // Same lookup for weights.js labels; i18n-coverage reads those from the config.
+  var tl = BANGERMETER_I18N.t;
   var ids = ["showBadges", "scoreDrafts", "assumeOutOfNetwork", "assumeMutualFollow",
     "applyVerifiedBoost2023", "keepHistory"];
 
@@ -66,9 +68,9 @@ BANGERMETER_I18N.resolvePageLanguage(function () {
   // chrome.storage.local; the Clear button deletes it outright.
   function agoText(ts) {
     var mins = Math.max(0, Math.round((Date.now() - ts) / 60000));
-    if (mins < 60) return mins + "m";
-    if (mins < 1440) return Math.round(mins / 60) + "h";
-    return Math.round(mins / 1440) + "d";
+    if (mins < 60) return t("{n}m", { n: mins });
+    if (mins < 1440) return t("{n}h", { n: Math.round(mins / 60) });
+    return t("{n}d", { n: Math.round(mins / 1440) });
   }
 
   function renderHistory(list) {
@@ -98,7 +100,7 @@ BANGERMETER_I18N.resolvePageLanguage(function () {
       if (h.r) {
         var tag = document.createElement("span");
         tag.className = "hist-reply";
-        tag.textContent = "reply";
+        tag.textContent = t("reply");
         row.appendChild(tag);
       }
 
@@ -110,10 +112,10 @@ BANGERMETER_I18N.resolvePageLanguage(function () {
         a.href = "https://x.com/i/status/" + encodeURIComponent(h.id);
         a.target = "_blank";
         a.rel = "noopener noreferrer";
-        a.textContent = h.s || "(no text)";
+        a.textContent = h.s || t("(no text)");
         snip.appendChild(a);
       } else {
-        snip.textContent = h.s || "(no text)";
+        snip.textContent = h.s || t("(no text)");
       }
       row.appendChild(snip);
 
@@ -153,10 +155,9 @@ BANGERMETER_I18N.resolvePageLanguage(function () {
     var fileInput = document.getElementById("uthFile");
     if (!intro || !summary || !importBtn || !fileInput) return;
 
-    var INTRO_EMPTY = "In the pilot? Download your visibility report from " + UTH.path +
-      " and import it here. Parsed locally, stored only in this browser. " +
-      "At X's published defaults the report is monthly per-label totals — it can say " +
-      "how many posts carried a label, not which ones.";
+    var INTRO_EMPTY = t("In the pilot? Download your visibility report from {path} and import it here. Parsed locally, stored only in this browser. At X's published defaults the report is monthly per-label totals — it can say how many posts carried a label, not which ones.",
+      { path: UTH.path });
+    function percent(p) { return p != null ? " (" + p + "%)" : ""; }
 
     function note(text, cls) {
       var d = document.createElement("div");
@@ -165,21 +166,23 @@ BANGERMETER_I18N.resolvePageLanguage(function () {
       summary.appendChild(d);
     }
 
-    function labelRow(row, denomText) {
+    // Label names and X's about/effect text come from the file and stay as written.
+    function labelRow(row, isPostLabel) {
       var div = document.createElement("div");
       div.className = "uth-row";
       var name = document.createElement("span");
       name.className = "uth-label";
       var known = UTH.postLabelAllowlist.indexOf(row.label) !== -1 ||
         UTH.accountLabelAllowlist.indexOf(row.label) !== -1;
-      name.textContent = row.label + (known ? "" : " (not in the public allowlist)");
+      name.textContent = known ? row.label : t("{label} (not in the public allowlist)", { label: row.label });
       if (row.about) div.title = row.about;
       div.appendChild(name);
       var countText = null;
-      if (row.posts != null) countText = row.posts + (denomText || "");
-      else if (row.days != null) {
-        countText = row.days + (row.days === 1 ? " day" : " days") +
-          (row.percentageOfDays != null ? " (" + row.percentageOfDays + "%)" : "");
+      if (row.posts != null) {
+        countText = isPostLabel ? t("{n} posts", { n: row.posts }) + percent(row.percentageOfPosts) : String(row.posts);
+      } else if (row.days != null) {
+        countText = (row.days === 1 ? t("{n} day", { n: row.days }) : t("{n} days", { n: row.days })) +
+          percent(row.percentageOfDays);
       }
       if (countText != null) {
         var count = document.createElement("span");
@@ -206,19 +209,18 @@ BANGERMETER_I18N.resolvePageLanguage(function () {
       importBtn.hidden = true;
       var periodText = report.period && report.period.startDate
         ? report.period.startDate + " → " + (report.period.endDate || "")
-        : "period unknown";
-      intro.textContent = "Your imported report (" + periodText +
-        (report.postCount != null ? ", " + report.postCount + " posts" : "") +
-        "). These are X's OWN labels on your account — not estimates.";
+        : t("period unknown");
+      intro.textContent = report.postCount != null
+        ? t("Your imported report ({period}, {posts} posts). These are X's OWN labels on your account — not estimates.",
+          { period: periodText, posts: report.postCount })
+        : t("Your imported report ({period}). These are X's OWN labels on your account — not estimates.",
+          { period: periodText });
       if (!report.postLabels.length && !report.accountLabels.length) {
-        note("No visibility-impacting labels in this report period. Clean month.", "uth-ok");
+        note(t("No visibility-impacting labels in this report period. Clean month."), "uth-ok");
         return;
       }
-      report.accountLabels.forEach(function (row) { labelRow(row, null); });
-      report.postLabels.forEach(function (row) {
-        labelRow(row, row.percentageOfPosts != null
-          ? " posts (" + row.percentageOfPosts + "%)" : " posts");
-      });
+      report.accountLabels.forEach(function (row) { labelRow(row, false); });
+      report.postLabels.forEach(function (row) { labelRow(row, true); });
     }
 
     importBtn.addEventListener("click", function () { fileInput.click(); });
@@ -228,15 +230,15 @@ BANGERMETER_I18N.resolvePageLanguage(function () {
       if (!f) return;
       summary.textContent = "";
       if (f.size > 2 * 1024 * 1024) {
-        note("That file is over 2 MB — an Under the Hood report is a few KB. Not imported.", "uth-error");
+        note(t("That file is over 2 MB — an Under the Hood report is a few KB. Not imported."), "uth-error");
         return;
       }
       var reader = new FileReader();
       reader.onload = function () {
         var report = BangermeterEngine.parseUnderTheHoodReport(String(reader.result));
         if (!report) {
-          note("That file does not look like an Under the Hood report " +
-            "(expected the JSON downloaded from " + UTH.path + "). Nothing was imported.", "uth-error");
+          note(t("That file does not look like an Under the Hood report (expected the JSON downloaded from {path}). Nothing was imported.",
+            { path: UTH.path }), "uth-error");
           return;
         }
         try {
@@ -289,10 +291,10 @@ BANGERMETER_I18N.resolvePageLanguage(function () {
   function role(name) {
     // "zeroed by X" and "we can't score it" are different facts and must not look
     // the same: the first is X's decision, the second is our limitation.
-    if (heads[name].weight === 0) return { text: "zeroed by X", cls: "zero" };
-    if (OBSERVED.indexOf(name) !== -1) return { text: "from counts", cls: "obs" };
-    if (ESTIMATED.indexOf(name) !== -1) return { text: "estimated", cls: "est" };
-    return { text: "viewer-specific", cls: "est" };
+    if (heads[name].weight === 0) return { text: t("zeroed by X"), cls: "zero" };
+    if (OBSERVED.indexOf(name) !== -1) return { text: t("from counts"), cls: "obs" };
+    if (ESTIMATED.indexOf(name) !== -1) return { text: t("estimated"), cls: "est" };
+    return { text: t("viewer-specific"), cls: "est" };
   }
 
   var table = document.getElementById("weightTable");
@@ -304,7 +306,7 @@ BANGERMETER_I18N.resolvePageLanguage(function () {
       tr.title = (h.note ? h.note + "\n\n" : "") + h.param;
 
       var tdLabel = document.createElement("td");
-      tdLabel.textContent = h.label;
+      tdLabel.textContent = tl(h.label);
       tr.appendChild(tdLabel);
 
       var tdW = document.createElement("td");
@@ -323,15 +325,15 @@ BANGERMETER_I18N.resolvePageLanguage(function () {
 
   var snap = document.getElementById("weightSnapshot");
   if (snap) {
-    snap.textContent = "Every value below is transcribed from " + C.weightsSnapshot +
-      ". Replies rise to " + (heads.reply.weight + C.bidirectionalFollowReplyBoost) +
-      " on an original post from a mutual follow.";
+    // weightsSnapshot is X's changelog and stays English inside either language.
+    snap.textContent = t("Every value below is transcribed from {snapshot}. Replies rise to {mutual} on an original post from a mutual follow.",
+      { snapshot: C.weightsSnapshot, mutual: heads.reply.weight + C.bidirectionalFollowReplyBoost });
   }
 
   var footer = document.getElementById("footerNote");
   if (footer) {
-    footer.textContent = "Score = Σ(weight × P(action)) per xai-value-model/scoring.rs. " +
-      C.weightsMeaningNote + " Bangermeter estimates the probabilities; only likes, replies and " +
-      "reposts come from real counts. Relative score, not predicted reach.";
+    footer.textContent = t("Score = Σ(weight × P(action)) per xai-value-model/scoring.rs.") + " " +
+      tl(C.weightsMeaningNote) + " " +
+      t("Bangermeter estimates the probabilities; only likes, replies and reposts come from real counts. Relative score, not predicted reach.");
   }
 });
