@@ -98,9 +98,9 @@ param!(
     0.015
 );
 param!(
-    ReactWithVideoWeight,
+    PostVideoWeight,
     f64,
-    "rust_home_mixer_react_with_video_weight",
+    "rust_home_mixer_post_video_weight",
     0.0
 );
 param!(

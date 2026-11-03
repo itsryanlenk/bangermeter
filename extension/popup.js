@@ -146,8 +146,8 @@
 
     var INTRO_EMPTY = "In the pilot? Download your visibility report from " + UTH.path +
       " and import it here. Parsed locally, stored only in this browser. " +
-      "The report is monthly per-label totals — it can say how many posts carried a " +
-      "label, never which ones.";
+      "At X's published defaults the report is monthly per-label totals — it can say " +
+      "how many posts carried a label, not which ones.";
 
     function note(text, cls) {
       var d = document.createElement("div");
