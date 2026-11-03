@@ -1,6 +1,9 @@
 // Bangermeter — popup: settings + active weight table
 
-(function () {
+// Everything renders once the language is known (i18n.js resolvePageLanguage),
+// so dynamic text and the static markup come out in the same language.
+BANGERMETER_I18N.resolvePageLanguage(function () {
+  var t = BANGERMETER_I18N.t;
   var ids = ["showBadges", "scoreDrafts", "assumeOutOfNetwork", "assumeMutualFollow",
     "applyVerifiedBoost2023", "keepHistory"];
 
@@ -20,6 +23,12 @@
       themeSel.value = stored.theme || "auto";
       themeSel.addEventListener("change", function () {
         chrome.storage.sync.set({ theme: themeSel.value });
+      });
+      // The popup was drawn in the old language; redraw it in the new one.
+      var langSel = document.getElementById("uiLanguage");
+      langSel.value = stored.uiLanguage || "auto";
+      langSel.addEventListener("change", function () {
+        chrome.storage.sync.set({ uiLanguage: langSel.value }, function () { location.reload(); });
       });
     });
   } catch (e) { /* storage unavailable (preview harness) — table still renders below */ }
@@ -325,4 +334,4 @@
       C.weightsMeaningNote + " Bangermeter estimates the probabilities; only likes, replies and " +
       "reposts come from real counts. Relative score, not predicted reach.";
   }
-})();
+});

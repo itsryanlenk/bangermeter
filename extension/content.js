@@ -6,16 +6,36 @@
 
   var settings = Object.assign({}, BANGERMETER_DEFAULT_SETTINGS);
   var scanTimer = null;
+  var I18N = BANGERMETER_I18N;
+  var t = I18N.t;
+  var lastXLanguage = null;
+
+  // Auto follows X's own display language (<html lang>); the popup can pin
+  // English or Japanese. X's language is recorded for the popup and welcome
+  // page, which are not on x.com and cannot read it themselves.
+  function applyLanguage() {
+    var htmlLang = document.documentElement.getAttribute("lang");
+    I18N.setLanguage(I18N.resolveLanguage(settings.uiLanguage, htmlLang, navigator.language));
+    var xLanguage = I18N.resolveLanguage("auto", htmlLang, navigator.language);
+    if (xLanguage === lastXLanguage) return;
+    lastXLanguage = xLanguage;
+    try { chrome.storage.local.set({ lastXLanguage: xLanguage }); } catch (e) { /* userscript */ }
+  }
+  applyLanguage();
 
   try {
     chrome.storage.sync.get(BANGERMETER_DEFAULT_SETTINGS, function (stored) {
       settings = Object.assign({}, BANGERMETER_DEFAULT_SETTINGS, stored || {});
+      applyLanguage();
       if (!settings.showBadges) removeAllBadges();
       fullRescan();
     });
     chrome.storage.onChanged.addListener(function (changes, area) {
       if (area !== "sync") return;
       Object.keys(changes).forEach(function (k) { settings[k] = changes[k].newValue; });
+      applyLanguage();
+      // An open panel was drawn in the old language; badges redraw on the rescan.
+      if (changes.uiLanguage) closePanel();
       if (!settings.showBadges) removeAllBadges();
       fullRescan();
     });
@@ -383,7 +403,6 @@
       badge.className = "bangermeter-badge";
       badge.setAttribute("role", "button");
       badge.setAttribute("tabindex", "0");
-      badge.title = "Bangermeter — click for breakdown, click again to close";
       badge.addEventListener("click", function (ev) {
         ev.preventDefault();
         ev.stopPropagation();
@@ -400,6 +419,10 @@
       group.appendChild(badge);
     }
 
+    // Set on every pass, not only at creation, so a language switch reaches
+    // badges that already exist.
+    badge.title = t("Bangermeter — click for breakdown, click again to close");
+    badge.setAttribute("lang", I18N.getLanguage());
     badge.textContent = "";
     badge.appendChild(boltBox());
 
@@ -605,6 +628,7 @@
     recordHistory(features, result);
 
     panel = el("div", "bangermeter-panel");
+    panel.setAttribute("lang", I18N.getLanguage());
     panel.setAttribute("role", "dialog");
     panel.setAttribute("aria-label", "Bangermeter score breakdown");
     applyTheme(panel);
@@ -1218,6 +1242,7 @@
       return;
     }
     meter.classList.remove("bangermeter-hidden");
+    meter.setAttribute("lang", I18N.getLanguage());
     applyTheme(meter);
     // Match the composer's own width so the chip reads as part of it.
     var hostRect = (editor.closest('div[data-testid^="tweetTextarea"]') || editor)
