@@ -237,6 +237,9 @@ var BANGERMETER_I18N = (function () {
 
   var JA_DRAFT = {
     // Panel — new or reworded since sysCat's fork.
+    // The length rule counts a CJK character as 2 (weights.js textWeighting), so
+    // the Japanese label states the mark a Japanese writer meets.
+    "Substantive text (≥100 chars)": "しっかりした文章量（全角50文字以上）",
     "Has video — opening it pays {videoOpen}; a full watch earns nothing extra (vqv is 0)": "動画あり — 開かれると{videoOpen}加点。最後まで見られても追加の加点はない（vqv は 0）",
     "Has video — opening it pays {videoOpen}; a watch over {seconds} seconds pays {vqv}": "動画あり — 開かれると{videoOpen}加点。{seconds}秒を超えて見られると{vqv}加点",
     "Post video": "動画の投稿",

@@ -613,6 +613,22 @@ var BANGERMETER_CONFIG = {
   //   p̂ = (count + K·p0) / (views + K)
   engagementShrinkage: { pseudoViews: 2000, provenance: "estimate" },
 
+  // How X counts text length — the rule behind its 280 limit, from X's own
+  // twitter-text library (config/v3.json, unchanged since 2018-10-10). Code
+  // points inside these ranges count 1 (Latin, Cyrillic, Greek, Devanagari,
+  // the dashes and quotes at 8192–8247); everything else counts 2, which is
+  // why a Japanese post fits in 140 characters. An emoji counts 2 however many
+  // code points it is built from. The two length modifiers below read this, so
+  // a Japanese post earns length credit on the same terms X gives it.
+  // Not in sourcedFacts: twitter-text is not part of xai-org/x-algorithm, so
+  // the upstream-sync job has no file of its to watch.
+  textWeighting: {
+    source: "https://github.com/twitter/twitter-text/blob/9537bdf15f935b40fed0ea3ea44cee860fbb8880/config/v3.json",
+    fetchedAt: "2026-11-03",
+    ranges: [[0, 4351], [8192, 8205], [8208, 8223], [8242, 8247]],
+    rangeWeight: 1, defaultWeight: 2, emojiWeight: 2
+  },
+
   // Directional content modifiers — multiply specific baseline Ps when a feature
   // is detected. `enables` marks a head that is scored ONLY when the feature is
   // present.
@@ -623,7 +639,7 @@ var BANGERMETER_CONFIG = {
     { id: "conversation_length", label: "Substantive text (≥100 chars)",
       applies: "cont_dwell_time", factor: 1.35, provenance: "estimate",
       alsoApplies: { not_dwelled: 0.8, dwell: 1.5 },
-      why: "Longer posts hold attention, and attention is now paid three ways: continuously (0.006/second since the Oct 12 2026 param.rs sync (published Oct 13), from 0.004), as a penalty for scrolling past (−0.02), and since Aug 25 2026 as a flat 0.05 for clearing a TEN-SECOND dwell mark. That mark is a threshold, not a slope, so length helps it more than it helps mean dwell time — which is why this modifier moves the binary head harder than the continuous one." },
+      why: "Longer posts hold attention, and attention is now paid three ways: continuously (0.006/second since the Oct 12 2026 param.rs sync (published Oct 13), from 0.004), as a penalty for scrolling past (−0.02), and since Aug 25 2026 as a flat 0.05 for clearing a TEN-SECOND dwell mark. That mark is a threshold, not a slope, so length helps it more than it helps mean dwell time — which is why this modifier moves the binary head harder than the continuous one. Length is counted the way X counts it for the 280 limit (textWeighting): a CJK character or an emoji counts 2, so about 50 Japanese characters reach the mark." },
     { id: "thread_starter", label: "Thread starter", applies: "click,quote,cont_click_dwell_time",
       factor: 1.3, provenance: "estimate",
       why: "Threads drive post clicks (0.3) and give people something to quote (5.0). Since X's Sept 28 2026 sync it also pays 0.4 when a reader clicks in AND stays past the click-dwell mark — which a thread, read on its own page, is built to earn." },
@@ -639,7 +655,7 @@ var BANGERMETER_CONFIG = {
     { id: "link_no_context", label: "Bare link (little text)",
       applies: "favorite,reply,cont_dwell_time", factor: 0.85, provenance: "estimate",
       alsoApplies: { not_dwelled: 1.2, dwell: 0.7 },
-      why: "A link with no context earns less on every attention head than the 0.2 open-link weight pays back. The '−30–50% link penalty' figure remains unsourced; this is a mild directional estimate." },
+      why: "A link with no context earns less on every attention head than the 0.2 open-link weight pays back. The '−30–50% link penalty' figure remains unsourced; this is a mild directional estimate. 'Little text' means under 50 in X's own length count (textWeighting), where a CJK character counts 2." },
     { id: "many_hashtags", label: "3+ hashtags", applies: "favorite,retweet,reply",
       factor: 0.9, provenance: "estimate",
       why: "Earlybird's HAS_MULTIPLE_HASHTAGS_OR_TRENDS penalty exists in code; magnitude never published. Mild directional." },
@@ -1482,6 +1498,28 @@ var BangermeterEngine = (function () {
     return t.normalize ? t.normalize("NFC") : t;
   }
 
+  // X's text length (C.textWeighting, twitter-text v3): 1 per code point inside
+  // the configured ranges, 2 for everything else, and 2 per emoji however many
+  // code points build it (skin tones, ZWJ families, variation selectors).
+  var EMOJI_OR_CHAR = /\p{Extended_Pictographic}(?:️|[\u{1F3FB}-\u{1F3FF}]|‍\p{Extended_Pictographic}️?)*|[\s\S]/gu;
+  function weightedLength(s) {
+    var W = C.textWeighting;
+    var total = 0;
+    (String(s).match(EMOJI_OR_CHAR) || []).forEach(function (unit) {
+      if (/^\p{Extended_Pictographic}/u.test(unit)) { total += W.emojiWeight; return; }
+      var cp = unit.codePointAt(0);
+      var inRange = W.ranges.some(function (r) { return cp >= r[0] && cp <= r[1]; });
+      total += inRange ? W.rangeWeight : W.defaultWeight;
+    });
+    return total;
+  }
+
+  // Hashtags in a draft, where there are no rendered hashtag links to count.
+  // X links the full-width ＃ (U+FF03) as well as #.
+  function countDraftHashtags(text) {
+    return (String(text).match(/[#＃][\wÀ-￿]+/g) || []).length;
+  }
+
   function analyzeText(text) {
     var t = normalizeForMatch(text || "");
     // Case detection is Latin-only by nature: Devanagari and other caseless
@@ -1491,6 +1529,7 @@ var BangermeterEngine = (function () {
     var caps = t.replace(/[^A-Z]/g, "");
     return {
       length: t.length,
+      weightedLength: weightedLength(t),
       hasQuestion: /\?/.test(t),
       isBait: BAIT_RE.test(t),
       mostlyCaps: letters.length >= 12 && caps.length / letters.length > 0.7
@@ -1552,13 +1591,13 @@ var BangermeterEngine = (function () {
     C.contentModifiers.forEach(function (mod) {
       switch (mod.id) {
         case "question": if (text.hasQuestion) applyMod(mod); break;
-        case "conversation_length": if (text.length >= 100) applyMod(mod); break;
+        case "conversation_length": if (text.weightedLength >= 100) applyMod(mod); break;
         case "thread_starter": if (features.isThreadStarter) applyMod(mod); break;
         case "media_image": if (features.hasImage && !features.hasVideo) applyMod(mod); break;
         case "has_video": if (features.hasVideo) applyMod(mod); break;
         case "external_link": if (features.hasExternalLink) applyMod(mod); break;
         case "link_no_context":
-          if (features.hasExternalLink && text.length < 50) applyMod(mod); break;
+          if (features.hasExternalLink && text.weightedLength < 50) applyMod(mod); break;
         case "many_hashtags": if ((features.hashtagCount || 0) >= 3) applyMod(mod); break;
         case "engagement_bait": if (text.isBait) applyMod(mod); break;
         case "all_caps_shout": if (text.mostlyCaps) applyMod(mod); break;
@@ -1627,6 +1666,8 @@ var BangermeterEngine = (function () {
     oonApplies: oonApplies,
     vqvEligible: vqvEligible,
     diversityMultiplier: diversityMultiplier,
+    weightedLength: weightedLength,
+    countDraftHashtags: countDraftHashtags,
     engagementScore: engagementScore,
     contentScore: contentScore,
     scoreTweet: scoreTweet,
@@ -1873,6 +1914,9 @@ var BANGERMETER_I18N = (function () {
 
   var JA_DRAFT = {
     // Panel — new or reworded since sysCat's fork.
+    // The length rule counts a CJK character as 2 (weights.js textWeighting), so
+    // the Japanese label states the mark a Japanese writer meets.
+    "Substantive text (≥100 chars)": "しっかりした文章量（全角50文字以上）",
     "Has video — opening it pays {videoOpen}; a full watch earns nothing extra (vqv is 0)": "動画あり — 開かれると{videoOpen}加点。最後まで見られても追加の加点はない（vqv は 0）",
     "Has video — opening it pays {videoOpen}; a watch over {seconds} seconds pays {vqv}": "動画あり — 開かれると{videoOpen}加点。{seconds}秒を超えて見られると{vqv}加点",
     "Post video": "動画の投稿",
@@ -3107,7 +3151,7 @@ var BANGERMETER_I18N = (function () {
     var scope = (composeRoot && composeRoot.parentElement && composeRoot.parentElement.parentElement) || document;
     var hasImage = !!scope.querySelector('[data-testid="attachments"] img');
     var hasVideo = !!scope.querySelector('[data-testid="attachments"] video');
-    var hashtagCount = (text.match(/#[\w\u00c0-\uffff]+/g) || []).length;
+    var hashtagCount = BangermeterEngine.countDraftHashtags(text);
     var hasExternalLink = /https?:\/\/\S+|\w+\.[a-z]{2,}\/\S*/i.test(text);
     return {
       text: text,

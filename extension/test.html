@@ -1283,6 +1283,29 @@
       uthLong.postLabels[0].about.length <= 400 && uthLong.postLabels[0].effect.length <= 400);
 
     // ================================================================
+    section("Text length the way X counts it (twitter-text v3)");
+    // X's own 280 limit counts a CJK character as 2. Counting raw characters
+    // gave 100 Japanese characters (about two and a half English sentences)
+    // the same length credit as one English sentence.
+    var WL = E.weightedLength;
+    check("weighted length: Latin counts 1, CJK 2, emoji clusters 2",
+      WL("a".repeat(100)) === 100 && WL("あ".repeat(50)) === 100 && WL("あ".repeat(49)) === 98 &&
+      WL("漢字") === 4 && WL("👍") === 2 && WL("👍🏽") === 2 && WL("👨‍👩‍👧") === 2 &&
+      WL("—") === 1 && WL("…") === 2);
+    function lengthMods(text, extra) {
+      return E.contentScore(Object.assign({ text: text }, extra || {}), {}).modifiers.map(function (m) { return m.id; });
+    }
+    check("Substantive text fires at 50 Japanese characters, not 49",
+      lengthMods("あ".repeat(50)).indexOf("conversation_length") !== -1 &&
+      lengthMods("あ".repeat(49)).indexOf("conversation_length") === -1 &&
+      lengthMods("a".repeat(100)).indexOf("conversation_length") !== -1 &&
+      lengthMods("a".repeat(99)).indexOf("conversation_length") === -1);
+    check("Bare link uses the same count",
+      lengthMods("あ".repeat(24), { hasExternalLink: true }).indexOf("link_no_context") !== -1 &&
+      lengthMods("あ".repeat(25), { hasExternalLink: true }).indexOf("link_no_context") === -1);
+    check("draft hashtags count full-width ＃", E.countDraftHashtags("#a ＃タグ ＃日本 ＃") === 3);
+
+    // ================================================================
     section("Japanese localization (i18n.js)");
     // English stays in the code as the key. Japanese is served only from JA;
     // JA_DRAFT holds Japanese that no native speaker has reviewed yet.
