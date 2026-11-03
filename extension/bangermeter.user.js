@@ -16,7 +16,7 @@
 // 2023 verified boost OFF — edit BANGERMETER_DEFAULT_SETTINGS below to change).
 (function () {
   var s = document.createElement('style');
-  s.textContent = "/* Bangermeter — injected styles (neo-brutalist brand system)\n   Rules: hard shadows (no blur), 2-3px borders, flat opaque colors, sharp corners,\n   physical hover feedback, high contrast. No gradients, no transparency.\n   Panel + meter are theme-aware via [data-bm-theme=\"dark\"] (set from X's own theme);\n   the badge stays light deliberately — it is the brand chip. */\n\n:root {\n  --ts-black: #000000;\n  --ts-white: #FFFFFF;\n  --ts-cream: #F5F0E6;\n  --ts-red: #FF5252;\n  --ts-yellow: #FFEB3B;\n  --ts-blue: #2196F3;\n  --ts-green: #4CAF50;\n  --ts-orange: #FF9800;\n  /* Font stacks intentionally rely on locally-installed fonts with strong\n     fallbacks (Arial Black / Impact / Arial) — a content script should not\n     phone home to a font CDN. */\n  --ts-font-display: 'Archivo Black', 'Arial Black', Impact, sans-serif;\n  --ts-font-body: 'Space Grotesk', Arial, sans-serif;\n}\n\n/* Theme tokens: light defaults, dark overrides */\n.bangermeter-panel,\n.bangermeter-meter {\n  --bm-surface: #FFFFFF;\n  --bm-text: #000000;\n  --bm-ink: #555555;\n  --bm-line: #000000;\n  --bm-shadow: #000000;\n  --bm-up: #2E7D32;\n  --bm-down: #C62828;\n  --bm-barpos: #C8E6C9;\n  --bm-barneg: #FFCDD2;\n  --bm-link: #2196F3;\n}\n.bangermeter-panel[data-bm-theme=\"dark\"],\n.bangermeter-meter[data-bm-theme=\"dark\"] {\n  --bm-surface: #1C1C1C;\n  --bm-text: #FFFFFF;\n  --bm-ink: #B8B8B8;\n  --bm-line: #FFFFFF;\n  --bm-shadow: #FFFFFF;\n  --bm-up: #7DDB82;\n  --bm-down: #FF8A80;\n  --bm-barpos: #1E4620;\n  --bm-barneg: #5A1F1F;\n  --bm-link: #64B5F6;\n}\n\n/* ── Badge (always light — the brand chip) ─────────────────────────────── */\n\n.bangermeter-badge {\n  display: inline-flex;\n  align-items: center;\n  gap: 5px;\n  margin-left: 10px;\n  padding: 2px 7px;\n  border-radius: 0;\n  background: var(--ts-white);\n  border: 2px solid var(--ts-black);\n  box-shadow: 2px 2px 0 var(--ts-black);\n  font-family: var(--ts-font-body);\n  font-size: 12px;\n  font-weight: 700;\n  line-height: 16px;\n  color: var(--ts-black);\n  cursor: pointer;\n  user-select: none;\n  align-self: center;\n  transition: transform 0.1s ease, box-shadow 0.1s ease;\n}\n.bangermeter-badge:hover {\n  transform: translate(-1px, -1px);\n  box-shadow: 3px 3px 0 var(--ts-black);\n}\n.bangermeter-badge:active {\n  transform: translate(1px, 1px);\n  box-shadow: 1px 1px 0 var(--ts-black);\n}\n.bangermeter-badge:focus-visible {\n  outline: 3px solid var(--ts-blue);\n  outline-offset: 2px;\n}\n\n.bangermeter-icon { display: inline-flex; align-items: center; }\n.bangermeter-icon svg { width: 12px; height: 12px; display: block; }\n\n/* The brand mark: bolt is ALWAYS black on yellow, regardless of surrounding\n   text color (fixes white-bolt bug in the black header). */\n.bangermeter-bolt-box {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  width: 16px;\n  height: 16px;\n  background: var(--ts-yellow);\n  border: 2px solid var(--ts-black);\n  color: var(--ts-black);\n  flex: none;\n}\n.bangermeter-bolt-box svg { width: 10px; height: 10px; display: block; }\n\n/* Score chips: flat neo color + black text + black border (both themes) */\n.bangermeter-seg {\n  padding: 0 4px;\n  border: 2px solid var(--ts-black);\n  color: var(--ts-black);\n  font-weight: 700;\n}\n.bangermeter-high { background: var(--ts-green); }\n.bangermeter-mid { background: var(--ts-yellow); }\n.bangermeter-low { background: var(--ts-red); }\n\n/* ── Breakdown panel ───────────────────────────────────────────────────── */\n\n.bangermeter-panel {\n  position: fixed;\n  z-index: 2147483647;\n  width: 380px;\n  /* Docked bottom-right by positionPanel(), which overwrites max-height with the\n     real viewport figure. These are the pre-script values so the first paint is\n     never full-page tall, plus the narrow-window guard: at 380px + two 16px\n     margins the panel stops fitting below about 412px of viewport width. */\n  max-width: calc(100vw - 32px);\n  max-height: calc(100vh - 32px);\n  overflow-y: auto;\n  background: var(--bm-surface);\n  color: var(--bm-text);\n  border: 3px solid var(--bm-line);\n  border-radius: 0;\n  box-shadow: 8px 8px 0 var(--bm-shadow);\n  font-family: var(--ts-font-body);\n  font-size: 13px;\n  padding: 0 0 8px 0;\n}\n\n/* Neo scrollbar: square yellow thumb, thick rails */\n.bangermeter-panel::-webkit-scrollbar { width: 14px; }\n.bangermeter-panel::-webkit-scrollbar-track {\n  background: var(--bm-surface);\n  border-left: 2px solid var(--bm-line);\n}\n.bangermeter-panel::-webkit-scrollbar-thumb {\n  background: var(--ts-yellow);\n  border: 2px solid var(--bm-line);\n  border-radius: 0;\n}\n.bangermeter-panel::-webkit-scrollbar-thumb:hover { background: var(--ts-orange); }\n\n.bangermeter-panel-head {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  padding: 10px 14px;\n  border-bottom: 3px solid var(--bm-line);\n  position: sticky;\n  top: 0;\n  z-index: 2;\n  background: var(--ts-black);\n}\n.bangermeter-panel-title {\n  display: inline-flex;\n  align-items: center;\n  gap: 8px;\n  font-family: var(--ts-font-display);\n  font-weight: 400;\n  font-size: 14px;\n  letter-spacing: 0.04em;\n  text-transform: uppercase;\n  color: var(--ts-white);\n}\n\n.bangermeter-panel-close {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  border: 2px solid var(--ts-black);\n  background: var(--ts-yellow);\n  color: var(--ts-black);\n  cursor: pointer;\n  width: 26px;\n  height: 26px;\n  padding: 0;\n  border-radius: 0;\n  box-shadow: 2px 2px 0 var(--ts-white);\n  transition: transform 0.1s ease, box-shadow 0.1s ease;\n  flex: none;\n}\n.bangermeter-panel-close svg { width: 12px; height: 12px; display: block; }\n.bangermeter-panel-close:hover {\n  transform: translate(-1px, -1px);\n  box-shadow: 3px 3px 0 var(--ts-white);\n}\n.bangermeter-panel-close:active {\n  transform: translate(1px, 1px);\n  box-shadow: 1px 1px 0 var(--ts-white);\n}\n.bangermeter-panel-close:focus-visible {\n  outline: 3px solid var(--ts-blue);\n  outline-offset: 2px;\n}\n\n.bangermeter-panel-section {\n  padding: 12px 14px;\n  border-bottom: 2px solid var(--bm-line);\n}\n.bangermeter-panel-section:last-child { border-bottom: none; }\n\n.bangermeter-panel-scorerow {\n  display: flex;\n  align-items: center;\n  gap: 10px;\n  margin-bottom: 8px;\n}\n.bangermeter-panel-scorelabel {\n  font-family: var(--ts-font-display);\n  font-weight: 400;\n  font-size: 13px;\n  text-transform: uppercase;\n  letter-spacing: 0.03em;\n}\n.bangermeter-panel-scoreval {\n  font-family: var(--ts-font-display);\n  font-weight: 400;\n  font-size: 20px;\n  line-height: 1.2;\n  padding: 1px 10px;\n  border: 2px solid var(--ts-black);\n  box-shadow: 2px 2px 0 var(--bm-shadow);\n  margin-left: auto;\n  color: var(--ts-black);\n}\n\n.bangermeter-sub {\n  font-size: 11.5px;\n  color: var(--bm-ink);\n  margin: 0 0 8px;\n  line-height: 1.4;\n}\n\n/* Contribution rows (inside \"Show the math\") */\n.bangermeter-contrib {\n  position: relative;\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  padding: 2px 0;\n  min-height: 18px;\n}\n.bangermeter-contrib-bar {\n  position: absolute;\n  left: 0;\n  top: 2px;\n  bottom: 2px;\n  background: var(--bm-barpos);\n  border-radius: 0;\n  z-index: 0;\n}\n.bangermeter-contrib-bar.bangermeter-neg { background: var(--bm-barneg); }\n.bangermeter-contrib-label { position: relative; z-index: 1; flex: 1; font-size: 12px; }\n.bangermeter-contrib-val {\n  position: relative;\n  z-index: 1;\n  font-variant-numeric: tabular-nums;\n  font-size: 11px;\n  color: var(--bm-ink);\n}\n\n.bangermeter-subhead {\n  font-family: var(--ts-font-display);\n  font-weight: 400;\n  font-size: 11px;\n  text-transform: uppercase;\n  letter-spacing: 0.04em;\n  margin: 8px 0 4px;\n}\n\n.bangermeter-mod { display: flex; gap: 6px; padding: 2px 0; font-size: 12.5px; align-items: baseline; }\n.bangermeter-mod-dir { width: 14px; text-align: center; font-weight: 700; flex: none; }\n.bangermeter-mod-label { flex: 1; }\n.bangermeter-up { color: var(--bm-up); }\n.bangermeter-down { color: var(--bm-down); }\n\n/* Rescorer callout: yellow highlight bar (both themes — brand) */\n.bangermeter-rescorer {\n  display: inline-block;\n  margin-top: 8px;\n  font-size: 12px;\n  font-weight: 700;\n  color: var(--ts-black);\n  background: var(--ts-yellow);\n  border: 2px solid var(--ts-black);\n  padding: 2px 8px;\n}\n\n.bangermeter-unweighted { margin-top: 6px; font-size: 12px; color: var(--bm-ink); }\n.bangermeter-context {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  font-size: 12px;\n  font-weight: 700;\n  margin-bottom: 6px;\n}\n.bangermeter-context .bangermeter-icon svg { width: 14px; height: 14px; }\n.bangermeter-fineprint { font-size: 11px; color: var(--bm-ink); margin-top: 6px; line-height: 1.4; }\n\n.bangermeter-plainrow {\n  display: flex;\n  gap: 7px;\n  padding: 3px 0;\n  font-size: 12.5px;\n  align-items: flex-start;\n}\n.bangermeter-plainrow .bangermeter-icon { margin-top: 2px; }\n.bangermeter-plainrow .bangermeter-icon svg { width: 14px; height: 14px; }\n.bangermeter-plainrow > span:not(.bangermeter-icon):not(.bangermeter-worth) {\n  white-space: nowrap;\n  flex: none;\n}\n.bangermeter-worth { color: var(--bm-ink); font-size: 11.5px; flex: 1 1 140px; min-width: 140px; }\n\n/* Expandable math sections */\n.bangermeter-math { margin-top: 10px; }\n.bangermeter-math summary {\n  cursor: pointer;\n  font-family: var(--ts-font-display);\n  font-weight: 400;\n  font-size: 11px;\n  text-transform: uppercase;\n  letter-spacing: 0.03em;\n  color: var(--bm-link);\n  user-select: none;\n  list-style: none;\n}\n.bangermeter-math summary:hover { text-decoration: underline; }\n.bangermeter-math summary::-webkit-details-marker { display: none; }\n.bangermeter-math summary::before { content: \"+ \"; }\n.bangermeter-math[open] summary::before { content: \"− \"; }\n.bangermeter-math summary:focus-visible {\n  outline: 3px solid var(--ts-blue);\n  outline-offset: 2px;\n}\n\n/* ── Compose meter ─────────────────────────────────────────────────────── */\n\n/* Pinned to the viewport rather than inserted inline. X's composer lives inside\n   a scrolling, overflow-hidden dialog with a toolbar layered over the bottom of\n   it, so an inline meter gets clipped or covered as the draft grows. Fixed\n   positioning + clamping in content.js makes that structurally impossible.\n   pointer-events:none so a chip floating over the composer can never eat a\n   click meant for the text area or the Post button. */\n.bangermeter-meter {\n  position: fixed;\n  z-index: 2147483646;\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  margin: 0;\n  padding: 6px 10px;\n  max-width: 560px;\n  background: var(--bm-surface);\n  border: 2px solid var(--bm-line);\n  box-shadow: 3px 3px 0 var(--bm-shadow);\n  font-family: var(--ts-font-body);\n  font-size: 12px;\n  color: var(--bm-text);\n  pointer-events: none;\n}\n.bangermeter-meter.bangermeter-hidden { display: none; }\n.bangermeter-meter-track {\n  flex: 0 0 90px;\n  height: 12px;\n  border-radius: 0;\n  background: var(--bm-surface);\n  border: 2px solid var(--bm-line);\n  box-shadow: 2px 2px 0 var(--bm-shadow);\n  overflow: hidden;\n}\n.bangermeter-meter-fill { height: 100%; border-radius: 0; transition: width 0.2s ease; }\n.bangermeter-fill-high { background: var(--ts-green); }\n.bangermeter-fill-mid { background: var(--ts-yellow); }\n.bangermeter-fill-low { background: var(--ts-red); }\n.bangermeter-meter-score {\n  display: inline-flex;\n  align-items: center;\n  gap: 4px;\n  font-weight: 700;\n}\n.bangermeter-meter-hints {\n  display: flex;\n  gap: 10px;\n  font-weight: 600;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n/* Draft comparison. The meter itself is pointer-events:none so it can never\n   eat a click meant for the composer — the two interactive chips opt back in\n   explicitly, and stay small so the reachable surface stays small. */\n.bangermeter-meter-save {\n  pointer-events: auto;\n  flex: none;\n  font-family: var(--ts-font-body);\n  font-size: 10.5px;\n  font-weight: 700;\n  text-transform: uppercase;\n  letter-spacing: 0.03em;\n  color: var(--ts-black);\n  background: var(--ts-yellow);\n  border: 2px solid var(--ts-black);\n  border-radius: 0;\n  padding: 1px 6px;\n  cursor: pointer;\n  box-shadow: 2px 2px 0 var(--bm-shadow);\n  transition: transform 0.1s ease, box-shadow 0.1s ease;\n}\n.bangermeter-meter-save:hover {\n  transform: translate(-1px, -1px);\n  box-shadow: 3px 3px 0 var(--bm-shadow);\n}\n.bangermeter-meter-save:active {\n  transform: translate(1px, 1px);\n  box-shadow: 1px 1px 0 var(--bm-shadow);\n}\n.bangermeter-meter-save:focus-visible {\n  outline: 3px solid var(--ts-blue);\n  outline-offset: 2px;\n}\n.bangermeter-compare {\n  display: inline-flex;\n  gap: 6px;\n  align-items: center;\n}\n/* Fallback position under the composer: X's toolbar and Post/Reply button\n   live there, so the interactive chips go inert rather than risk sitting\n   over a control and eating its click. */\n.bangermeter-meter-below .bangermeter-meter-save,\n.bangermeter-meter-below .bangermeter-variant {\n  pointer-events: none;\n  opacity: 0.55;\n}\n.bangermeter-compare.bangermeter-hidden { display: none; }\n.bangermeter-variant {\n  pointer-events: auto;\n  font-family: var(--ts-font-body);\n  font-size: 11px;\n  font-weight: 700;\n  color: var(--bm-text);\n  background: var(--bm-surface);\n  border: 2px solid var(--bm-line);\n  border-radius: 0;\n  padding: 1px 6px;\n  cursor: pointer;\n}\n.bangermeter-variant-best {\n  background: var(--ts-green);\n  color: var(--ts-black);\n  border-color: var(--ts-black);\n}\n.bangermeter-variant:focus-visible {\n  outline: 3px solid var(--ts-blue);\n  outline-offset: 2px;\n}\n\n/* ── Motion preferences ────────────────────────────────────────────────── */\n\n@media (prefers-reduced-motion: reduce) {\n  .bangermeter-badge, .bangermeter-panel-close, .bangermeter-meter-fill {\n    transition: none;\n  }\n  .bangermeter-badge:hover, .bangermeter-panel-close:hover {\n    transform: none;\n  }\n}\n";
+  s.textContent = "/* Bangermeter — injected styles (neo-brutalist brand system)\n   Rules: hard shadows (no blur), 2-3px borders, flat opaque colors, sharp corners,\n   physical hover feedback, high contrast. No gradients, no transparency.\n   Panel + meter are theme-aware via [data-bm-theme=\"dark\"] (set from X's own theme);\n   the badge stays light deliberately — it is the brand chip. */\n\n:root {\n  --ts-black: #000000;\n  --ts-white: #FFFFFF;\n  --ts-cream: #F5F0E6;\n  --ts-red: #FF5252;\n  --ts-yellow: #FFEB3B;\n  --ts-blue: #2196F3;\n  --ts-green: #4CAF50;\n  --ts-orange: #FF9800;\n  /* Font stacks intentionally rely on locally-installed fonts with strong\n     fallbacks (Arial Black / Impact / Arial) — a content script should not\n     phone home to a font CDN. */\n  --ts-font-display: 'Archivo Black', 'Arial Black', Impact, sans-serif;\n  --ts-font-body: 'Space Grotesk', Arial, sans-serif;\n}\n\n/* Theme tokens: light defaults, dark overrides */\n.bangermeter-panel,\n.bangermeter-meter {\n  --bm-surface: #FFFFFF;\n  --bm-text: #000000;\n  --bm-ink: #555555;\n  --bm-line: #000000;\n  --bm-shadow: #000000;\n  --bm-up: #2E7D32;\n  --bm-down: #C62828;\n  --bm-barpos: #C8E6C9;\n  --bm-barneg: #FFCDD2;\n  --bm-link: #2196F3;\n}\n.bangermeter-panel[data-bm-theme=\"dark\"],\n.bangermeter-meter[data-bm-theme=\"dark\"] {\n  --bm-surface: #1C1C1C;\n  --bm-text: #FFFFFF;\n  --bm-ink: #B8B8B8;\n  --bm-line: #FFFFFF;\n  --bm-shadow: #FFFFFF;\n  --bm-up: #7DDB82;\n  --bm-down: #FF8A80;\n  --bm-barpos: #1E4620;\n  --bm-barneg: #5A1F1F;\n  --bm-link: #64B5F6;\n}\n\n/* ── Badge (always light — the brand chip) ─────────────────────────────── */\n\n.bangermeter-badge {\n  display: inline-flex;\n  align-items: center;\n  gap: 5px;\n  margin-left: 10px;\n  padding: 2px 7px;\n  border-radius: 0;\n  background: var(--ts-white);\n  border: 2px solid var(--ts-black);\n  box-shadow: 2px 2px 0 var(--ts-black);\n  font-family: var(--ts-font-body);\n  font-size: 12px;\n  font-weight: 700;\n  line-height: 16px;\n  color: var(--ts-black);\n  cursor: pointer;\n  user-select: none;\n  align-self: center;\n  transition: transform 0.1s ease, box-shadow 0.1s ease;\n}\n.bangermeter-badge:hover {\n  transform: translate(-1px, -1px);\n  box-shadow: 3px 3px 0 var(--ts-black);\n}\n.bangermeter-badge:active {\n  transform: translate(1px, 1px);\n  box-shadow: 1px 1px 0 var(--ts-black);\n}\n.bangermeter-badge:focus-visible {\n  outline: 3px solid var(--ts-blue);\n  outline-offset: 2px;\n}\n\n.bangermeter-icon { display: inline-flex; align-items: center; }\n.bangermeter-icon svg { width: 12px; height: 12px; display: block; }\n\n/* The brand mark: bolt is ALWAYS black on yellow, regardless of surrounding\n   text color (fixes white-bolt bug in the black header). */\n.bangermeter-bolt-box {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  width: 16px;\n  height: 16px;\n  background: var(--ts-yellow);\n  border: 2px solid var(--ts-black);\n  color: var(--ts-black);\n  flex: none;\n}\n.bangermeter-bolt-box svg { width: 10px; height: 10px; display: block; }\n\n/* Score chips: flat neo color + black text + black border (both themes) */\n.bangermeter-seg {\n  padding: 0 4px;\n  border: 2px solid var(--ts-black);\n  color: var(--ts-black);\n  font-weight: 700;\n}\n.bangermeter-high { background: var(--ts-green); }\n.bangermeter-mid { background: var(--ts-yellow); }\n.bangermeter-low { background: var(--ts-red); }\n\n/* ── Breakdown panel ───────────────────────────────────────────────────── */\n\n.bangermeter-panel {\n  position: fixed;\n  z-index: 2147483647;\n  width: 380px;\n  /* Docked bottom-right by positionPanel(), which overwrites max-height with the\n     real viewport figure. These are the pre-script values so the first paint is\n     never full-page tall, plus the narrow-window guard: at 380px + two 16px\n     margins the panel stops fitting below about 412px of viewport width. */\n  max-width: calc(100vw - 32px);\n  max-height: calc(100vh - 32px);\n  overflow-y: auto;\n  background: var(--bm-surface);\n  color: var(--bm-text);\n  border: 3px solid var(--bm-line);\n  border-radius: 0;\n  box-shadow: 8px 8px 0 var(--bm-shadow);\n  font-family: var(--ts-font-body);\n  font-size: 13px;\n  padding: 0 0 8px 0;\n}\n\n/* Neo scrollbar: square yellow thumb, thick rails */\n.bangermeter-panel::-webkit-scrollbar { width: 14px; }\n.bangermeter-panel::-webkit-scrollbar-track {\n  background: var(--bm-surface);\n  border-left: 2px solid var(--bm-line);\n}\n.bangermeter-panel::-webkit-scrollbar-thumb {\n  background: var(--ts-yellow);\n  border: 2px solid var(--bm-line);\n  border-radius: 0;\n}\n.bangermeter-panel::-webkit-scrollbar-thumb:hover { background: var(--ts-orange); }\n\n.bangermeter-panel-head {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  padding: 10px 14px;\n  border-bottom: 3px solid var(--bm-line);\n  position: sticky;\n  top: 0;\n  z-index: 2;\n  background: var(--ts-black);\n}\n.bangermeter-panel-title {\n  display: inline-flex;\n  align-items: center;\n  gap: 8px;\n  font-family: var(--ts-font-display);\n  font-weight: 400;\n  font-size: 14px;\n  letter-spacing: 0.04em;\n  text-transform: uppercase;\n  color: var(--ts-white);\n}\n\n.bangermeter-panel-close {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  border: 2px solid var(--ts-black);\n  background: var(--ts-yellow);\n  color: var(--ts-black);\n  cursor: pointer;\n  width: 26px;\n  height: 26px;\n  padding: 0;\n  border-radius: 0;\n  box-shadow: 2px 2px 0 var(--ts-white);\n  transition: transform 0.1s ease, box-shadow 0.1s ease;\n  flex: none;\n}\n.bangermeter-panel-close svg { width: 12px; height: 12px; display: block; }\n.bangermeter-panel-close:hover {\n  transform: translate(-1px, -1px);\n  box-shadow: 3px 3px 0 var(--ts-white);\n}\n.bangermeter-panel-close:active {\n  transform: translate(1px, 1px);\n  box-shadow: 1px 1px 0 var(--ts-white);\n}\n.bangermeter-panel-close:focus-visible {\n  outline: 3px solid var(--ts-blue);\n  outline-offset: 2px;\n}\n\n.bangermeter-panel-section {\n  padding: 12px 14px;\n  border-bottom: 2px solid var(--bm-line);\n}\n.bangermeter-panel-section:last-child { border-bottom: none; }\n\n.bangermeter-panel-scorerow {\n  display: flex;\n  align-items: center;\n  gap: 10px;\n  margin-bottom: 8px;\n}\n.bangermeter-panel-scorelabel {\n  font-family: var(--ts-font-display);\n  font-weight: 400;\n  font-size: 13px;\n  text-transform: uppercase;\n  letter-spacing: 0.03em;\n}\n.bangermeter-panel-scoreval {\n  font-family: var(--ts-font-display);\n  font-weight: 400;\n  font-size: 20px;\n  line-height: 1.2;\n  padding: 1px 10px;\n  border: 2px solid var(--ts-black);\n  box-shadow: 2px 2px 0 var(--bm-shadow);\n  margin-left: auto;\n  color: var(--ts-black);\n}\n\n.bangermeter-sub {\n  font-size: 11.5px;\n  color: var(--bm-ink);\n  margin: 0 0 8px;\n  line-height: 1.4;\n}\n\n/* Contribution rows (inside \"Show the math\") */\n.bangermeter-contrib {\n  position: relative;\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  padding: 2px 0;\n  min-height: 18px;\n}\n.bangermeter-contrib-bar {\n  position: absolute;\n  left: 0;\n  top: 2px;\n  bottom: 2px;\n  background: var(--bm-barpos);\n  border-radius: 0;\n  z-index: 0;\n}\n.bangermeter-contrib-bar.bangermeter-neg { background: var(--bm-barneg); }\n.bangermeter-contrib-label { position: relative; z-index: 1; flex: 1; font-size: 12px; }\n.bangermeter-contrib-val {\n  position: relative;\n  z-index: 1;\n  font-variant-numeric: tabular-nums;\n  font-size: 11px;\n  color: var(--bm-ink);\n}\n\n.bangermeter-subhead {\n  font-family: var(--ts-font-display);\n  font-weight: 400;\n  font-size: 11px;\n  text-transform: uppercase;\n  letter-spacing: 0.04em;\n  margin: 8px 0 4px;\n}\n\n.bangermeter-mod { display: flex; gap: 6px; padding: 2px 0; font-size: 12.5px; align-items: baseline; }\n.bangermeter-mod-dir { width: 14px; text-align: center; font-weight: 700; flex: none; }\n.bangermeter-mod-label { flex: 1; }\n.bangermeter-up { color: var(--bm-up); }\n.bangermeter-down { color: var(--bm-down); }\n\n/* Rescorer callout: yellow highlight bar (both themes — brand) */\n.bangermeter-rescorer {\n  display: inline-block;\n  margin-top: 8px;\n  font-size: 12px;\n  font-weight: 700;\n  color: var(--ts-black);\n  background: var(--ts-yellow);\n  border: 2px solid var(--ts-black);\n  padding: 2px 8px;\n}\n\n.bangermeter-unweighted { margin-top: 6px; font-size: 12px; color: var(--bm-ink); }\n.bangermeter-context {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  font-size: 12px;\n  font-weight: 700;\n  margin-bottom: 6px;\n}\n.bangermeter-context .bangermeter-icon svg { width: 14px; height: 14px; }\n.bangermeter-fineprint { font-size: 11px; color: var(--bm-ink); margin-top: 6px; line-height: 1.4; }\n\n.bangermeter-plainrow {\n  display: flex;\n  gap: 7px;\n  padding: 3px 0;\n  font-size: 12.5px;\n  align-items: flex-start;\n}\n.bangermeter-plainrow .bangermeter-icon { margin-top: 2px; }\n.bangermeter-plainrow .bangermeter-icon svg { width: 14px; height: 14px; }\n.bangermeter-plainrow > span:not(.bangermeter-icon):not(.bangermeter-worth) {\n  white-space: nowrap;\n  flex: none;\n}\n.bangermeter-worth { color: var(--bm-ink); font-size: 11.5px; flex: 1 1 140px; min-width: 140px; }\n\n/* Expandable math sections */\n.bangermeter-math { margin-top: 10px; }\n.bangermeter-math summary {\n  cursor: pointer;\n  font-family: var(--ts-font-display);\n  font-weight: 400;\n  font-size: 11px;\n  text-transform: uppercase;\n  letter-spacing: 0.03em;\n  color: var(--bm-link);\n  user-select: none;\n  list-style: none;\n}\n.bangermeter-math summary:hover { text-decoration: underline; }\n.bangermeter-math summary::-webkit-details-marker { display: none; }\n.bangermeter-math summary::before { content: \"+ \"; }\n.bangermeter-math[open] summary::before { content: \"− \"; }\n.bangermeter-math summary:focus-visible {\n  outline: 3px solid var(--ts-blue);\n  outline-offset: 2px;\n}\n\n/* ── Compose meter ─────────────────────────────────────────────────────── */\n\n/* Pinned to the viewport rather than inserted inline. X's composer lives inside\n   a scrolling, overflow-hidden dialog with a toolbar layered over the bottom of\n   it, so an inline meter gets clipped or covered as the draft grows. Fixed\n   positioning + clamping in content.js makes that structurally impossible.\n   pointer-events:none so a chip floating over the composer can never eat a\n   click meant for the text area or the Post button. */\n.bangermeter-meter {\n  position: fixed;\n  z-index: 2147483646;\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  margin: 0;\n  padding: 6px 10px;\n  max-width: 560px;\n  background: var(--bm-surface);\n  border: 2px solid var(--bm-line);\n  box-shadow: 3px 3px 0 var(--bm-shadow);\n  font-family: var(--ts-font-body);\n  font-size: 12px;\n  color: var(--bm-text);\n  pointer-events: none;\n}\n.bangermeter-meter.bangermeter-hidden { display: none; }\n.bangermeter-meter-track {\n  flex: 0 0 90px;\n  height: 12px;\n  border-radius: 0;\n  background: var(--bm-surface);\n  border: 2px solid var(--bm-line);\n  box-shadow: 2px 2px 0 var(--bm-shadow);\n  overflow: hidden;\n}\n.bangermeter-meter-fill { height: 100%; border-radius: 0; transition: width 0.2s ease; }\n.bangermeter-fill-high { background: var(--ts-green); }\n.bangermeter-fill-mid { background: var(--ts-yellow); }\n.bangermeter-fill-low { background: var(--ts-red); }\n.bangermeter-meter-score {\n  display: inline-flex;\n  align-items: center;\n  gap: 4px;\n  font-weight: 700;\n}\n.bangermeter-meter-hints {\n  display: flex;\n  gap: 10px;\n  font-weight: 600;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n/* Draft comparison. The meter itself is pointer-events:none so it can never\n   eat a click meant for the composer — the two interactive chips opt back in\n   explicitly, and stay small so the reachable surface stays small. */\n.bangermeter-meter-save {\n  pointer-events: auto;\n  flex: none;\n  font-family: var(--ts-font-body);\n  font-size: 10.5px;\n  font-weight: 700;\n  text-transform: uppercase;\n  letter-spacing: 0.03em;\n  color: var(--ts-black);\n  background: var(--ts-yellow);\n  border: 2px solid var(--ts-black);\n  border-radius: 0;\n  padding: 1px 6px;\n  cursor: pointer;\n  box-shadow: 2px 2px 0 var(--bm-shadow);\n  transition: transform 0.1s ease, box-shadow 0.1s ease;\n}\n.bangermeter-meter-save:hover {\n  transform: translate(-1px, -1px);\n  box-shadow: 3px 3px 0 var(--bm-shadow);\n}\n.bangermeter-meter-save:active {\n  transform: translate(1px, 1px);\n  box-shadow: 1px 1px 0 var(--bm-shadow);\n}\n.bangermeter-meter-save:focus-visible {\n  outline: 3px solid var(--ts-blue);\n  outline-offset: 2px;\n}\n.bangermeter-compare {\n  display: inline-flex;\n  gap: 6px;\n  align-items: center;\n}\n/* Fallback position under the composer: X's toolbar and Post/Reply button\n   live there, so the interactive chips go inert rather than risk sitting\n   over a control and eating its click. */\n.bangermeter-meter-below .bangermeter-meter-save,\n.bangermeter-meter-below .bangermeter-variant {\n  pointer-events: none;\n  opacity: 0.55;\n}\n.bangermeter-compare.bangermeter-hidden { display: none; }\n.bangermeter-variant {\n  pointer-events: auto;\n  font-family: var(--ts-font-body);\n  font-size: 11px;\n  font-weight: 700;\n  color: var(--bm-text);\n  background: var(--bm-surface);\n  border: 2px solid var(--bm-line);\n  border-radius: 0;\n  padding: 1px 6px;\n  cursor: pointer;\n}\n.bangermeter-variant-best {\n  background: var(--ts-green);\n  color: var(--ts-black);\n  border-color: var(--ts-black);\n}\n.bangermeter-variant:focus-visible {\n  outline: 3px solid var(--ts-blue);\n  outline-offset: 2px;\n}\n\n/* ── Motion preferences ────────────────────────────────────────────────── */\n\n@media (prefers-reduced-motion: reduce) {\n  .bangermeter-badge, .bangermeter-panel-close, .bangermeter-meter-fill {\n    transition: none;\n  }\n  .bangermeter-badge:hover, .bangermeter-panel-close:hover {\n    transform: none;\n  }\n}\n\n/* Japanese. Each root carries lang=\"ja\" when the UI language is Japanese.\n   CJK text breaks between any two characters; strict line breaking keeps\n   small kana and closing punctuation off the start of a line. The letter\n   spacing the uppercase English labels use only spreads Japanese apart. */\n.bangermeter-badge[lang=\"ja\"],\n.bangermeter-panel[lang=\"ja\"],\n.bangermeter-meter[lang=\"ja\"] {\n  /* Neither brand font has Japanese glyphs. Name the system Japanese faces\n     right after them, so Latin keeps the brand fonts and Japanese gets a\n     proportional face instead of whatever the OS falls back to. */\n  --ts-font-display: 'Archivo Black', 'Arial Black', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic UI', Meiryo, sans-serif;\n  --ts-font-body: 'Space Grotesk', Arial, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', Meiryo, sans-serif;\n  word-break: normal;\n  overflow-wrap: anywhere;\n  line-break: strict;\n}\n.bangermeter-panel[lang=\"ja\"] .bangermeter-panel-scorelabel,\n.bangermeter-panel[lang=\"ja\"] .bangermeter-subhead,\n.bangermeter-panel[lang=\"ja\"] .bangermeter-math summary,\n.bangermeter-meter[lang=\"ja\"] .bangermeter-meter-save {\n  letter-spacing: normal;\n}\n";
   (document.head || document.documentElement).appendChild(s);
 })();
 
@@ -1380,6 +1380,9 @@ var BangermeterEngine = (function () {
       rescorers: resc.rescorers,
       unweightedSignals: unweightedSignals,
       views: views,
+      // The reply weight these rates were scored with (5.0, or 20.0 with the
+      // mutual-follow boost), for display.
+      replyWeight: replyW,
       lowSample: views < K,
       smoothingNote: views < K
         ? "Only " + views.toLocaleString() + " views — rates are smoothed toward the median (empirical Bayes, K=" + K.toLocaleString() + "), so small samples can't spike or tank the score."
@@ -1650,9 +1653,161 @@ var BangermeterEngine = (function () {
 var BANGERMETER_I18N = (function () {
   "use strict";
 
-  var JA = {};
+  var JA = {
+    // Badge, panel and draft meter. sysCat's exact entries.
+    "3+ hashtags": "ハッシュタグ3つ以上",
+    "3+ hashtags — the old algorithm flags hashtag piles": "ハッシュタグ3つ以上 — 旧アルゴリズムはハッシュタグの羅列にフラグを立てる",
+    "About these scores": "このスコアについて",
+    "Any post whose weighted sum goes net-negative is rescaled below every positive post, no matter what else it earned.": "重み付き合計が正味でマイナスになった投稿は、ほかにどんな反応を得ていても、プラスの投稿すべての下に再スケールされます。",
+    "Asks a question": "質問している",
+    "Asks a question — invites replies, the algorithm's favorite signal": "質問になっている — リプライを呼ぶ、アルゴリズムが最も好むシグナル",
+    "Author diversity decay": "投稿者の多様性による減衰",
+    "Bangermeter score breakdown": "Bangermeter スコアの内訳",
+    "Bangermeter — click for breakdown, click again to close": "Bangermeter — クリックで内訳を表示、もう一度クリックで閉じる",
+    "Bare link (little text)": "リンクだけ（文章が少ない）",
+    "Block author": "投稿者をブロック",
+    "Bookmarks have no head at all — they are not a scored action in 2026.": "ブックマークには対応する項目がそもそもなく、2026年時点ではスコア対象の行動ではありません。",
+    "Can't score this one — the view count isn't visible, so there's nothing to compute rates from.": "この投稿はスコアを出せません — 表示回数が見えないため、率を計算する材料がありません。",
+    "Click dwell": "クリック後の滞在",
+    "Close breakdown": "内訳を閉じる",
+    "Community Note attached — future engagement suppressed ~50% (three causal studies)": "コミュニティノートあり — 今後の反応が約50%抑えられる（3件の因果研究）",
+    "Community-noted ×0.5": "コミュニティノート付き ×0.5",
+    "Content appeal": "内容の魅力度",
+    "Content score (prospective)": "内容スコア（投稿前の見込み）",
+    "Dwell (binary)": "滞在（有無）",
+    "Dwell time": "滞在時間",
+    "Earned engagement": "獲得した反応",
+    "Engagement only counts if the post reached the reader through their Home Timeline. Opening a link someone sent has no ranking impact — so passing your own post round a group chat does nothing for reach.": "反応が数えられるのは、投稿が読者のホームタイムライン経由で届いた場合だけです。誰かから送られたリンクを開いてもランキングには影響しません。自分の投稿をグループチャットに回しても、リーチは伸びません。",
+    "Engagement score (how the weights value actual engagement)": "反応スコア（実際の反応を重みでどう評価するか）",
+    "Engagement score — low view sample, smoothed toward median": "反応スコア — 表示回数が少ないため、中央値に寄せて補正しています",
+    "Engagement-bait phrasing": "反応誘導の言い回し",
+    "External link": "外部リンク",
+    "Follow author": "投稿者をフォロー",
+    "Grok's “banger” pipeline only ever looks at original posts — replies and protected accounts are filtered out before it runs.": "Grokのバンガー判定は、元の投稿だけを対象にします。リプライと非公開アカウントは、判定の前に除外されます。",
+    "Has a picture — small boost to likes": "画像あり — いいねがわずかに増える",
+    "Has image": "画像あり",
+    "Has video": "動画あり",
+    "Likes": "いいね",
+    "MOSTLY CAPS — reads as shouting, invites negative feedback": "英字の大半が大文字 — 叫んでいるように読め、否定的な反応を招く",
+    "Mass block/report campaigns don't straightforwardly bury a post. Predictions are per-viewer and personalized, so brigading mostly shifts what gets recommended to people like the brigaders.": "ブロックや報告を大量に集めても、投稿がそのまま埋もれるわけではありません。予測は閲覧者ごとに個別化されるため、組織的な攻撃が変えるのは、主に攻撃する側と似た人へのおすすめです。",
+    "Meaty text — gives people a conversation to click into": "読みごたえのある文章 — 会話の中に入りたくなる",
+    "Mostly ALL-CAPS": "英字の大半が大文字",
+    "Mostly just a link — low-context link posts do worse": "ほぼリンクだけ — 文脈の少ないリンク投稿は不利",
+    "Mute author": "投稿者をミュート",
+    "New-user OON ×0.00001": "新規ユーザー向けフォロー外 ×0.00001",
+    "No special signals — scored as a typical post.": "特別なシグナルなし — 標準的な投稿として評価",
+    "Not dwelled": "素通り（滞在なし）",
+    "Not interested": "興味なし",
+    "Open link": "リンクを開く",
+    "Out-of-network / reply / repost ×0.75": "フォロー外／リプライ／リポスト ×0.75",
+    "Out-of-network view assumed — scored at 75%": "フォロー外として表示される想定 — 75%で評価",
+    "Out-of-network, this reply never reaches For You at all — replies from unfollowed accounts are hard-filtered, not down-weighted.": "フォロー外の場合、このリプライはおすすめにそもそも届きません。フォローしていないアカウントからのリプライは、減点ではなく、機械的に除外されます。",
+    "Photo expand": "写真の拡大",
+    "Post click": "投稿のクリック",
+    "Post unexplored": "未接触の投稿（新規性）",
+    "Profile click": "プロフィールのクリック",
+    "Profile visit time": "プロフィール滞在時間",
+    "Quoted video quality view": "引用元動画の有効視聴",
+    "Quoted-post click": "引用元投稿のクリック",
+    "Quotes": "引用",
+    "Replies": "リプライ",
+    "Replies are filtered out of X's Grok “banger” pipeline before it runs — it only ever evaluates original posts.": "リプライは、XのGrokのバンガー判定が動く前に除外されます。判定の対象は元の投稿だけです。",
+    "Reply scoring": "リプライの評価",
+    "Reply ×0.75": "リプライ ×0.75",
+    "Report": "報告",
+    "Reposts": "リポスト",
+    "Save this draft's score as a variant (up to three). Rewrite, then compare the saved scores side by side. Variants live in memory only and vanish with the page.": "この下書きのスコアを案として保存します（最大3つ）。書き直してから、保存したスコアを並べて比べられます。案はメモリ上だけに置かれ、ページを閉じると消えます。",
+    "Share via DM": "DMでシェア",
+    "Share via copy link": "リンクをコピーしてシェア",
+    "Shares": "シェア",
+    "Show the math": "計算式を見る",
+    "Starts a thread — keeps readers on the post longer": "スレッドの始まり — 読者が投稿に長く留まる",
+    "This draft is a reply. In-network replies take the same ×0.75 rescoring factor as out-of-network posts (oon_applies, xai-value-model/scoring.rs) — already reflected in the score. Replies are also excluded from the mutual-follow reply boost and from Grok's banger pipeline.": "この下書きはリプライです。フォロー内のリプライも、フォロー外の投稿と同じ×0.75の再スコアリング係数を受けます（oon_applies、xai-value-model/scoring.rs）。この係数はすでにスコアに反映されています。リプライは、相互フォローのリプライ加点と、Grokのバンガー判定からも除外されます。",
+    "This is a reply — replies take the same 75% discount as out-of-network posts": "これはリプライ — リプライはフォロー外の投稿と同じ75%に割り引かれる",
+    "This is a repost — reposts take the same 75% discount as out-of-network posts": "これはリポスト — リポストはフォロー外の投稿と同じ75%に割り引かれる",
+    "Thread starter": "スレッドの始まり",
+    "Topic-request OON ×0.5": "トピック指定のフォロー外 ×0.5",
+    "User video continuation": "ユーザーの動画継続視聴",
+    "Verified author boost": "認証済みアカウントの加点",
+    "Verified author: 2023-era code boosted verified posts ×4 in-network / ×2 out-of-network. No such multiplier appears anywhere in the Aug 2026 release. Not applied to this score — enable “2023 verified boost” in the popup to simulate that era.": "認証済みアカウント: 2023年当時のコードでは、認証済みの投稿がフォロー内で×4、フォロー外で×2に加点されていました。2026年8月版には、こうした倍率はどこにも見当たりません。このスコアには適用していません。当時を再現するには、ポップアップで「2023年の認証加点」をオンにしてください。",
+    "Video continuation": "動画の継続視聴",
+    "Video open": "動画を開く",
+    "Video quality view": "動画の有効視聴",
+    "What X's published weights actually say": "Xが公開した重みが実際に語ること",
+    "What the algorithm would predict from the content alone. 50 = a typical post.": "内容だけからアルゴリズムが予測する値。50 = 標準的な投稿。",
+    "Where this reply SORTS inside the thread is not something anyone outside X can score — that ranker is not open-sourced.": "このリプライがスレッド内でどの順に並ぶかは、X以外の誰にも採点できません。その並べ替えのしくみは公開されていないためです。",
+    "pasted text": "貼り付けあり",
+    "“Like if…” bait — invites “show less” clicks and penalties": "「〜ならいいね」系の誘導 — 「表示を減らす」クリックとペナルティを招く",
 
-  var JA_DRAFT = {};
+    // sysCat's patterns, as templates. Their wording, with {named} placeholders
+    // where they captured a value.
+    "Bangermeter draft score {score} out of 100": "Bangermeter 下書きスコア {score} / 100",
+    "“{snippet}”\nClick to remove this saved variant.": "“{snippet}”\nクリックでこの保存した案を削除",
+    "Contains a link — opening it pays {openLink}, small but not zero": "リンクあり — 開かれると{openLink}加点（小さいがゼロではない）",
+    "Verified author — ×{factor} boost per 2023 code (absent from the 2026 release)": "認証済みアカウント — 2023年のコードでは×{factor}の加点（2026年版には存在しない）",
+    "Verified author ×{factor} (2023 code, absent from the 2026 release)": "認証済みアカウント ×{factor}（2023年のコード、2026年版には存在しない）",
+    "How the algorithm values what this post actually earned, from {views} views. 50 = the median rate measured across {n} real timeline posts.": "この投稿が実際に獲得した反応をアルゴリズムがどう評価するか（表示 {views} 回）。50 = 実際のタイムライン投稿 {n} 件で測った中央値の率。",
+    "{n} reply": "リプライ {n} 件",
+    "{n} replies": "リプライ {n} 件",
+    "{n} repost": "リポスト {n} 件",
+    "{n} reposts": "リポスト {n} 件",
+    "{n} like": "いいね {n} 件",
+    "{n} likes": "いいね {n} 件",
+    "{n} bookmark": "ブックマーク {n} 件",
+    "{n} bookmarks": "ブックマーク {n} 件",
+    "each worth {likes} likes": "1件あたり いいね {likes} 件分",
+    "each worth {likes} likes (mutual-follow boost on)": "1件あたり いいね {likes} 件分（相互フォロー加点オン）",
+    "the baseline unit": "基準単位",
+    "not a scored action — X publishes no bookmark weight": "スコア対象の行動ではない — Xはブックマークの重みを公開していない",
+    "Weight {w} vs {like} for a like (param.rs, {date} sync). A ratio of coefficients on same-denominator rates — meaningful inside this score, and only here. X warns that weight ratios are NOT count equivalences in general; see the fine print below.": "重み {w}（いいねは {like}）（param.rs、{date} 同期）。分母が同じ率にかかる係数の比で、このスコアの中でだけ意味を持ちます。Xは、重みの比は一般には件数の換算ではないと警告しています。下の注記を参照してください。",
+    "Weight {w} (param.rs, {date} sync)": "重み {w}（param.rs、{date} 同期）",
+    "{label}  ·  w {w} × P {p}": "{label}  ·  w {w} × P {p}",
+    "{label}  ·  w {w} × {p} s predicted": "{label}  ·  w {w} × {p} 秒（予測）",
+    "Freshness: ×{factor} at {age} old — posts fade over ~6 hours, never below ×0.60": "鮮度: ×{factor}（投稿から {age}）— 投稿は約6時間かけて薄れ、×0.60を下回りません",
+    "{n} min": "{n}分",
+    "{n} h": "{n}時間",
+    "Posting cadence: post #{n} from this author in the loaded stretch of feed — production attenuates it ×{mult} (author diversity)": "投稿頻度: 読み込み済みのフィードで、この投稿者の{n}本目 — 本番では×{mult}に減衰します（投稿者の多様性）",
+    "Only {views} views — rates are smoothed toward the median (empirical Bayes, K={k}), so small samples can't spike or tank the score.": "表示回数は {views} 回だけ — 率は中央値に寄せて補正されます（経験ベイズ、K={k}）。サンプルが少なくても、スコアが跳ね上がったり急落したりしません。",
+    "No mutual-follow boost here: the +{boost} reply boost needs an ORIGINAL post — replies are ineligible.": "ここには相互フォロー加点がありません。+{boost} のリプライ加点は「元の投稿」にしか適用されず、リプライは対象外です。",
+    "Replying to an account over {k}K followers? A Grok model scores the reply {min}–{max}; a {min} applies the {label} label (duration unpublished).": "フォロワーが {k}K を超えるアカウントへのリプライでは、Grokのモデルがリプライを {min}〜{max} で採点します。{min} だと {label} ラベルが付きます（期間は非公開）。",
+    "You pasted into this reply. X's reply-quality scorer is shown an is_pasted flag when scoring replies to accounts over {k}K followers (grox/core/lm/thread.py). What the withheld rubric does with it is unpublished — this chip is informational, and the score above does not move on it.": "このリプライには貼り付けがありました。Xのリプライ品質スコアラーは、フォロワーが {k}K を超えるアカウントへのリプライを採点するとき、is_pasted フラグを受け取ります（grox/core/lm/thread.py）。非公開の採点基準がそれをどう扱うかは公表されていません。このチップは参考表示で、上のスコアはこれでは動きません。",
+
+    // "What X's published weights actually say"
+    "Copying a post's link carries {w}, the heaviest positive coefficient X publishes. It is also one of the rarest things a reader does — which is part of why the number is that large.": "投稿のリンクをコピーすると {w}。Xが公開している正の係数で最大です。読者が取る行動の中でも特にまれな部類で、それが数字の大きい理由の一つでもあります。",
+    "Sharing to DMs carries {dm}, the same coefficient as a reply. The share menu itself carries {share}. Musk called DM-forwarding “one of the strongest signals”; the 2026 file finally puts a number on it.": "DMでシェアすると {dm} で、リプライと同じ係数です。シェアメニュー自体は {share}。マスク氏はDMでの転送を「最も強いシグナルの一つ」と呼びましたが、2026年のファイルでようやく数字が示されました。",
+    "A reply from someone you mutually follow is worth {mutual}, not {reply} — but only on original posts, never on replies or reposts.": "相互フォローの相手からのリプライは、{reply} ではなく {mutual} の価値になります。ただし対象は元の投稿だけで、リプライやリポストには適用されません。",
+    "Gaining a follower off a post pays {w}.": "投稿をきっかけにフォローが増えると {w} が加点されます。",
+    "Opening a link pays {w}. Small, but the “links get zero credit” story is now provably wrong.": "リンクを開くと {w} が加点されます。小さな値ですが、「リンクは評価ゼロ」という通説が誤りだったことは、これで証明されました。",
+    "Profile clicks pay NOTHING ({w}). The 2023 table paid 12.0 for a profile-click-and-engage — that head has been zeroed out.": "プロフィールのクリックは何も加点されません（{w}）。2023年の表では、プロフィールをクリックして反応すると 12.0 でしたが、この項目はゼロになりました。",
+    "Scrolling straight past costs {w}. Tiny per impression, but it happens on most of them.": "そのまま素通りすると {w} が減点されます。表示1回あたりでは小さいものの、ほとんどの表示で起こります。",
+    "Muting ({mute}) hurts nearly twice as much as blocking ({block}). Reporting costs {report}.": "ミュート（{mute}）は、ブロック（{block}）の約2倍響きます。報告は {report} の減点です。",
+    "Posting again while your last post is still in the same feed slate costs the newer one: an author's 2nd post in the slate runs ×{second}, the 3rd ×{third}, decaying to a ×{floor} floor (author diversity — decay {decay}, floor {floor}, shipped on by default).": "直前の投稿が同じフィードの表示枠に残っているうちにもう一度投稿すると、新しいほうが不利になります。表示枠内の同じ投稿者の2本目は ×{second}、3本目は ×{third} で、×{floor} の下限まで減衰します（投稿者の多様性 — 減衰 {decay}、下限 {floor}、初期設定でオン）。",
+    "A Report's baseline probability is over 1,000× lower than a Like's. That is WHY its coefficient is {w}, and why dividing it by the like weight gives a number that means nothing.": "報告の基準確率は、いいねの 1,000 分の1以下です。だから係数が {w} と大きく、いいねの重みで割っても意味のある数字にならないのです。",
+    "Holding a reader for {seconds} seconds pays a flat {dwell}, on top of the {perSecond}/second dwell-time term. X turned this head on in August 2026 — it paid nothing before. Ten seconds is a bar, not a slope: nine seconds earns none of it.": "読者を {seconds} 秒引き留めると、一律で {dwell} が加点されます。これは滞在時間の項（1秒あたり {perSecond}）に上乗せされます。Xは2026年8月にこの項目を有効にしました。それ以前は加点されませんでした。10秒は段差であって傾斜ではなく、9秒では加点されません。",
+    "Video-quality-view now pays {vqv}. It was 0.05 until August 2026, so finishing a clip no longer earns anything directly — though video still clears the {seconds}-second dwell bar easily.": "動画の有効視聴は、現在 {vqv} です。2026年8月までは0.05だったため、クリップを最後まで見ても直接の加点はなくなりました。ただし動画は、{seconds}秒の滞在の基準を今でも簡単に満たします。",
+    "If you have {cap} followers or fewer, at most one original post per request can be lifted to about slot {slot} of the feed — but only while it is under {hours}h old and still under {impressions} Home impressions. Among the posts that qualify, early likes per impression pick a shortlist of two and the model's score picks the winner. One post per request, not per author.": "フォロワーが {cap} 人以下なら、1回のリクエストにつき元の投稿を最大1件だけ、フィードの {slot} 番目あたりまで引き上げてもらえることがあります。ただし、投稿から {hours} 時間以内で、ホームでの表示がまだ {impressions} 回未満の間だけです。条件を満たす投稿のうち、表示あたりの早期のいいねで2件に絞られ、モデルのスコアが高いほうが選ばれます。対象は1リクエストにつき1件で、投稿者ごとではありません。",
+    "X sends the ranker seven facts about your content: video, longest video length, photo, media count, weighted text length, NEWLINE COUNT, and whether there's a link — though no published model code reads them yet. A link counts as {urlLen} characters no matter how long it is, and an image's own t.co doesn't count as a link at all.": "Xはランキングモデルに、投稿内容に関する7つの事実を送っています。動画の有無、最長の動画の長さ、写真の有無、メディアの数、重み付きの文字数、改行の数、リンクの有無です。ただし、公開されているモデルのコードは、まだこれらを読んでいません。リンクは実際の長さに関係なく {urlLen} 文字として数えられ、画像自体のt.coはリンクとして数えられません。",
+    // sysCat translated these two as one passage; weightsMeaningNote is the first half.
+    "Weights multiply a PREDICTED PROBABILITY, not a count. X's own code comment calls the ratio reading — 'one report cancels 468 likes' — incorrect, and says a Report's baseline probability is over 1000x lower than a Like's, which is why its coefficient is large.": "重みが掛かるのは「予測された確率」であって、件数ではありません。Xのコードのコメントは、「報告1件がいいね 468 件を打ち消す」という比の読み方は誤りだとし、報告の基準確率はいいねの 1000x 以下だからこそ係数が大きいのだと述べています。",
+    "These are values per event, not per post: a heavy weight on a rare action still moves fewer posts than a light weight on a common one. Only likes, replies and reposts above come from this post's real counts — the rest need Phoenix's own predictions, so they inform what you read here without entering the score above.": "これらは投稿ごとではなく、行動1回あたりの値です。まれな行動にかかる大きな重みは、ありふれた行動にかかる小さな重みより、動かす投稿が少ないままです。上のうち、この投稿の実際の件数に基づくのはいいね・リプライ・リポストだけです。残りはPhoenixの予測が必要なため、ここで読める内容の参考にはなっても、上のスコアには入りません。"
+  };
+
+  var JA_DRAFT = {
+    // Panel — new or reworded since sysCat's fork.
+    "Has video — opening it pays {videoOpen}; a full watch earns nothing extra (vqv is 0)": "動画あり — 開かれると{videoOpen}加点。最後まで見られても追加の加点はない（vqv は 0）",
+    "Has video — opening it pays {videoOpen}; a watch over {seconds} seconds pays {vqv}": "動画あり — 開かれると{videoOpen}加点。{seconds}秒を超えて見られると{vqv}加点",
+    "Post video": "動画の投稿",
+    // 表示制限中 is X's own Japanese for the notice (key b3296688, scoring.js).
+    "Visibility limited by X — X's published code usually removes it from For You for everyone but the author": "Xによる表示制限中 — Xが公開したコードでは、投稿者以外の全員の「おすすめ」から通常除外されます",
+    "One exception: a post labeled FOSNR_ABUSE_INSULTS is removed only out-of-network, so the author's followers can still get it. Where the post still appears, as here, X shows this notice. That rendering is not in X's published code.": "例外が1つあります。FOSNR_ABUSE_INSULTS のラベルが付いた投稿はフォロー外でだけ除外されるため、投稿者のフォロワーには届くことがあります。ここのように投稿が表示されている場合、Xはこの通知を出します。その表示の仕組みは、Xが公開したコードには含まれていません。",
+    "Quotes a post X limited — X's published code usually removes posts like this from For You": "Xが制限した投稿を引用している — Xが公開したコードでは、このような投稿は通常「おすすめ」から除外されます",
+
+    // "Show the math" fine print — sysCat left these untranslated.
+    "Score = Σ(weight × P) over the Phoenix heads, then offset_score (xai-value-model/scoring.rs), × rescorers, normalized so a median post = 50 (√ curve, capped at 100). Raw: {raw}": "スコア = Phoenix の各項目の Σ(重み × P)、続いて offset_score（xai-value-model/scoring.rs）、× 補正係数。中央値の投稿が 50 になるよう正規化しています（√ カーブ、上限 100）。Raw: {raw}",
+    "NET NEGATIVE: X rescales any post whose weighted sum goes below zero into [0, {ceiling}), which puts it under every positive-scoring post in the feed.": "合計がマイナス: Xは重み付き合計がゼロを下回った投稿を [0, {ceiling}) の範囲に縮めるため、フィード内でスコアがプラスのどの投稿よりも下に置かれます。",
+    "Engagement rates = count ÷ views, smoothed toward the median with K={k} pseudo-views (empirical Bayes), then run through the same weighted-sum formula. Raw: {raw}": "反応率 = 件数 ÷ 表示回数。K={k} の疑似表示回数で中央値に寄せて補正し（経験ベイズ）、同じ重み付き合計の式に通しています。Raw: {raw}",
+    "Scored from the three heads a browser can see: likes ({like}), replies ({reply}), reposts ({repost}). The other {others} heads — shares (2.0 / 5.0 / 20.0), follows (4.0), clicks, dwell time and the negatives (−0.02 to −234.0) — need Phoenix's predictions, not counts.": "ブラウザから見える3つの項目で採点しています: いいね（{like}）、リプライ（{reply}）、リポスト（{repost}）。残りの {others} 項目 — シェア（2.0 / 5.0 / 20.0）、フォロー（4.0）、クリック、滞在時間、マイナスの項目（−0.02〜−234.0）— には、件数ではなく Phoenix の予測が必要です。"
+  };
 
   // Text shown as written in every language. Mostly the long prose that stays
   // English on purpose (the weights.js note/why text, the "About these scores"
@@ -1787,7 +1942,12 @@ var BANGERMETER_I18N = (function () {
   var settings = Object.assign({}, BANGERMETER_DEFAULT_SETTINGS);
   var scanTimer = null;
   var I18N = BANGERMETER_I18N;
+  // t() takes one string literal, so store-assets/i18n-coverage.js can read
+  // every key. tl() is the same lookup for data: labels and panel text that
+  // live in weights.js or scoring.js, which the coverage script reads from the
+  // config instead.
   var t = I18N.t;
+  var tl = I18N.t;
   var lastXLanguage = null;
 
   // Auto follows X's own display language (<html lang>); the popup can pin
@@ -2051,8 +2211,8 @@ var BANGERMETER_I18N = (function () {
     if (textEl) {
       var anchors = textEl.querySelectorAll("a");
       for (var i = 0; i < anchors.length; i++) {
-        var t = (anchors[i].textContent || "").trim();
-        if (!/^[@#$]/.test(t) && /\w+\.[a-z]{2,}/i.test(t)) { linkishAnchor = true; break; }
+        var anchorText = (anchors[i].textContent || "").trim();
+        if (!/^[@#$]/.test(anchorText) && /\w+\.[a-z]{2,}/i.test(anchorText)) { linkishAnchor = true; break; }
       }
     }
     var hashtagCount = textEl ? textEl.querySelectorAll('a[href*="/hashtag/"]').length : 0;
@@ -2209,7 +2369,7 @@ var BANGERMETER_I18N = (function () {
     var c = document.createElement("span");
     c.className = "bangermeter-seg bangermeter-" + scoreLevel(result.content.score);
     c.textContent = "C" + result.content.score;
-    c.title = "Content score (prospective)";
+    c.title = t("Content score (prospective)");
     badge.appendChild(c);
 
     if (result.engagement.available) {
@@ -2217,8 +2377,8 @@ var BANGERMETER_I18N = (function () {
       e.className = "bangermeter-seg bangermeter-" + scoreLevel(result.engagement.score);
       e.textContent = "E" + (result.engagement.lowSample ? "~" : "") + result.engagement.score;
       e.title = result.engagement.lowSample
-        ? "Engagement score — low view sample, smoothed toward median"
-        : "Engagement score (how the weights value actual engagement)";
+        ? t("Engagement score — low view sample, smoothed toward median")
+        : t("Engagement score (how the weights value actual engagement)");
       badge.appendChild(e);
     }
 
@@ -2272,31 +2432,55 @@ var BANGERMETER_I18N = (function () {
     return (p * 100).toPrecision(2) + "%";
   }
 
-  // Plain-English one-liners per detected signal (math lives in the tooltip + details)
-  var PLAIN_SIGNALS = {
-    question: "Asks a question — invites replies, the algorithm's favorite signal",
-    conversation_length: "Meaty text — gives people a conversation to click into",
-    thread_starter: "Starts a thread — keeps readers on the post longer",
-    media_image: "Has a picture — small boost to likes",
-    has_video: "Has video — watches barely count (0.05, and nothing under 10 seconds)",
-    external_link: "Contains a link — opening it pays 0.2, small but not zero",
-    link_no_context: "Mostly just a link — low-context link posts do worse",
-    many_hashtags: "3+ hashtags — the old algorithm flags hashtag piles",
-    engagement_bait: "“Like if…” bait — invites “show less” clicks and penalties",
-    all_caps_shout: "MOSTLY CAPS — reads as shouting, invites negative feedback"
-  };
+  // Plain-English one-liners per detected signal (math lives in the tooltip +
+  // details). Figures come from the weight table: the video line said 0.05 for
+  // two months after X zeroed vqv on Aug 25, 2026, because it was typed in.
+  function plainSignal(id) {
+    var H = BANGERMETER_CONFIG.heads;
+    switch (id) {
+      case "question": return t("Asks a question — invites replies, the algorithm's favorite signal");
+      case "conversation_length": return t("Meaty text — gives people a conversation to click into");
+      case "thread_starter": return t("Starts a thread — keeps readers on the post longer");
+      case "media_image": return t("Has a picture — small boost to likes");
+      case "has_video":
+        return H.vqv.weight === 0
+          ? t("Has video — opening it pays {videoOpen}; a full watch earns nothing extra (vqv is 0)",
+            { videoOpen: H.video_open.weight })
+          : t("Has video — opening it pays {videoOpen}; a watch over {seconds} seconds pays {vqv}",
+            { videoOpen: H.video_open.weight, vqv: H.vqv.weight,
+              seconds: BANGERMETER_CONFIG.sourcedFacts.minVideoDurationMs.value / 1000 });
+      case "external_link":
+        return t("Contains a link — opening it pays {openLink}, small but not zero", { openLink: H.open_link.weight });
+      case "link_no_context": return t("Mostly just a link — low-context link posts do worse");
+      case "many_hashtags": return t("3+ hashtags — the old algorithm flags hashtag piles");
+      case "engagement_bait": return t("“Like if…” bait — invites “show less” clicks and penalties");
+      case "all_caps_shout": return t("MOSTLY CAPS — reads as shouting, invites negative feedback");
+    }
+    return null;
+  }
 
+  // r.reason and r.label are compared in English: scoring.js writes them, and
+  // only what is returned here is translated.
   function plainRescorerText(r) {
-    if (r.reason === "Out-of-network view assumed") return "Out-of-network view assumed — scored at 75%";
-    if (r.reason === "In-network reply") return "This is a reply — replies take the same 75% discount as out-of-network posts";
-    if (r.reason === "In-network repost") return "This is a repost — reposts take the same 75% discount as out-of-network posts";
+    if (r.reason === "Out-of-network view assumed") return t("Out-of-network view assumed — scored at 75%");
+    if (r.reason === "In-network reply") return t("This is a reply — replies take the same 75% discount as out-of-network posts");
+    if (r.reason === "In-network repost") return t("This is a repost — reposts take the same 75% discount as out-of-network posts");
     if (r.label.indexOf("Verified") === 0) {
-      return "Verified author — ×" + r.factor + " boost per 2023 code (absent from the 2026 release)";
+      return t("Verified author — ×{factor} boost per 2023 code (absent from the 2026 release)", { factor: r.factor });
     }
     if (r.label.indexOf("Community-noted") === 0) {
-      return "Community Note attached — future engagement suppressed ~50% (three causal studies)";
+      return t("Community Note attached — future engagement suppressed ~50% (three causal studies)");
     }
-    return r.label;
+    return rescorerLabel(r);
+  }
+
+  // The verified rescorer's label carries its factor, so it has a template;
+  // the others are fixed labels from weights.js.
+  function rescorerLabel(r) {
+    if (r.label.indexOf("Verified author ×") === 0) {
+      return t("Verified author ×{factor} (2023 code, absent from the 2026 release)", { factor: r.factor });
+    }
+    return tl(r.label);
   }
 
   // Reply weight is viewer-dependent: 5.0 normally, 20.0 on an original post from
@@ -2314,13 +2498,13 @@ var BANGERMETER_I18N = (function () {
     });
     var likes = likesEquiv(w);
     return settings.assumeMutualFollow
-      ? "each worth " + likes + " likes (mutual-follow boost on)"
-      : "each worth " + likes + " likes";
+      ? t("each worth {likes} likes (mutual-follow boost on)", { likes: likes })
+      : t("each worth {likes} likes", { likes: likes });
   }
 
   function mathDetails(summaryText) {
     var d = el("details", "bangermeter-math");
-    d.appendChild(el("summary", null, summaryText || "Show the math"));
+    d.appendChild(el("summary", null, summaryText || t("Show the math")));
     return d;
   }
 
@@ -2348,9 +2532,10 @@ var BANGERMETER_I18N = (function () {
       row.appendChild(bar);
       // A continuous head multiplies predicted SECONDS, not a probability —
       // formatting 3.0s of dwell as "P 300.0%" read as an impossible chance.
-      var lbl = el("div", "bangermeter-contrib-label",
-        (head ? head.label : c.head) + "  ·  w " + c.weight +
-        (head && head.continuous ? " × " + c.p.toFixed(1) + " s predicted" : " × P " + fmtP(c.p)));
+      var name = head ? tl(head.label) : c.head;
+      var lbl = el("div", "bangermeter-contrib-label", head && head.continuous
+        ? t("{label}  ·  w {w} × {p} s predicted", { label: name, w: c.weight, p: c.p.toFixed(1) })
+        : t("{label}  ·  w {w} × P {p}", { label: name, w: c.weight, p: fmtP(c.p) }));
       row.appendChild(lbl);
       var val = el("div", "bangermeter-contrib-val", c.contribution.toFixed(4));
       row.appendChild(val);
@@ -2410,7 +2595,7 @@ var BANGERMETER_I18N = (function () {
     panel = el("div", "bangermeter-panel");
     panel.setAttribute("lang", I18N.getLanguage());
     panel.setAttribute("role", "dialog");
-    panel.setAttribute("aria-label", "Bangermeter score breakdown");
+    panel.setAttribute("aria-label", t("Bangermeter score breakdown"));
     applyTheme(panel);
     lastBadgeFocus = anchor;
     var head = el("div", "bangermeter-panel-head");
@@ -2419,7 +2604,7 @@ var BANGERMETER_I18N = (function () {
     title.appendChild(document.createTextNode("Bangermeter"));
     head.appendChild(title);
     var close = el("button", "bangermeter-panel-close");
-    close.setAttribute("aria-label", "Close breakdown");
+    close.setAttribute("aria-label", t("Close breakdown"));
     // SVG × so it is optically centered (a text glyph sits on its baseline)
     close.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="square" aria-hidden="true"><path d="M5.5 5.5 18.5 18.5M18.5 5.5 5.5 18.5"/></svg>';
     close.addEventListener("click", closePanel);
@@ -2428,8 +2613,8 @@ var BANGERMETER_I18N = (function () {
 
     // ── Content appeal (plain English; math collapsed) ──
     var sec1 = el("div", "bangermeter-panel-section");
-    sectionScoreRow(sec1, "Content appeal", result.content.score, null);
-    subtitle(sec1, "What the algorithm would predict from the content alone. 50 = a typical post.");
+    sectionScoreRow(sec1, t("Content appeal"), result.content.score, null);
+    subtitle(sec1, t("What the algorithm would predict from the content alone. 50 = a typical post."));
 
     if (result.content.modifiers.length) {
       result.content.modifiers.forEach(function (m) {
@@ -2440,32 +2625,32 @@ var BANGERMETER_I18N = (function () {
         var cls = neutral ? "" : (bad ? " bangermeter-down" : " bangermeter-up");
         var mrow = el("div", "bangermeter-mod");
         mrow.appendChild(el("span", "bangermeter-mod-dir" + cls, dir));
-        mrow.appendChild(el("span", "bangermeter-mod-label", PLAIN_SIGNALS[m.id] || m.label));
+        mrow.appendChild(el("span", "bangermeter-mod-label", plainSignal(m.id) || tl(m.label)));
         mrow.title = m.why + (m.factor != null ? " (×" + m.factor + ", " + m.provenance + ")" : "");
         sec1.appendChild(mrow);
       });
     } else {
-      sec1.appendChild(el("div", "bangermeter-sub", "No special signals — scored as a typical post."));
+      sec1.appendChild(el("div", "bangermeter-sub", t("No special signals — scored as a typical post.")));
     }
     result.content.rescorers.forEach(function (r) {
       var rrow = el("div", "bangermeter-rescorer",
         (r.factor >= 1 ? "▲ " : "▼ ") + plainRescorerText(r));
-      rrow.title = r.label;
+      rrow.title = rescorerLabel(r);
       sec1.appendChild(rrow);
     });
     if (result.features.visibilityLimited) {
       var VL = BANGERMETER_CONFIG.sourcedFacts.visibilityLimited;
-      var vl = el("div", "bangermeter-rescorer", "▼ " + VL.panel);
+      var vl = el("div", "bangermeter-rescorer", "▼ " + tl(VL.panel));
       vl.title = VL.note + " (xai-org/x-algorithm at " + VL.verifiedAt + ", " +
         VL.verifiedAsOf + ": " + VL.sources.map(function (s) {
           return s.split(" (")[0];
         }).join(", ") + ")";
       sec1.appendChild(vl);
-      sec1.appendChild(el("div", "bangermeter-fineprint", VL.panelDetail));
+      sec1.appendChild(el("div", "bangermeter-fineprint", tl(VL.panelDetail)));
     }
     if (result.features.quotedVisibilityLimited) {
       var QVL = BANGERMETER_CONFIG.sourcedFacts.quotedVisibilityLimited;
-      var qvl = el("div", "bangermeter-rescorer", "▼ " + QVL.panel);
+      var qvl = el("div", "bangermeter-rescorer", "▼ " + tl(QVL.panel));
       qvl.title = QVL.note + " (xai-org/x-algorithm at " + QVL.verifiedAt + ", " +
         QVL.verifiedAsOf + ": " + QVL.sources.map(function (s) {
           return s.split(" (")[0];
@@ -2482,25 +2667,22 @@ var BANGERMETER_I18N = (function () {
       // Reply-specific scoring facts, all verified against the published repo.
       // The ×0.75 rescorer row above already covers the in-feed discount.
       var RQ = BANGERMETER_CONFIG.sourcedFacts.replyQualityGate;
-      sec1.appendChild(el("div", "bangermeter-subhead", "Reply scoring"));
+      sec1.appendChild(el("div", "bangermeter-subhead", t("Reply scoring")));
+      // The tooltips are X's own notes and stay English; the row text is translated.
       [
-        { mark: "·", text: "Out-of-network, this reply never reaches For You at all — replies " +
-            "from unfollowed accounts are hard-filtered, not down-weighted.",
+        { mark: "·", text: t("Out-of-network, this reply never reaches For You at all — replies from unfollowed accounts are hard-filtered, not down-weighted."),
           tip: BANGERMETER_CONFIG.sourcedFacts.oonReplyFilter.note + " (" +
             BANGERMETER_CONFIG.sourcedFacts.oonReplyFilter.source + ")" },
-        { mark: "·", text: "No mutual-follow boost here: the +15.0 reply boost needs an " +
-            "ORIGINAL post — replies are ineligible.",
+        { mark: "·", text: t("No mutual-follow boost here: the +{boost} reply boost needs an ORIGINAL post — replies are ineligible.",
+            { boost: BANGERMETER_CONFIG.bidirectionalFollowReplyBoost.toFixed(1) }),
           tip: "bidirectional_boost_eligible requires in_reply_to_tweet_id to be none " +
             "(bidirectional_boost_eligible, xai-value-model/inputs.rs). " + BANGERMETER_CONFIG.heads.reply.note },
-        { mark: "·", text: "Replying to an account over " + (RQ.followerThreshold / 1000) + "K " +
-            "followers? A Grok model scores the reply " + RQ.scoreMin + "–" + RQ.scoreMax + "; a " +
-            RQ.scoreMin + " applies the " + RQ.zeroScoreLabel + " label (duration unpublished).",
+        { mark: "·", text: t("Replying to an account over {k}K followers? A Grok model scores the reply {min}–{max}; a {min} applies the {label} label (duration unpublished).",
+            { k: RQ.followerThreshold / 1000, min: RQ.scoreMin, max: RQ.scoreMax, label: RQ.zeroScoreLabel }),
           tip: RQ.note + " Signals it is shown: " + RQ.signals.join("; ") + ". (" + RQ.source + ")" },
-        { mark: "·", text: "Where this reply SORTS inside the thread is not something anyone " +
-            "outside X can score — that ranker is not open-sourced.",
+        { mark: "·", text: t("Where this reply SORTS inside the thread is not something anyone outside X can score — that ranker is not open-sourced."),
           tip: BANGERMETER_CONFIG.sourcedFacts.conversationRanker.note },
-        { mark: "·", text: "Replies are filtered out of X's Grok “banger” pipeline before it " +
-            "runs — it only ever evaluates original posts.",
+        { mark: "·", text: t("Replies are filtered out of X's Grok “banger” pipeline before it runs — it only ever evaluates original posts."),
           tip: "grox/flows/upa/task_filter.py — TaskInitialBangerFilter rejects any post with ancestors." }
       ].forEach(function (r) {
         var rrow = el("div", "bangermeter-mod");
@@ -2512,16 +2694,14 @@ var BANGERMETER_I18N = (function () {
     }
 
     var d1 = mathDetails();
-    d1.appendChild(el("div", "bangermeter-fineprint",
-      "Score = Σ(weight × P) over the Phoenix heads, then offset_score (xai-value-model/scoring.rs), " +
-      "× rescorers, normalized so a median post = 50 (√ curve, capped at 100). " +
-      "Raw: " + result.content.raw.toFixed(4) +
-      (result.content.netNegative
-        ? " — NET NEGATIVE: X rescales any post whose weighted sum goes below zero into [0, " +
-          (BANGERMETER_CONFIG.weightSums.negative / BANGERMETER_CONFIG.weightSums.total *
-            BANGERMETER_CONFIG.negativeScoresOffset).toFixed(6) +
-          "), which puts it under every positive-scoring post in the feed."
-        : "")));
+    var scoreMath = t("Score = Σ(weight × P) over the Phoenix heads, then offset_score (xai-value-model/scoring.rs), × rescorers, normalized so a median post = 50 (√ curve, capped at 100). Raw: {raw}",
+      { raw: result.content.raw.toFixed(4) });
+    if (result.content.netNegative) {
+      scoreMath += " — " + t("NET NEGATIVE: X rescales any post whose weighted sum goes below zero into [0, {ceiling}), which puts it under every positive-scoring post in the feed.",
+        { ceiling: (BANGERMETER_CONFIG.weightSums.negative / BANGERMETER_CONFIG.weightSums.total *
+          BANGERMETER_CONFIG.negativeScoresOffset).toFixed(6) });
+    }
+    d1.appendChild(el("div", "bangermeter-fineprint", scoreMath));
     contributionList(d1, result.content.contributions);
     sec1.appendChild(d1);
     panel.appendChild(sec1);
@@ -2529,62 +2709,69 @@ var BANGERMETER_I18N = (function () {
     // ── Earned engagement (plain English; math collapsed) ──
     var sec2 = el("div", "bangermeter-panel-section");
     if (result.engagement.available) {
-      sectionScoreRow(sec2, "Earned engagement", result.engagement.score, null);
-      subtitle(sec2, "How the algorithm values what this post actually earned, from " +
-        result.engagement.views.toLocaleString() + " views. 50 = the median rate measured " +
-        "across " + BANGERMETER_CONFIG.observedRates.n + " real timeline posts.");
+      sectionScoreRow(sec2, t("Earned engagement"), result.engagement.score, null);
+      subtitle(sec2, t("How the algorithm values what this post actually earned, from {views} views. 50 = the median rate measured across {n} real timeline posts.",
+        { views: result.engagement.views.toLocaleString(), n: BANGERMETER_CONFIG.observedRates.n }));
 
       var counts = result.features.counts || {};
+      var syncDate = BANGERMETER_CONFIG.paramRsLastSync.slice(0, 10);
+      // Each row counts its own noun: Japanese has no plural, English does.
       [
-        { icon: "reply", n: counts.replies, one: "reply", many: "replies",
+        { icon: "reply", n: counts.replies,
+          count: function (n) { return n === 1 ? t("{n} reply", { n: n }) : t("{n} replies", { n: n.toLocaleString() }); },
           worth: replyWorthText(),
           tip: BANGERMETER_CONFIG.heads.reply.note },
-        { icon: "repost", n: counts.retweets, one: "repost", many: "reposts",
-          worth: "each worth " + likesEquiv(BANGERMETER_CONFIG.heads.retweet.weight) + " likes",
-          tip: "Weight " + BANGERMETER_CONFIG.heads.retweet.weight + " vs " +
-            BANGERMETER_CONFIG.heads.favorite.weight + " for a like (param.rs, " + BANGERMETER_CONFIG.paramRsLastSync.slice(0, 10) + " sync). A ratio of coefficients on " +
-            "same-denominator rates — meaningful inside this score, and only here. X warns that " +
-            "weight ratios are NOT count equivalences in general; see the fine print below." },
-        { icon: "like", n: counts.likes, one: "like", many: "likes",
-          worth: "the baseline unit",
-          tip: "Weight " + BANGERMETER_CONFIG.heads.favorite.weight + " (param.rs, " + BANGERMETER_CONFIG.paramRsLastSync.slice(0, 10) + " sync)" },
-        { icon: "bookmark", n: counts.bookmarks, one: "bookmark", many: "bookmarks",
-          worth: "not a scored action — X publishes no bookmark weight",
+        { icon: "repost", n: counts.retweets,
+          count: function (n) { return n === 1 ? t("{n} repost", { n: n }) : t("{n} reposts", { n: n.toLocaleString() }); },
+          worth: t("each worth {likes} likes", { likes: likesEquiv(BANGERMETER_CONFIG.heads.retweet.weight) }),
+          tip: t("Weight {w} vs {like} for a like (param.rs, {date} sync). A ratio of coefficients on same-denominator rates — meaningful inside this score, and only here. X warns that weight ratios are NOT count equivalences in general; see the fine print below.",
+            { w: BANGERMETER_CONFIG.heads.retweet.weight, like: BANGERMETER_CONFIG.heads.favorite.weight, date: syncDate }) },
+        { icon: "like", n: counts.likes,
+          count: function (n) { return n === 1 ? t("{n} like", { n: n }) : t("{n} likes", { n: n.toLocaleString() }); },
+          worth: t("the baseline unit"),
+          tip: t("Weight {w} (param.rs, {date} sync)", { w: BANGERMETER_CONFIG.heads.favorite.weight, date: syncDate }) },
+        { icon: "bookmark", n: counts.bookmarks,
+          count: function (n) { return n === 1 ? t("{n} bookmark", { n: n }) : t("{n} bookmarks", { n: n.toLocaleString() }); },
+          worth: t("not a scored action — X publishes no bookmark weight"),
           tip: BANGERMETER_CONFIG.unweightedSignals.bookmark.note }
       ].forEach(function (r) {
         if (r.n == null) return;
         var row = el("div", "bangermeter-plainrow");
         row.appendChild(icon(r.icon));
-        row.appendChild(el("span", null,
-          r.n.toLocaleString() + " " + (r.n === 1 ? r.one : r.many)));
+        row.appendChild(el("span", null, r.count(r.n)));
         row.appendChild(el("span", "bangermeter-worth", "— " + r.worth));
         row.title = r.tip;
         sec2.appendChild(row);
       });
 
       if (result.engagement.smoothingNote) {
-        sec2.appendChild(el("div", "bangermeter-fineprint", result.engagement.smoothingNote));
+        sec2.appendChild(el("div", "bangermeter-fineprint",
+          t("Only {views} views — rates are smoothed toward the median (empirical Bayes, K={k}), so small samples can't spike or tank the score.",
+            { views: result.engagement.views.toLocaleString(),
+              k: BANGERMETER_CONFIG.engagementShrinkage.pseudoViews.toLocaleString() })));
       }
       result.engagement.rescorers.forEach(function (r) {
         var rrow = el("div", "bangermeter-rescorer",
           (r.factor >= 1 ? "▲ " : "▼ ") + plainRescorerText(r));
-        rrow.title = r.label;
+        rrow.title = rescorerLabel(r);
         sec2.appendChild(rrow);
       });
 
       var d2 = mathDetails();
       d2.appendChild(el("div", "bangermeter-fineprint",
-        "Engagement rates = count ÷ views, smoothed toward the median with K=" +
-        BANGERMETER_CONFIG.engagementShrinkage.pseudoViews.toLocaleString() +
-        " pseudo-views (empirical Bayes), then run through the same weighted-sum formula. " +
-        "Raw: " + result.engagement.raw.toFixed(4)));
+        t("Engagement rates = count ÷ views, smoothed toward the median with K={k} pseudo-views (empirical Bayes), then run through the same weighted-sum formula. Raw: {raw}",
+          { k: BANGERMETER_CONFIG.engagementShrinkage.pseudoViews.toLocaleString(), raw: result.engagement.raw.toFixed(4) })));
       contributionList(d2, result.engagement.contributions);
-      d2.appendChild(el("div", "bangermeter-fineprint", result.engagement.excludedNote));
+      d2.appendChild(el("div", "bangermeter-fineprint",
+        t("Scored from the three heads a browser can see: likes ({like}), replies ({reply}), reposts ({repost}). The other {others} heads — shares (2.0 / 5.0 / 20.0), follows (4.0), clicks, dwell time and the negatives (−0.02 to −234.0) — need Phoenix's predictions, not counts.",
+          { like: BANGERMETER_CONFIG.heads.favorite.weight, reply: result.engagement.replyWeight,
+            repost: BANGERMETER_CONFIG.heads.retweet.weight,
+            others: Object.keys(BANGERMETER_CONFIG.heads).length - 3 })));
       sec2.appendChild(d2);
     } else {
-      sec2.appendChild(el("div", "bangermeter-panel-scorelabel", "Earned engagement"));
+      sec2.appendChild(el("div", "bangermeter-panel-scorelabel", t("Earned engagement")));
       sec2.appendChild(el("div", "bangermeter-sub",
-        "Can't score this one — the view count isn't visible, so there's nothing to compute rates from."));
+        t("Can't score this one — the view count isn't visible, so there's nothing to compute rates from.")));
     }
     panel.appendChild(sec2);
 
@@ -2592,13 +2779,13 @@ var BANGERMETER_I18N = (function () {
     var sec3 = el("div", "bangermeter-panel-section");
     if (result.ageDecay) {
       var ageText = result.ageDecay.minutes < 90
-        ? Math.round(result.ageDecay.minutes) + " min"
-        : (result.ageDecay.minutes / 60).toFixed(1) + " h";
+        ? t("{n} min", { n: Math.round(result.ageDecay.minutes) })
+        : t("{n} h", { n: (result.ageDecay.minutes / 60).toFixed(1) });
       var fresh = el("div", "bangermeter-context");
       fresh.appendChild(icon("clock"));
       fresh.appendChild(el("span", null,
-        "Freshness: ×" + result.ageDecay.factor.toFixed(2) + " at " + ageText +
-        " old — posts fade over ~6 hours, never below ×0.60"));
+        t("Freshness: ×{factor} at {age} old — posts fade over ~6 hours, never below ×0.60",
+          { factor: result.ageDecay.factor.toFixed(2), age: ageText })));
       fresh.title = "Earlybird age-decay sigmoid: base 0.6, halflife 360 min, slope 0.003";
       sec3.appendChild(fresh);
     }
@@ -2608,9 +2795,9 @@ var BANGERMETER_I18N = (function () {
     var slateK = authorSlateRank(article, features.authorHandle);
     if (slateK >= 1) {
       var dmul = BangermeterEngine.diversityMultiplier(slateK);
-      var drow = el("div", "bangermeter-rescorer",
-        "▼ Posting cadence: post #" + (slateK + 1) + " from this author in the loaded stretch of " +
-        "feed — production attenuates it ×" + dmul.toFixed(2) + " (author diversity)");
+      var drow = el("div", "bangermeter-rescorer", "▼ " +
+        t("Posting cadence: post #{n} from this author in the loaded stretch of feed — production attenuates it ×{mult} (author diversity)",
+          { n: slateK + 1, mult: dmul.toFixed(2) }));
       drow.title = "diversity_multiplier(k=" + slateK + ") = (1 − floor) × decay^k + floor, with " +
         "decay 0.5 and floor 0.25 (xai-value-model/scoring.rs; flag-gated behind EnableAuthorDiversity, " +
         "which ships true — when enabled it applies to every candidate). Only currently rendered " +
@@ -2620,9 +2807,7 @@ var BANGERMETER_I18N = (function () {
     }
     if (result.features.isVerified && !settings.applyVerifiedBoost2023) {
       var vNote = el("div", "bangermeter-fineprint",
-        "Verified author: 2023-era code boosted verified posts ×4 in-network / ×2 out-of-network. " +
-        "No such multiplier appears anywhere in the Aug 2026 release. Not applied to this score — " +
-        "enable “2023 verified boost” in the popup to simulate that era.");
+        t("Verified author: 2023-era code boosted verified posts ×4 in-network / ×2 out-of-network. No such multiplier appears anywhere in the Aug 2026 release. Not applied to this score — enable “2023 verified boost” in the popup to simulate that era."));
       sec3.appendChild(vNote);
     }
 
@@ -2633,78 +2818,59 @@ var BANGERMETER_I18N = (function () {
     // heavy weight on a rare action is not the same as a big lever.
     var H = BANGERMETER_CONFIG.heads;
     var F = BANGERMETER_CONFIG.sourcedFacts;
-    var d4 = mathDetails("What X's published weights actually say");
+    var d4 = mathDetails(t("What X's published weights actually say"));
+    var AD = BANGERMETER_CONFIG.rescorers.authorDiversity;
+    var dm = BangermeterEngine.diversityMultiplier;
     [
-      "▲ Copying a post's link carries " + H.share_via_copy_link.weight + ", the heaviest positive " +
-        "coefficient X publishes. It is also one of the rarest things a reader does — which is " +
-        "part of why the number is that large.",
-      "▲ Sharing to DMs carries " + H.share_via_dm.weight + ", the same coefficient as a reply. " +
-        "The share menu itself carries " + H.share.weight + ". Musk called DM-forwarding “one of " +
-        "the strongest signals”; the 2026 file finally puts a number on it.",
-      "▲ A reply from someone you mutually follow is worth " +
-        (H.reply.weight + BANGERMETER_CONFIG.bidirectionalFollowReplyBoost) + ", not " +
-        H.reply.weight + " — but only on original posts, never on replies or reposts.",
-      "▲ Gaining a follower off a post pays " + H.follow_author.weight + ".",
-      "▲ Opening a link pays " + H.open_link.weight + ". Small, but the “links get zero credit” " +
-        "story is now provably wrong.",
-      "· Profile clicks pay NOTHING (" + H.profile_click.weight + "). The 2023 table paid 12.0 " +
-        "for a profile-click-and-engage — that head has been zeroed out.",
-      "· Bookmarks have no head at all — they are not a scored action in 2026.",
-      "▼ Scrolling straight past costs " + H.not_dwelled.weight + ". Tiny per impression, but it " +
-        "happens on most of them.",
-      "▼ Muting (" + H.mute_author.weight + ") hurts nearly twice as much as blocking (" +
-        H.block_author.weight + "). Reporting costs " + H.report.weight + ".",
-      "▼ Any post whose weighted sum goes net-negative is rescaled below every positive post, " +
-        "no matter what else it earned.",
-      "▼ Posting again while your last post is still in the same feed slate costs the newer " +
-        "one: an author's 2nd post in the slate runs ×0.625, the 3rd ×0.44, decaying to a " +
-        "×0.25 floor (author diversity — decay 0.5, floor 0.25, shipped on by default).",
-      "· Grok's “banger” pipeline only ever looks at original posts — replies and " +
-        "protected accounts are filtered out before it runs.",
-      "· Engagement only counts if the post reached the reader through their Home Timeline. " +
-        "Opening a link someone sent has no ranking impact — so passing your own post round " +
-        "a group chat does nothing for reach.",
-      "· A Report's baseline probability is over 1,000× lower than a Like's. That is WHY its " +
-        "coefficient is " + H.report.weight + ", and why dividing it by the like weight gives " +
-        "a number that means nothing.",
-      "· Mass block/report campaigns don't straightforwardly bury a post. Predictions are " +
-        "per-viewer and personalized, so brigading mostly shifts what gets recommended to " +
-        "people like the brigaders.",
-      "▲ Holding a reader for " + F.dwellMark.seconds + " seconds pays a flat " +
-        H.dwell.weight + ", on top of the " + H.cont_dwell_time.weight + "/second dwell-time " +
-        "term. X turned this head on in August 2026 — it paid nothing before. Ten seconds is a " +
-        "bar, not a slope: nine seconds earns none of it.",
-      "▼ Video-quality-view now pays " + H.vqv.weight + ". It was " +
-        "0.05 until August 2026, so finishing a clip no longer earns anything directly — " +
-        "though video still clears the " + F.dwellMark.seconds + "-second dwell bar easily.",
-      "· If you have " + F.authorColdStart.followerCap.toLocaleString() + " followers or fewer, " +
-        "at most one original post per request can be lifted to about slot " + F.authorColdStart.slotMin +
-        " of the feed — but only while it is under " + F.authorColdStart.maxPostAgeHours +
-        "h old and still under " + F.authorColdStart.impressionThreshold.toLocaleString() +
-        " Home impressions. Among the posts that qualify, early likes per impression pick a " +
-        "shortlist of two and the model's score picks the winner. One post per request, not per author.",
-      "· X sends the ranker seven facts about your content: video, longest video length, photo, " +
-        "media count, weighted text length, NEWLINE COUNT, and whether there's a link — though " +
-        "no published model code reads them yet. A link " +
-        "counts as " + F.contentFeatures.urlWeightedLen + " characters no matter how long it is, " +
-        "and an image's own t.co doesn't count as a link at all."
+      ["▲", t("Copying a post's link carries {w}, the heaviest positive coefficient X publishes. It is also one of the rarest things a reader does — which is part of why the number is that large.",
+        { w: H.share_via_copy_link.weight })],
+      ["▲", t("Sharing to DMs carries {dm}, the same coefficient as a reply. The share menu itself carries {share}. Musk called DM-forwarding “one of the strongest signals”; the 2026 file finally puts a number on it.",
+        { dm: H.share_via_dm.weight, share: H.share.weight })],
+      ["▲", t("A reply from someone you mutually follow is worth {mutual}, not {reply} — but only on original posts, never on replies or reposts.",
+        { mutual: H.reply.weight + BANGERMETER_CONFIG.bidirectionalFollowReplyBoost, reply: H.reply.weight })],
+      ["▲", t("Gaining a follower off a post pays {w}.", { w: H.follow_author.weight })],
+      ["▲", t("Opening a link pays {w}. Small, but the “links get zero credit” story is now provably wrong.",
+        { w: H.open_link.weight })],
+      ["·", t("Profile clicks pay NOTHING ({w}). The 2023 table paid 12.0 for a profile-click-and-engage — that head has been zeroed out.",
+        { w: H.profile_click.weight })],
+      ["·", t("Bookmarks have no head at all — they are not a scored action in 2026.")],
+      ["▼", t("Scrolling straight past costs {w}. Tiny per impression, but it happens on most of them.",
+        { w: H.not_dwelled.weight })],
+      ["▼", t("Muting ({mute}) hurts nearly twice as much as blocking ({block}). Reporting costs {report}.",
+        { mute: H.mute_author.weight, block: H.block_author.weight, report: H.report.weight })],
+      ["▼", t("Any post whose weighted sum goes net-negative is rescaled below every positive post, no matter what else it earned.")],
+      // The multipliers come from the decay and floor X ships, not typed figures.
+      ["▼", t("Posting again while your last post is still in the same feed slate costs the newer one: an author's 2nd post in the slate runs ×{second}, the 3rd ×{third}, decaying to a ×{floor} floor (author diversity — decay {decay}, floor {floor}, shipped on by default).",
+        { second: Number(dm(1).toFixed(3)), third: dm(2).toFixed(2), floor: AD.floor, decay: AD.decay })],
+      ["·", t("Grok's “banger” pipeline only ever looks at original posts — replies and protected accounts are filtered out before it runs.")],
+      ["·", t("Engagement only counts if the post reached the reader through their Home Timeline. Opening a link someone sent has no ranking impact — so passing your own post round a group chat does nothing for reach.")],
+      ["·", t("A Report's baseline probability is over 1,000× lower than a Like's. That is WHY its coefficient is {w}, and why dividing it by the like weight gives a number that means nothing.",
+        { w: H.report.weight })],
+      ["·", t("Mass block/report campaigns don't straightforwardly bury a post. Predictions are per-viewer and personalized, so brigading mostly shifts what gets recommended to people like the brigaders.")],
+      ["▲", t("Holding a reader for {seconds} seconds pays a flat {dwell}, on top of the {perSecond}/second dwell-time term. X turned this head on in August 2026 — it paid nothing before. Ten seconds is a bar, not a slope: nine seconds earns none of it.",
+        { seconds: F.dwellMark.seconds, dwell: H.dwell.weight, perSecond: H.cont_dwell_time.weight })],
+      ["▼", t("Video-quality-view now pays {vqv}. It was 0.05 until August 2026, so finishing a clip no longer earns anything directly — though video still clears the {seconds}-second dwell bar easily.",
+        { vqv: H.vqv.weight, seconds: F.dwellMark.seconds })],
+      ["·", t("If you have {cap} followers or fewer, at most one original post per request can be lifted to about slot {slot} of the feed — but only while it is under {hours}h old and still under {impressions} Home impressions. Among the posts that qualify, early likes per impression pick a shortlist of two and the model's score picks the winner. One post per request, not per author.",
+        { cap: F.authorColdStart.followerCap.toLocaleString(), slot: F.authorColdStart.slotMin,
+          hours: F.authorColdStart.maxPostAgeHours, impressions: F.authorColdStart.impressionThreshold.toLocaleString() })],
+      ["·", t("X sends the ranker seven facts about your content: video, longest video length, photo, media count, weighted text length, NEWLINE COUNT, and whether there's a link — though no published model code reads them yet. A link counts as {urlLen} characters no matter how long it is, and an image's own t.co doesn't count as a link at all.",
+        { urlLen: F.contentFeatures.urlWeightedLen })]
     ].forEach(function (line) {
-      var mark = line.charAt(0);
+      var mark = line[0];
       var row = el("div", "bangermeter-mod");
       row.appendChild(el("span", "bangermeter-mod-dir" +
         (mark === "▼" ? " bangermeter-down" : mark === "▲" ? " bangermeter-up" : ""), mark));
-      row.appendChild(el("span", "bangermeter-mod-label", line.slice(2)));
+      row.appendChild(el("span", "bangermeter-mod-label", line[1]));
       d4.appendChild(row);
     });
     d4.appendChild(el("div", "bangermeter-fineprint",
-      BANGERMETER_CONFIG.weightsMeaningNote + " These are values per event, not per post: a " +
-      "heavy weight on a rare action still moves fewer posts than a light weight on a common " +
-      "one. Only likes, replies and reposts above come from this post's real counts — the rest " +
-      "need Phoenix's own predictions, so they inform what you read here without entering the " +
-      "score above."));
+      tl(BANGERMETER_CONFIG.weightsMeaningNote) + " " +
+      t("These are values per event, not per post: a heavy weight on a rare action still moves fewer posts than a light weight on a common one. Only likes, replies and reposts above come from this post's real counts — the rest need Phoenix's own predictions, so they inform what you read here without entering the score above.")));
     sec3.appendChild(d4);
 
-    var d3 = mathDetails("About these scores");
+    // The body stays English: it carries X's weekly changelog.
+    var d3 = mathDetails(t("About these scores"));
     d3.appendChild(el("div", "bangermeter-fineprint",
       "Weights: " + BANGERMETER_CONFIG.weightsSnapshot + ". X states these are kept in sync with " +
       "the live production configuration by cron, which makes them the first ranking weights ever " +
@@ -2953,7 +3119,7 @@ var BANGERMETER_I18N = (function () {
         (v.score === best ? " bangermeter-variant-best" : ""),
         String.fromCharCode(65 + i) + " " + v.score);
       chip.type = "button";
-      chip.title = "“" + v.snippet + "”\nClick to remove this saved variant.";
+      chip.title = t("“{snippet}”\nClick to remove this saved variant.", { snippet: v.snippet });
       chip.addEventListener("click", function (ev) {
         ev.preventDefault();
         ev.stopPropagation();
@@ -2983,10 +3149,9 @@ var BANGERMETER_I18N = (function () {
 
     var entry = { editor: editor, meter: meter, variants: [], last: null,
       isReply: composerIsReply(editor) };
-    var save = el("button", "bangermeter-meter-save", "+ compare");
+    var save = el("button", "bangermeter-meter-save", t("+ compare"));
     save.type = "button";
-    save.title = "Save this draft's score as a variant (up to three). Rewrite, then compare " +
-      "the saved scores side by side. Variants live in memory only and vanish with the page.";
+    save.title = t("Save this draft's score as a variant (up to three). Rewrite, then compare the saved scores side by side. Variants live in memory only and vanish with the page.");
     save.addEventListener("click", function (ev) {
       ev.preventDefault();
       ev.stopPropagation();
@@ -3031,7 +3196,7 @@ var BANGERMETER_I18N = (function () {
     // snippet — draft text stays out of storage entirely.
     var snip = text.replace(/\s+/g, " ").trim();
     entry.last = { score: result.score, snippet: snip.length > 40 ? snip.slice(0, 39) + "…" : snip };
-    meter.setAttribute("aria-label", "Bangermeter draft score " + result.score + " out of 100");
+    meter.setAttribute("aria-label", t("Bangermeter draft score {score} out of 100", { score: result.score }));
     var fill = meter.querySelector(".bangermeter-meter-fill");
     fill.style.width = result.score + "%";
     fill.className = "bangermeter-meter-fill bangermeter-fill-" + scoreLevel(result.score);
@@ -3044,20 +3209,13 @@ var BANGERMETER_I18N = (function () {
     var hintsEl = meter.querySelector(".bangermeter-meter-hints");
     hintsEl.textContent = "";
     if (feats.isReply) {
-      var replyChip = el("span", "bangermeter-down", "▼ Reply ×0.75");
-      replyChip.title = "This draft is a reply. In-network replies take the same ×0.75 rescoring " +
-        "factor as out-of-network posts (oon_applies, xai-value-model/scoring.rs) — already reflected in " +
-        "the score. Replies are also excluded from the mutual-follow reply boost and from Grok's " +
-        "banger pipeline.";
+      var replyChip = el("span", "bangermeter-down", "▼ " + t("Reply ×0.75"));
+      replyChip.title = t("This draft is a reply. In-network replies take the same ×0.75 rescoring factor as out-of-network posts (oon_applies, xai-value-model/scoring.rs) — already reflected in the score. Replies are also excluded from the mutual-follow reply boost and from Grok's banger pipeline.");
       hintsEl.appendChild(replyChip);
       if (pastedEditors.has(editor)) {
-        var pasteChip = el("span", null, "· pasted text");
-        pasteChip.title = "You pasted into this reply. X's reply-quality scorer is shown an " +
-          "is_pasted flag when scoring replies to accounts over " +
-          (BANGERMETER_CONFIG.sourcedFacts.replyQualityGate.followerThreshold / 1000) +
-          "K followers " +
-          "(grox/core/lm/thread.py). What the withheld rubric does with it is unpublished — this " +
-          "chip is informational, and the score above does not move on it.";
+        var pasteChip = el("span", null, "· " + t("pasted text"));
+        pasteChip.title = t("You pasted into this reply. X's reply-quality scorer is shown an is_pasted flag when scoring replies to accounts over {k}K followers (grox/core/lm/thread.py). What the withheld rubric does with it is unpublished — this chip is informational, and the score above does not move on it.",
+          { k: BANGERMETER_CONFIG.sourcedFacts.replyQualityGate.followerThreshold / 1000 });
         hintsEl.appendChild(pasteChip);
       }
     }
@@ -3067,7 +3225,7 @@ var BANGERMETER_I18N = (function () {
         var bad = (m.factor != null && m.factor < 1) ||
           m.id === "engagement_bait" || m.id === "all_caps_shout";
         hintsEl.appendChild(el("span", bad ? "bangermeter-down" : "bangermeter-up",
-          (bad ? "▼ " : "▲ ") + m.label));
+          (bad ? "▼ " : "▲ ") + tl(m.label)));
       });
 
     repositionMeters();

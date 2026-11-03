@@ -73,9 +73,13 @@ function main() {
   const unchecked = [];
   for (const f of ["content.js", "popup.js", "welcome.js"]) if (exists(f)) scriptStrings(f, found, unchecked);
   for (const f of ["popup.html", "welcome.html"]) pageStrings(f, found);
-  // Data labels content.js renders through t() at display time.
+  // Data content.js renders through tl() at display time.
   for (const h of Object.values(C.heads)) if (h.label) found.set(h.label, "weights.js heads");
   for (const m of C.contentModifiers) if (m.label) found.set(m.label, "weights.js contentModifiers");
+  for (const r of Object.values(C.rescorers)) if (r.label) found.set(r.label, "weights.js rescorers");
+  const SF = C.sourcedFacts;
+  for (const s of [SF.visibilityLimited.panel, SF.visibilityLimited.panelDetail,
+    SF.quotedVisibilityLimited.panel, C.weightsMeaningNote]) found.set(s, "weights.js panel text");
 
   const hasLetters = s => /\p{L}/u.test(s);
   const keepEnglish = s => I.KEEP_ENGLISH.some(re => re.test(s));

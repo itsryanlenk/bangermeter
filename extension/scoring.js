@@ -679,6 +679,9 @@ var BangermeterEngine = (function () {
       rescorers: resc.rescorers,
       unweightedSignals: unweightedSignals,
       views: views,
+      // The reply weight these rates were scored with (5.0, or 20.0 with the
+      // mutual-follow boost), for display.
+      replyWeight: replyW,
       lowSample: views < K,
       smoothingNote: views < K
         ? "Only " + views.toLocaleString() + " views — rates are smoothed toward the median (empirical Bayes, K=" + K.toLocaleString() + "), so small samples can't spike or tank the score."

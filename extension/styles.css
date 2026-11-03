@@ -475,3 +475,26 @@
     transform: none;
   }
 }
+
+/* Japanese. Each root carries lang="ja" when the UI language is Japanese.
+   CJK text breaks between any two characters; strict line breaking keeps
+   small kana and closing punctuation off the start of a line. The letter
+   spacing the uppercase English labels use only spreads Japanese apart. */
+.bangermeter-badge[lang="ja"],
+.bangermeter-panel[lang="ja"],
+.bangermeter-meter[lang="ja"] {
+  /* Neither brand font has Japanese glyphs. Name the system Japanese faces
+     right after them, so Latin keeps the brand fonts and Japanese gets a
+     proportional face instead of whatever the OS falls back to. */
+  --ts-font-display: 'Archivo Black', 'Arial Black', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic UI', Meiryo, sans-serif;
+  --ts-font-body: 'Space Grotesk', Arial, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', Meiryo, sans-serif;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  line-break: strict;
+}
+.bangermeter-panel[lang="ja"] .bangermeter-panel-scorelabel,
+.bangermeter-panel[lang="ja"] .bangermeter-subhead,
+.bangermeter-panel[lang="ja"] .bangermeter-math summary,
+.bangermeter-meter[lang="ja"] .bangermeter-meter-save {
+  letter-spacing: normal;
+}
