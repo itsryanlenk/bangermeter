@@ -651,6 +651,9 @@ var BANGERMETER_DEFAULT_SETTINGS = {
   // default — logging other people's posts, even locally, is opt-in.
   keepHistory: false,
   theme: "auto",
+  // UI language. Auto follows X's own display language (<html lang>), falling
+  // back to the browser's only when X sets none; "en" and "ja" pin it.
+  uiLanguage: "auto",
   // Set once the user has seen the quick start — either by dismissing the strip
   // in the popup or by opening the welcome page from it. Syncs with the rest of
   // the settings, so a second machine does not re-explain the extension to

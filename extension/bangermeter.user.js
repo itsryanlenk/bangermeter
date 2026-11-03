@@ -673,6 +673,9 @@ var BANGERMETER_DEFAULT_SETTINGS = {
   // default — logging other people's posts, even locally, is opt-in.
   keepHistory: false,
   theme: "auto",
+  // UI language. Auto follows X's own display language (<html lang>), falling
+  // back to the browser's only when X sets none; "en" and "ja" pin it.
+  uiLanguage: "auto",
   // Set once the user has seen the quick start — either by dismissing the strip
   // in the popup or by opening the welcome page from it. Syncs with the rest of
   // the settings, so a second machine does not re-explain the extension to
@@ -1651,11 +1654,14 @@ var BANGERMETER_I18N = (function () {
 
   var JA_DRAFT = {};
 
-  // Text that stays English on purpose: the weights.js note/why prose, the
-  // "About these scores" history and the Community Note citations. X rewrites
-  // them most weeks. Only store-assets/i18n-coverage.js reads this list, to
-  // keep them off its missing report. Seeded from sysCat's tier C.
+  // Text shown as written in every language. Mostly the long prose that stays
+  // English on purpose (the weights.js note/why text, the "About these scores"
+  // history, the Community Note citations), which X rewrites most weeks; also
+  // each language's own name in the language switch. Only
+  // store-assets/i18n-coverage.js reads this list, to keep these off its
+  // missing report. The prose patterns are sysCat's tier C.
   var KEEP_ENGLISH = [
+    /^English$/, /^日本語$/,
     /^Weights: /, /kept in sync with/, /live production configuration/,
     /as current rather than historical/, /weighted sum modeled here/, /dwell-regret/,
     /switch that chose between them/, /not predicted reach/, /existed in the same code/,
@@ -1734,9 +1740,39 @@ var BANGERMETER_I18N = (function () {
     }
   }
 
+  // For the popup and welcome page, which are not on x.com. The stored
+  // override wins; Auto uses the X language content.js last recorded, then the
+  // browser's UI language (the welcome page opens at install, before any X
+  // visit). Without chrome.storage (the fixture server, the preview harness) a
+  // ?lang=ja or ?lang=en query is the override. The callback renders the
+  // page's dynamic parts; the static markup is translated after it.
+  function resolvePageLanguage(callback) {
+    function done(l) {
+      setLanguage(l);
+      document.documentElement.lang = lang;
+      callback(lang);
+      translateStatic(document.body);
+    }
+    var hasStorage = typeof chrome !== "undefined" && chrome.storage && chrome.storage.sync;
+    if (!hasStorage) {
+      var q = /[?&]lang=(en|ja)\b/.exec(location.search);
+      done(q ? q[1] : "en");
+      return;
+    }
+    chrome.storage.sync.get({ uiLanguage: "auto" }, function (s) {
+      if (s.uiLanguage === "en" || s.uiLanguage === "ja") { done(s.uiLanguage); return; }
+      chrome.storage.local.get({ lastXLanguage: null }, function (l) {
+        if (l.lastXLanguage) { done(l.lastXLanguage); return; }
+        var ui = chrome.i18n && chrome.i18n.getUILanguage ? chrome.i18n.getUILanguage() : "";
+        done(resolveLanguage("auto", null, ui));
+      });
+    });
+  }
+
   return {
     t: t, setLanguage: setLanguage, getLanguage: getLanguage,
-    resolveLanguage: resolveLanguage, translateStatic: translateStatic,
+    resolveLanguage: resolveLanguage, resolvePageLanguage: resolvePageLanguage,
+    translateStatic: translateStatic,
     placeholdersOf: placeholdersOf,
     JA: JA, JA_DRAFT: JA_DRAFT, KEEP_ENGLISH: KEEP_ENGLISH
   };
@@ -1750,16 +1786,36 @@ var BANGERMETER_I18N = (function () {
 
   var settings = Object.assign({}, BANGERMETER_DEFAULT_SETTINGS);
   var scanTimer = null;
+  var I18N = BANGERMETER_I18N;
+  var t = I18N.t;
+  var lastXLanguage = null;
+
+  // Auto follows X's own display language (<html lang>); the popup can pin
+  // English or Japanese. X's language is recorded for the popup and welcome
+  // page, which are not on x.com and cannot read it themselves.
+  function applyLanguage() {
+    var htmlLang = document.documentElement.getAttribute("lang");
+    I18N.setLanguage(I18N.resolveLanguage(settings.uiLanguage, htmlLang, navigator.language));
+    var xLanguage = I18N.resolveLanguage("auto", htmlLang, navigator.language);
+    if (xLanguage === lastXLanguage) return;
+    lastXLanguage = xLanguage;
+    try { chrome.storage.local.set({ lastXLanguage: xLanguage }); } catch (e) { /* userscript */ }
+  }
+  applyLanguage();
 
   try {
     chrome.storage.sync.get(BANGERMETER_DEFAULT_SETTINGS, function (stored) {
       settings = Object.assign({}, BANGERMETER_DEFAULT_SETTINGS, stored || {});
+      applyLanguage();
       if (!settings.showBadges) removeAllBadges();
       fullRescan();
     });
     chrome.storage.onChanged.addListener(function (changes, area) {
       if (area !== "sync") return;
       Object.keys(changes).forEach(function (k) { settings[k] = changes[k].newValue; });
+      applyLanguage();
+      // An open panel was drawn in the old language; badges redraw on the rescan.
+      if (changes.uiLanguage) closePanel();
       if (!settings.showBadges) removeAllBadges();
       fullRescan();
     });
@@ -2127,7 +2183,6 @@ var BANGERMETER_I18N = (function () {
       badge.className = "bangermeter-badge";
       badge.setAttribute("role", "button");
       badge.setAttribute("tabindex", "0");
-      badge.title = "Bangermeter — click for breakdown, click again to close";
       badge.addEventListener("click", function (ev) {
         ev.preventDefault();
         ev.stopPropagation();
@@ -2144,6 +2199,10 @@ var BANGERMETER_I18N = (function () {
       group.appendChild(badge);
     }
 
+    // Set on every pass, not only at creation, so a language switch reaches
+    // badges that already exist.
+    badge.title = t("Bangermeter — click for breakdown, click again to close");
+    badge.setAttribute("lang", I18N.getLanguage());
     badge.textContent = "";
     badge.appendChild(boltBox());
 
@@ -2349,6 +2408,7 @@ var BANGERMETER_I18N = (function () {
     recordHistory(features, result);
 
     panel = el("div", "bangermeter-panel");
+    panel.setAttribute("lang", I18N.getLanguage());
     panel.setAttribute("role", "dialog");
     panel.setAttribute("aria-label", "Bangermeter score breakdown");
     applyTheme(panel);
@@ -2962,6 +3022,7 @@ var BANGERMETER_I18N = (function () {
       return;
     }
     meter.classList.remove("bangermeter-hidden");
+    meter.setAttribute("lang", I18N.getLanguage());
     applyTheme(meter);
     // Match the composer's own width so the chip reads as part of it.
     var hostRect = (editor.closest('div[data-testid^="tweetTextarea"]') || editor)

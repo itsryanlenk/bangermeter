@@ -1317,6 +1317,7 @@
       ["ja", "en", "en", "ja"]
     ].every(function (c) { return I.resolveLanguage(c[0], c[1], c[2]) === c[3]; }));
     I.setLanguage("en");
+    check("settings default to the Auto language", BANGERMETER_DEFAULT_SETTINGS.uiLanguage === "auto");
 
     // ================================================================
     section("Composite");
