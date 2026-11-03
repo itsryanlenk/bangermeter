@@ -303,3 +303,13 @@ happened when those numbers were hardcoded.
   transliterating it would never have matched anything. Every Hindi pattern the extension
   ships anchors on `तो` / `जरूर` instead, and the bare verb is deliberately left alone
   because on X it usually belongs to an argument rather than a request for engagement.
+
+- **Japanese translation** — [sysCat](https://x.com/sysCat64) found the English panel hard
+  to read and translated it for their own use in
+  [sysCat64/bangermeter-ja](https://github.com/sysCat64/bangermeter-ja). That work is now
+  the extension's Japanese: every Japanese line it shows is theirs or reviewed by them. The
+  glossary is theirs too (内容スコア, 反応スコア, おすすめ, フォロー外), and so is the rule
+  for the tone: everyday Japanese for someone growing an account, not developer Japanese.
+  They also caught two things an English speaker would not have: a full-width ？ was never
+  counted as a question, and the welcome page's uppercase styling turned "x.com" into
+  "X.COM".
