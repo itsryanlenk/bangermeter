@@ -267,7 +267,11 @@ happened when those numbers were hardcoded.
   The "Visibility limited" label (message key `b3296688`, all 16 locales) was added
   Sept 30, 2026 from the bundles named in the Sept 12 Wayback capture of the
   `x.com/i/flow/login` chunk manifest. The live logged-out page now serves X's x-web
-  client, which carries no such manifest.
+  client, which carries no such manifest. The repost line ("Alice reposted",
+  "山田さんがリポスト"; message keys `fcd931ed` and `ae408b76`, all 16 locales) was added
+  Nov 3, 2026 from the bundles named in the Sept 24 capture, the newest still on
+  responsive-web. The Sept 12 bundles carry the same strings. Until then, reposts were
+  recognized only in English.
 - Adversarially reviewed at v0.9.0 by three independent passes — weight transcription,
   Rust-to-JS arithmetic fidelity, and a stale-claim sweep. The arithmetic pass swept
   ~654k generated inputs for NaN, out-of-range and non-monotonic scores and found none,
