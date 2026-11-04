@@ -87,7 +87,7 @@ WHAT'S NEW IN 0.11.1
 
 • The rest of the Japanese is in. sysCat reviewed the 20 lines 0.11.0 still showed in English, among them the substantive-text and video lines, the "Visibility limited" notices, the "Show the math" fine print and the popup's language setting, and they now show in Japanese. One line added since, the label for X's new Grok analyze head, stays in English until it is reviewed.
 
-• X added a 30th ranking head in its 3 November sync (published 4 November): grok_analyze, which weights the predicted chance of what X's code calls a Grok analyze click. It is 0 in both of X's files, so no score moves, and the popup lists it as zeroed by X. Every other weight is unchanged through that sync.
+• X added a 30th ranking head in its 3 November sync (published 4 November): grok_analyze, named for what X's code calls a Grok analyze click. It is 0 in both of X's files, so no score moves, and the popup lists it as zeroed by X. Every other weight is unchanged through that sync.
 
 • The "Visibility limited" details are re-checked against X's 4 November code, where X restructured how it records these verdicts. The rules For You applies did not change: X's published code still usually removes these posts from For You for everyone but the author.
 

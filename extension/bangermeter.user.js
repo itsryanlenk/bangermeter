@@ -140,7 +140,7 @@ var BANGERMETER_CONFIG = {
       note: "ZEROED. Renamed from react_with_video on Oct 30, 2026 (7fef3ba), keeping the same Phoenix action slot (44 in recsys.proto), the same scoring term and 0.0 in both param.rs and vm-ranker/params.rs. It first appeared, as react_with_video, in the Oct 12, 2026 sync, published Oct 13. It is in positive_sum (xai-value-model/weights.rs), so turning it on would move the negative-offset scale. Which action the new name counts is not in the published code, and Bangermeter cannot see it either way." },
     grok_analyze: { weight: 0.0, param: "rust_home_mixer_grok_analyze_weight",
       provenance: "2026-published", label: "Grok analyze click",
-      note: "AT 0. Added in the Nov 3, 2026 sync (published Nov 4, b508926) as the value model's 30th term, at 0.0 in both param.rs and vm-ranker/params.rs. It weights Phoenix's predicted chance of CLIENT_TWEET_CLICK_GROK_ANALYZE, action 46 in recsys.proto, which has been in the published code since Aug 13. It is summed into positive_sum (xai-value-model/weights.rs), so at 0 it changes no score." },
+      note: "AT 0. Added in the Nov 3, 2026 sync (published Nov 4, b508926) as the value model's 30th term, at 0.0 in both param.rs and vm-ranker/params.rs. It is named for CLIENT_TWEET_CLICK_GROK_ANALYZE, action 46 in recsys.proto, which has been in the published code since Aug 13; no published code maps the score to that action, so the pairing is by name only. It is summed into positive_sum (xai-value-model/weights.rs), so at 0 it changes no score." },
     cont_dwell_time: { weight: 0.006, param: "rust_home_mixer_cont_dwell_time_weight",
       provenance: "2026-published", label: "Dwell time",
       continuous: true,

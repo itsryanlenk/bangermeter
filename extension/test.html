@@ -1461,7 +1461,7 @@
     // wrap's whitespace. Beside Japanese that whitespace shows as stray spaces
     // (「 実測」, + 比較 を押すと); beside Latin text it is a real word gap.
     check("static translation drops wrap whitespace beside Japanese, keeps it beside Latin",
-      I.placeTranslation("\n      inferred from the post. The popup labels all 29 ranking heads as\n      ", "項目それぞれに「") === "項目それぞれに「" &&
+      I.placeTranslation("\n      inferred from the post. The popup labels all 30 ranking heads as\n      ", "項目それぞれに「") === "項目それぞれに「" &&
       I.placeTranslation(" …and more ", "…ほか") === " …ほか" &&
       I.placeTranslation(" to save up to three", "を押すと") === "を押すと" &&
       I.placeTranslation("\n  Settings\n", "設定") === "設定" &&

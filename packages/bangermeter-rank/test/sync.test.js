@@ -20,7 +20,8 @@ test("parse reads the last-sync stamp and numeric defaults (including 10_000 lit
 test("acceptance: pinned fixtures match the repo", () => {
   const r = sync.check({ paramRs, vmParams });
   assert.equal(r.ok, true, JSON.stringify(r.problems, null, 1));
-  // 27 heads are declared in both files. The other five are published in only one.
+  // 27 heads are declared in both files. The other seven (three vm-only heads and
+  // four video-carousel weights) are published in only one.
   assert.equal(r.headsChecked, 27);
   assert.equal(r.live.rust_home_mixer_favorite_weight, 0.66);
   assert.equal(r.live.rust_home_mixer_video_open_weight, 0.02);
