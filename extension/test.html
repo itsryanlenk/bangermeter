@@ -710,6 +710,11 @@
     var jaQuestion = E.contentScore({ text: "フォロワーを増やして、どうするの？", hasVideo: false, hasImage: false, hasExternalLink: false, hashtagCount: 0, isReply: false }, {});
     var jaStatement = E.contentScore({ text: "フォロワーを増やして、どうするの。", hasVideo: false, hasImage: false, hasExternalLink: false, hashtagCount: 0, isReply: false }, {});
     check("full-width ？ question > same post ending in 。", jaQuestion.score > jaStatement.score, jaQuestion.score + " vs " + jaStatement.score);
+    // Arabic writes questions with ؟ (U+061F); ar is one of the 16 locales X's
+    // labels are read in, and the other 15 use ? or the full-width ？.
+    var arQuestion = E.contentScore({ text: "هل جربت هذا من قبل؟", hasVideo: false, hasImage: false, hasExternalLink: false, hashtagCount: 0, isReply: false }, {});
+    var arStatement = E.contentScore({ text: "هل جربت هذا من قبل.", hasVideo: false, hasImage: false, hasExternalLink: false, hashtagCount: 0, isReply: false }, {});
+    check("Arabic ؟ question > same post ending in .", arQuestion.score > arStatement.score, arQuestion.score + " vs " + arStatement.score);
     var bareLink = E.contentScore({ text: "example.com/post", hasVideo: false, hasImage: false, hasExternalLink: true, hashtagCount: 0, isReply: false }, {});
     check("bare link < plain", bareLink.score < plain.score, bareLink.score + " vs " + plain.score);
     var bait = E.contentScore({ text: "Like if you agree! Follow me for more!", hasVideo: false, hasImage: false, hasExternalLink: false, hashtagCount: 0, isReply: false }, {});
