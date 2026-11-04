@@ -340,7 +340,7 @@
       !/one number X uses in two places/.test(SF.dwellMark.note) &&
       /CLIP'S OWN LENGTH/.test(SF.dwellMark.note));
     check("reply gate carries the date its reading was taken",
-      SF.replyQualityGate.thresholdAsOf === "2026-10-24", SF.replyQualityGate.thresholdAsOf);
+      SF.replyQualityGate.thresholdAsOf === "2026-11-03", SF.replyQualityGate.thresholdAsOf);
     check("reply gate does not claim the old 100K figure was mis-sourced",
       /CORRECT when it shipped/.test(SF.replyQualityGate.note));
     check("cold start promotes AT MOST one post, not exactly one",
