@@ -29,7 +29,7 @@ WHAT YOU GET
 
 • A weight table in the popup. All 29 ranking heads, their published values, and which ones the extension can measure versus estimate.
 
-• Reply mode. Reply drafts are scored as replies (they take a ×0.75 factor in the published math), and the breakdown explains what X publishes about replies: out-of-network replies never reach For You at all, replies never get the mutual-follow boost, and replies to accounts over 250K followers (as of 24 October) are quality-scored by a Grok model whose rubric X withholds.
+• Reply mode. Reply drafts are scored as replies (they take a ×0.75 factor in the published math), and the breakdown explains what X publishes about replies: out-of-network replies never reach For You at all, replies never get the mutual-follow boost, and replies to accounts over 250K followers (as of 3 November) are quality-scored by a Grok model whose rubric X withholds.
 
 • Draft comparison. Save up to three variants of a draft and pick the best-scoring one before posting. Variants live in memory only.
 
@@ -71,7 +71,7 @@ PRIVACY
 • No data collection. None.
 • No network requests. The extension never phones home, because there is no home.
 • No account, no sign-in, no analytics, no tracking.
-• The only permission is storage: your settings sync with your Chrome profile, and the optional score history and imported Under the Hood report stay in this browser's local storage. Nothing is transmitted anywhere, and both are one click to delete.
+• The only permission is storage: your settings sync with your Chrome profile, and the optional score history and imported Under the Hood report stay in this browser's local storage, along with one note of whether X last showed you English or Japanese, so the popup and welcome page can match it. Nothing is transmitted anywhere, and the history and the report are each one click to delete.
 
 Everything runs locally in your browser. The source is public and reviewable.
 
@@ -83,17 +83,27 @@ MIT licensed, with the full research record and 429 automated tests that check e
 github.com/itsryanlenk/bangermeter
 
 
-WHAT'S NEW IN 0.10.5
+WHAT'S NEW IN 0.11.0
 
-• The Brazil election filter is gone. X removed it from For You after the election: X's own notes date the removal 26 October, and the code removal was published 28 October. It no longer removes posts from the accounts it covered, and the breakdown no longer lists it. Before that, after a letter and dispatch from Brazil's Electoral Court presidency, X had cut the list on 13 October (published 14 October) from 2,795 accounts to 25 tied to the 25 October runoff. Version 0.10.4 still said 2,795. A separate rule is unaffected: for requests from Brazil, For You still hides posts carrying X's BRAZIL_ELECTION_LEGAL label (AI-generated election media) out-of-network, along with posts that quote them or reply under them.
+• Bangermeter is now in Japanese. If you use X in Japanese, the badge tooltips, the breakdown panel, the draft meter and the popup switch to Japanese on their own; the welcome page, which opens at install before you visit X, follows your browser's language. A setting in the popup picks English or Japanese by hand. The translation is sysCat's (@sysCat64), from the Japanese version they built for their own use. The long notes on each weight stay in English for now, because they change most weeks along with X's code. A few new lines stay in English until a native speaker has reviewed them.
 
-• No ranking weight changed. X published eight more updates between 20 and 29 October, and every ranking weight is unchanged since the 13 October sync (published 14 October), through the 28 October sync (published 29 October). A third video-carousel weight appeared in that last sync, at 0; the carousel is still off by default. One change to which posts get ranked was switched on: X published a new filter on 21 October and turned it on in the 21 October sync (published 22 October). X already kept at most 2,800 posts after scoring; this filter now trims to 2,800 before scoring, keeping the same share from each source that found them. It changes which posts get scored, not how any post scores. Two new ranking steps from the same updates, a page-level reranker and an exploration step, ship off.
+• Japanese posts earn the length credit on the same terms as English ones. Bangermeter used to count each Japanese character as one, so a Japanese post had to be twice as long, by X's own count, to earn the substantive-text credit. It now counts length the way X does for its 280-character limit: a Japanese character or an emoji counts as two, and a link counts as 23 however long it is. English text is counted as before, apart from links, a few symbols and joined emoji, which now follow X's count too. The draft meter also counts hashtags typed with the full-width ＃.
 
-• Since the 26 October sync (published 27 October), X also sends its scoring service, vm-ranker, the seven content facts it collects about each post (video, photo, text length, newlines, links and so on), along with the viewer's engagement history. No published vm-ranker code reads the content facts. The history is read by a new step that adjusts predictions per user, and that step ships off and needs a model and a library X has not published.
+• Reposts are recognized in all 16 languages Bangermeter reads. It used to look for the English word "reposted", so on X in any other language an in-network repost was scored as an original post, without the ×0.75 factor X applies.
 
-• The "Visibility limited" details are re-checked against X's 29 October code. X reworked its visibility-filtering code in nearly every late-October update, but the rules For You applies to these posts did not change: X's published code still usually removes them from For You for everyone but the author.
+• A full-width ？ now counts as a question, a fix sysCat found while translating and sent in. The Arabic ؟ counts too.
 
-• Two smaller notes. Out-of-network replies are still dropped from For You by default; since the 2 October sync (published 3 October), X has a switch that could let some through, and it ships off. And the exemption from X's risky high-visibility reply label, which also covers grey-badge accounts, now needs a credibility score of at least 66 when X has one for the account. That cutoff dates from the 7 October sync (published 8 October), after 60 and then 62 earlier that month; 0.10.4 missed it.
+• Two corrections to the breakdown. Its video line still said video watches "barely count (0.05...)", a weight X zeroed in its 25 August sync; the line now reads the current weights. And "What X's published weights actually say" still said binary dwell pays nothing, which stopped being true when X turned it on at 0.05 in the same sync. 0.10.2 corrected the weight but missed that line. It is gone now, along with one that duplicated the video line below it.
+
+• The Brazil election filter is gone. X removed it from For You after the 25 October runoff: X's own notes date the removal 26 October, and the code removal was published 28 October. Version 0.10.4 still listed it at 2,795 accounts; X had already cut the list to 25 on 13 October (published 14 October). A separate rule is unaffected: for requests from Brazil, For You still hides posts carrying X's BRAZIL_ELECTION_LEGAL label (AI-generated election media) out-of-network.
+
+• No ranking weight changed. Every weight is the same as in X's 13 October sync (published 14 October), through the 2 November sync (published 3 November). Since 0.10.4, X renamed one zeroed weight, react_with_video, to post_video (30 October), and added two more video-carousel weights, both at 0; the carousel is still off by default.
+
+• Two changes to which posts get ranked. After 0.10.4 shipped, X began trimming candidates to 2,800 before scoring, keeping the same share from each source that found them (switched on in the 21 October sync, published 22 October). Which posts get scored changes; each post's score is computed the same way. And since 8 October, before 0.10.4 shipped, the exemption from X's risky high-visibility reply label needs a credibility score of at least 66 when X has one for the account; 0.10.4 missed it.
+
+• X's code can now list some of the posts that carried each label in the Under the Hood report (published 31 October), but the switch for it ships off. At X's published defaults the report still holds monthly totals only, and the popup now says "at X's published defaults" instead of "never".
+
+• The "Visibility limited" details are re-checked against X's 3 November code. The rules are unchanged; only their place in the code moved. X's published code still usually removes these posts from For You for everyone but the author.
 
 
 WHAT'S NEW IN 0.10.4
