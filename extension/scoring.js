@@ -833,7 +833,8 @@ var BangermeterEngine = (function () {
       weightedLength: weightedLength(typed.normalize ? typed.normalize("NFC") : typed),
       // The full-width ？ (U+FF1F) is the standard question mark in Japanese and
       // Chinese; matching only ASCII "?" scored most CJK questions as statements.
-      hasQuestion: /[?？]/.test(t),
+      // Arabic, the other one of the 16 locales with its own mark, writes ؟ (U+061F).
+      hasQuestion: /[?？؟]/.test(t),
       isBait: BAIT_RE.test(t),
       mostlyCaps: letters.length >= 12 && caps.length / letters.length > 0.7
     };
