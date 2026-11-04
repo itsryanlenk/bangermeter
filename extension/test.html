@@ -1307,6 +1307,22 @@
     check("Bare link uses the same count",
       lengthMods("あ".repeat(24), { hasExternalLink: true }).indexOf("link_no_context") !== -1 &&
       lengthMods("あ".repeat(25), { hasExternalLink: true }).indexOf("link_no_context") === -1);
+    // twitter-text v3 counts every link as transformedURLLength = 23, however
+    // long it is. Drafts carry the URL as typed; timeline text carries X's
+    // display form (example.com/path…), sometimes behind a hidden https://.
+    check("a link counts 23, as X counts it, in any of its written forms",
+      WL("https://example.com/" + "p".repeat(60)) === 23 &&
+      WL("http://example.com") === 23 &&
+      WL("www.example.jp/a") === 23 &&
+      WL("example.com/abc…") === 23 &&
+      WL("example.com") === 23 &&
+      WL("see example.com/abc, then") === 4 + 23 + 6 &&
+      WL("リンク https://example.com/x") === 6 + 1 + 23);
+    check("text that only looks like a link is counted as text",
+      WL("node.js is fast") === 15 && WL("me@example.com") === 14 && WL("e.g. this") === 9);
+    check("length credit and the bare-link check both count a link as 23",
+      lengthMods("a".repeat(40) + " https://example.com/" + "p".repeat(60)).indexOf("conversation_length") === -1 &&
+      lengthMods("look https://example.com/" + "p".repeat(60), { hasExternalLink: true }).indexOf("link_no_context") !== -1);
     check("draft hashtags count full-width ＃", E.countDraftHashtags("#a ＃タグ ＃日本 ＃") === 3);
     // Japanese input methods type a full-width space (U+3000) between tags, and
     // 、 is the list separator; both fell inside the old [\u00c0-\uffff] body.
