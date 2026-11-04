@@ -853,6 +853,66 @@
     check("Indonesian prefix", E.replyMarkerIn("Membalas @user") === true);
 
     // ================================================================
+    // Repost line — the social context X draws above a repost. Message key
+    // fcd931ed is someone else's repost, with the reposter's display name as
+    // its one placeholder; ae408b76 is your own. Each line below is that
+    // locale's bundle string with a name filled in (bundles named by the
+    // 2026-09-24 login-page manifest, fetched 2026-11-03). The name leads in
+    // most locales, comes last in Italian and sits inside the phrase in
+    // Arabic. Before this table content.js matched /reposted/i, English only.
+    // ================================================================
+    section("Repost-line detection");
+    var RP = function (t) {
+      return typeof E.repostMarkerIn === "function" ? E.repostMarkerIn(t) : undefined;
+    };
+    check("repostMarkerIn is exported", typeof E.repostMarkerIn === "function");
+    var RP_LINES = {
+      en: ["Alice reposted", "You reposted"],
+      es: ["Ana reposteó", "Reposteaste"],
+      pt: ["Ana repostou", "Você repostou"],
+      fr: ["Alice a reposté", "Vous avez reposté"],
+      de: ["Anna hat repostet", "Du hast repostet"],
+      it: ["Repost di Marco", "Repost da parte tua"],
+      nl: ["Anna heeft deze post opnieuw geplaatst", "Je hebt deze post opnieuw geplaatst"],
+      tr: ["Ayşe gönderiyi yeniden yayınladı", "Yeniden gönderi yayınladın"],
+      id: ["Budi memposting ulang", "Anda memposting ulang"],
+      ja: ["山田さんがリポスト", "あなたがリポストしました"],
+      ko: ["민수 님이 재게시함", "재게시했습니다"],
+      ar: ["أعاد أحمد النشر", "لقد أعدتَ النشر"],
+      ru: ["Иван сделал(а) репост", "Вы сделали репост"],
+      hi: ["राहुल ने रीपोस्ट किया", "आपने रीपोस्ट किया"],
+      zh: ["小明 已转帖", "你已转帖"],
+      "zh-Hant": ["小明 已轉發", "你已轉發"]
+    };
+    Object.keys(RP_LINES).forEach(function (loc) {
+      check(loc + " repost by someone else detected", RP(RP_LINES[loc][0]) === true, RP_LINES[loc][0]);
+      check(loc + " your own repost detected", RP(RP_LINES[loc][1]) === true, RP_LINES[loc][1]);
+    });
+    check("Japanese: a full name runs straight into さんがリポスト",
+      RP("山田 太郎さんがリポスト") === true);
+    check("Italian: the name comes last, and may be several words",
+      RP("Repost di Mario Rossi") === true);
+    check("Arabic: the name sits inside the phrase, in any script",
+      RP("أعاد Ahmed Ali النشر") === true);
+    check("English, any case (the old /reposted/i was case-blind)",
+      RP("ALICE REPOSTED") === true);
+    check("the name drawn as its own line still matches",
+      RP("Alice\nreposted") === true && RP("山田\nさんがリポスト") === true &&
+      RP("Repost di\nMarco") === true);
+    // X draws emoji in display names as images, which innerText leaves out,
+    // so an all-emoji name leaves only the words around it.
+    check("a name with no text leaves only the words, and still matches",
+      RP(" reposted") === true && RP("さんがリポスト") === true && RP("Repost di ") === true);
+    check("other social context lines are not reposts",
+      RP("Pinned post") === false && RP("固定されたポスト") === false &&
+      RP("Alice liked") === false && RP("Repost") === false);
+    check("a repost word inside other text is not the repost line",
+      RP("I reposted this because it was great") === false &&
+      RP("リポストしてね") === false);
+    check("a reply marker is not the repost line", RP("Replying to @alice") === false);
+    check("empty/null text -> false", RP("") === false && RP(null) === false);
+
+    // ================================================================
     // "Visibility limited" label — message key b3296688, the header X's
     // client puts on a FOSNR soft intervention. Each string is verbatim from
     // that locale's production i18n bundle (manifest of 2026-09-12; en and es
