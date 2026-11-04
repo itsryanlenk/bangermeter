@@ -1,13 +1,13 @@
-See what X's algorithm actually rewards — on every post, as you scroll.
+See what X's algorithm actually rewards, on every post, as you scroll.
 
 
 HOW TO USE IT
 
-1. Scroll x.com. Every post picks up a badge with two scores, 0–100. 50 is a typical post.
+1. Scroll x.com. Every post picks up a badge with two scores from 0 to 100. 50 is a typical post.
 2. Click the badge. You get a plain-English breakdown of why it scored that way.
 3. Start typing a post. A live meter scores your draft before you send it.
 
-That is the whole thing. Everything below is why you can trust the numbers.
+Everything below is why you can trust the numbers.
 
 
 WHERE THE NUMBERS COME FROM
@@ -19,13 +19,13 @@ No leaked screenshots. No "I reverse-engineered the algorithm" threads. The weig
 
 WHAT YOU GET
 
-• A score badge on every post as you scroll. Two numbers, 0–100, where 50 is a typical post.
-  – Content Appeal: what the ranking signals would predict from the content alone.
-  – Earned Engagement: how the weights value what the post actually earned, per view.
+• A score badge on every post as you scroll. Two numbers from 0 to 100, where 50 is a typical post.
+  ◦ Content Appeal: what the ranking signals would predict from the content alone.
+  ◦ Earned Engagement: how the weights value what the post actually earned, per view.
 
 • Click the badge for a plain-English breakdown. Which signals fired and why, what each reply and repost is actually worth, the rescoring factors that applied, and how fresh the post is. Every section has a "Show the math" expander with the full weight × probability table if you want the numbers.
 
-• A live meter in the compose box. Score your draft as you type, with hints as they trigger — asks a question, substantive text, bare link, hashtag pile, engagement bait.
+• A live meter in the compose box. Score your draft as you type, with hints as they trigger: asks a question, substantive text, bare link, hashtag pile, engagement bait.
 
 • A weight table in the popup. All 29 ranking heads, their published values, and which ones the extension can measure versus estimate.
 
@@ -35,7 +35,7 @@ WHAT YOU GET
 
 • Local score history. Opt in from the popup and opening a breakdown logs the scores, the post's link and a short text snippet to a list in your browser, so you can see which formats score higher over time. Off by default, capped, local-only, one-click clear.
 
-• Under the Hood import. In X's transparency pilot? Import the report you download from x.com/i/jf/under_the_hood and see the visibility labels X itself applied — parsed locally, stored locally.
+• Under the Hood import. In X's transparency pilot? Import the report you download from x.com/i/jf/under_the_hood and see the visibility labels X itself applied. The report is parsed and stored locally.
 
 • A posting-cadence note. Post twice into the same stretch of feed and the panel shows the author-diversity attenuation production applies (second post ×0.625, decaying to a ×0.25 floor).
 
@@ -53,17 +53,17 @@ SOME OF WHAT THE WEIGHTS SAY
 • Links do get credit. The "link penalty" was always folklore.
 
 
-HOW IT'S HONEST ABOUT WHAT IT KNOWS
+WHAT IT KNOWS AND WHAT IT ESTIMATES
 
 The weights are X's. The probabilities are estimates.
 
-X predicts how likely you are to reply, share or mute a post using a model nobody outside the company has. Bangermeter derives three of those probabilities from real counts — likes, replies and reposts — and estimates the rest from what's in the post. Every head in the popup is labeled as measured, estimated, or zeroed by X, so you always know which is which.
+X predicts how likely you are to reply, share or mute a post using a model nobody outside the company has. Bangermeter derives three of those probabilities from real counts (likes, replies and reposts) and estimates the rest from what's in the post. Every head in the popup is labeled as measured, estimated, or zeroed by X, so you always know which is which.
 
 It also matters that these weights multiply a predicted probability, not a count. A report is not a 234-point deduction; that number is the coefficient on how likely a viewer is to report you. Anything claiming these are per-action point totals has it wrong.
 
-There are no invented numbers anywhere in this extension. Circulating figures that failed source-tracing — "bookmark 20x", "links minus 30-50%", "block minus 120" — were left out rather than guessed at, and none of them matched the real values when those were published.
+There are no invented numbers anywhere in this extension. Circulating figures that failed source-tracing ("bookmark 20x", "links minus 30-50%", "block minus 120") were left out. None of them matched the real values when those were published.
 
-This is a relative score against a typical post. It is not a prediction of reach, and nothing can honestly promise you one.
+This is a relative score against a typical post. It is not a prediction of reach, and no tool can guarantee reach.
 
 
 PRIVACY
@@ -71,7 +71,7 @@ PRIVACY
 • No data collection. None.
 • No network requests. The extension never phones home, because there is no home.
 • No account, no sign-in, no analytics, no tracking.
-• The only permission is storage: your settings sync with your Chrome profile, and the optional score history and imported Under the Hood report stay in this browser's local storage, along with one note of whether X last showed you English or Japanese, so the popup and welcome page can match it. Nothing is transmitted anywhere, and the history and the report are each one click to delete.
+• The only permission is storage: your settings sync with your Chrome profile, and the optional score history and imported Under the Hood report stay in this browser's local storage, along with one note of whether X is set to Japanese, so the popup and welcome page can match it. Nothing is transmitted anywhere, and the history and the report are each one click to delete.
 
 Everything runs locally in your browser. The source is public and reviewable.
 
@@ -138,13 +138,13 @@ WHAT'S NEW IN 0.10.3
 
 WHAT'S NEW IN 0.10.2
 
-• Three weights changed, and this release catches up. On 25 August X zeroed video-quality-view (0.05 to 0.0), turned binary dwell on (0.0 to 0.05), and raised video open (0.05 to 0.07). Finishing a clip stopped paying; stopping the scroll started. Earlier versions told you binary dwell paid nothing — true when written, false now, and re-checking every published weight against X's source each release is exactly what this is for.
+• Three weights changed, and this release catches up. On 25 August X zeroed video-quality-view (0.05 to 0.0), turned binary dwell on (0.0 to 0.05), and raised video open (0.05 to 0.07). Finishing a clip stopped paying; stopping the scroll started. Earlier versions told you binary dwell paid nothing. That was true when written and is false now, which is why every published weight is re-checked against X's source each release.
 
 • The breakdown panel opens in the bottom-right corner. It used to open on the post you clicked, which covered the post you were trying to read about and left it no room to expand. It now docks to the corner at full height, out of the way of the thing it is explaining.
 
 • The badge closes the panel too. Clicking the badge on a post whose breakdown is already open now shuts it, instead of appearing to do nothing. Clicking a different post's badge still switches the panel to that post. Works from the keyboard as well.
 
-• Ten seconds is the number to know. X's own reference code marks a post "dwelled" only when the reader engaged AND stayed at least ten seconds — and "not dwelled" means they never engaged at all. They are not opposites: a post skimmed for four seconds fires neither. Ten seconds is also the video-quality-view duration gate.
+• Ten seconds is the number to know. X's own reference code marks a post "dwelled" only when the reader engaged AND stayed at least ten seconds, and "not dwelled" means they never engaged at all. They are not opposites: a post skimmed for four seconds fires neither. Ten seconds is also the video-quality-view duration gate.
 
 • A published small-account lane. On every For You request at most one post is lifted to around slot 15: the best-scoring original post from an author with 1,000 or fewer followers, under 48 hours old, still under 1,000 Home impressions. One post per request, not per author. The extension cannot tell whether your post was the one picked, so it reports the rules and does not claim credit.
 
@@ -155,7 +155,7 @@ WHAT'S NEW IN 0.10.2
 
 WHAT'S NEW IN 0.10.1
 
-• A quick start, on install. Installing now opens a short page that shows what the badge looks like, what the two numbers mean, and the three things you do with it. It lives in the extension — no network request, nothing loaded from anywhere — and the popup keeps a link back to it. The first outside feedback this project got was that a new user could not tell quickly what it was for; that was fair, and this is the fix.
+• A quick start, on install. Installing now opens a short page that shows what the badge looks like, what the two numbers mean, and the three things you do with it. It lives inside the extension and loads nothing over the network, and the popup shows a link to it until you open or dismiss it. The first outside feedback this project got was that a new user could not tell quickly what it was for; that was fair, and this is the fix.
 
 
 WHAT'S NEW IN 0.10.0
@@ -174,12 +174,12 @@ NEW
 
 • Works on a Hindi X interface, and 15 other languages. Reply markers and count words for 16 locales are transcribed from X's own published interface strings, so if your X is set to Hindi, Spanish, Japanese, Arabic or Turkish, posts still score. On a locale that isn't in the table, parsing falls back to X's language-independent element IDs, so nothing breaks.
 
-• Engagement bait is now detected in Hindi. Both Hinglish ("comment karo agar", "1 likho agar", "sach batao") and Devanagari ("...तो लाइक करें", "कमेंट बॉक्स में जरूर", "सच सच बताओ"). These were checked against real Hindi posts rather than translated from the English, because the phrasing genuinely differs: Hindi puts the call to action at the end, and the bare verb usually belongs to an argument rather than a request for engagement. The patterns are deliberately cautious — they would rather miss bait than tell you a real post is spam.
+• Engagement bait is now detected in Hindi. Both Hinglish ("comment karo agar", "1 likho agar", "sach batao") and Devanagari ("...तो लाइक करें", "कमेंट बॉक्स में जरूर", "सच सच बताओ"). These were checked against real Hindi posts rather than translated from the English, because the phrasing genuinely differs: Hindi puts the call to action at the end, and the bare verb usually belongs to an argument rather than a request for engagement. The patterns are deliberately cautious: they would rather miss bait than tell you a real post is spam.
 
 
 FIXED
 
-• Replies were being scored as original posts, in two places. Inside a conversation X renders no "Replying to" label at all — the post above is the only marker — so every reply under a post was missing the ×0.75 factor the published math applies to replies. The compose meter had the same blind spot on reply drafts, which made a reply read about a third higher than it should. Threads, the with-replies tab, the timeline and the compose box are each handled on their own terms now.
+• Replies were being scored as original posts, in two places. Inside a conversation X renders no "Replying to" label at all (the post above is the only marker), so every reply under a post was missing the ×0.75 factor the published math applies to replies. The compose meter had the same blind spot on reply drafts, which made a reply read about a third higher than it should. Threads, the with-replies tab, the timeline and the compose box are each handled on their own terms now.
 
 • The draft meter's new compare buttons could sit over the Post and Reply buttons when the meter was pushed below the composer. They go inert in that position, so they can never swallow a click meant for X.
 
@@ -190,7 +190,7 @@ VERIFIED, WITH NOTHING TO CHANGE
 
 • The "mutuals boost" from July 13 is the boost this extension already models. X's own repo documents that announcement as the mutual-follow reply-weight boost: launched at 20.0, reduced to 15.0 on July 24. No new weight exists to add.
 
-• All 26 weights re-verified unchanged against X's published file on August 25. A circulating claim that dwell time and video watch time were weighted more heavily is false — every one of those values is exactly what it was.
+• All 26 weights re-verified unchanged against X's published file on August 25. A circulating claim that dwell time and video watch time were weighted more heavily is false: every one of those values is exactly what it was.
 
 WHAT'S NEW IN 0.9.5
 
