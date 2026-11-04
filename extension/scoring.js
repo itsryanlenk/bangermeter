@@ -849,10 +849,24 @@ var BangermeterEngine = (function () {
   // the configured ranges, 2 for everything else, and 2 per emoji however many
   // code points build it (skin tones, ZWJ families, variation selectors).
   var EMOJI_OR_CHAR = /\p{Extended_Pictographic}(?:\uFE0F|[\u{1F3FB}-\u{1F3FF}]|\u200D\p{Extended_Pictographic}\uFE0F?)*|[\s\S]/gu;
+  // A link the way twitter-text finds one: with a scheme, after www., as a host
+  // with a path, or as a bare host. Drafts hold the URL as typed; timeline text
+  // holds X's display form (example.com/path…). Trailing punctuation stays
+  // text. A bare host with no path counts as a link only on a common top-level
+  // domain, so "node.js" stays text; twitter-text checks the full TLD list,
+  // and this errs toward counting characters.
+  var LINK_RE = /(^|[^\w@.\/-])((https?:\/\/|www\.)?(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+([a-z]{2,24})(\/(?:[^\s]*[^\s.,!?;:'")\]])?)?)/gi;
+  var BARE_LINK_TLD = /^(com|net|org|io|co|jp|me|ly|gg|tv|ai|app|dev|xyz|info|news|uk|de|fr|ca|au|in|us|so|to|fm|be|it|es|nl|ch|se|kr|cn|tw|hk|br|mx|ru|tr|id|ph|edu|gov)$/i;
+
   function weightedLength(s) {
     var W = C.textWeighting;
     var total = 0;
-    (String(s).match(EMOJI_OR_CHAR) || []).forEach(function (unit) {
+    var text = String(s).replace(LINK_RE, function (all, before, link, scheme, tld, path) {
+      if (!scheme && !path && !BARE_LINK_TLD.test(tld)) return all;
+      total += W.transformedURLLength;
+      return before;
+    });
+    (text.match(EMOJI_OR_CHAR) || []).forEach(function (unit) {
       if (/^\p{Extended_Pictographic}/u.test(unit)) { total += W.emojiWeight; return; }
       var cp = unit.codePointAt(0);
       var inRange = W.ranges.some(function (r) { return cp >= r[0] && cp <= r[1]; });
@@ -883,7 +897,8 @@ var BangermeterEngine = (function () {
       weightedLength: weightedLength(typed.normalize ? typed.normalize("NFC") : typed),
       // The full-width ？ (U+FF1F) is the standard question mark in Japanese and
       // Chinese; matching only ASCII "?" scored most CJK questions as statements.
-      hasQuestion: /[?？]/.test(t),
+      // Arabic, the other one of the 16 locales with its own mark, writes ؟ (U+061F).
+      hasQuestion: /[?？؟]/.test(t),
       isBait: BAIT_RE.test(t),
       mostlyCaps: letters.length >= 12 && caps.length / letters.length > 0.7
     };

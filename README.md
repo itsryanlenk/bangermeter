@@ -232,7 +232,7 @@ what the published weights actually say.
 | `extension/content.js` | Badges, breakdown panel, compose meter |
 | `extension/background.js` | Service worker. One listener: open the quick start on first install, never on update |
 | `extension/welcome.html` | The quick start itself — self-contained, loads nothing over the network |
-| `extension/test.html` | Engine self-test — open in any browser (425 assertions) |
+| `extension/test.html` | Engine self-test — open in any browser (429 assertions) |
 | `extension/fixture.html` | X-DOM fixture harness for the content script |
 | `extension/fixture-thread.html` | Reply-detection harness — asserts the conversation, `with_replies` and home-timeline surfaces separately, because X marks a reply differently on each. Needs `serve-fixtures.js` (it reads `location.pathname`) |
 | `extension/serve-fixtures.js` | Tiny static server for the harnesses, including the x.com-shaped paths the reply-detection cases need |
@@ -250,7 +250,7 @@ happened when those numbers were hardcoded.
 
 ## Verification status
 
-- Engine math: **425/425 self-tests pass** (`test.html`). Every published
+- Engine math: **429/429 self-tests pass** (`test.html`). Every published
   weight and its feature-switch parameter name is asserted individually against
   `param.rs`, or `vm-ranker/params.rs` for the three heads only it publishes, so a silent transcription error fails the suite rather than shipping.
   param.rs moved five heads between the Oct 6 and Oct 13, 2026 syncs (published
@@ -267,11 +267,7 @@ happened when those numbers were hardcoded.
   The "Visibility limited" label (message key `b3296688`, all 16 locales) was added
   Sept 30, 2026 from the bundles named in the Sept 12 Wayback capture of the
   `x.com/i/flow/login` chunk manifest. The live logged-out page now serves X's x-web
-  client, which carries no such manifest. The repost line ("Alice reposted",
-  "山田さんがリポスト"; message keys `fcd931ed` and `ae408b76`, all 16 locales) was added
-  Nov 3, 2026 from the bundles named in the Sept 24 capture, the newest still on
-  responsive-web. The Sept 12 bundles carry the same strings. Until then, reposts were
-  recognized only in English.
+  client, which carries no such manifest.
 - Adversarially reviewed at v0.9.0 by three independent passes — weight transcription,
   Rust-to-JS arithmetic fidelity, and a stale-claim sweep. The arithmetic pass swept
   ~654k generated inputs for NaN, out-of-range and non-monotonic scores and found none,
