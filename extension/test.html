@@ -1423,6 +1423,16 @@
       delete I.JA_DRAFT["Draft only line"];
       return served === "Draft only line";
     })());
+    // sysCat reviewed the 0.11.0 drafts (Nov 4, 2026); they are served now.
+    // Anything added after that review stays a draft until it is reviewed.
+    check("i18n: the reviewed 0.11.0 lines are served",
+      I.t("Language") === "言語" &&
+      I.t("Substantive text (≥100 chars)") === "しっかりした文章量（全角50文字以上）" &&
+      I.t("Visibility limited by X — X's published code usually removes it from For You for everyone but the author")
+        === "Xによる表示制限中 — Xが公開したコードでは、投稿者以外の全員の「おすすめ」から通常除外されます" &&
+      I.t("{n}h", { n: 3 }) === "3時間");
+    check("i18n: the unreviewed grok_analyze label is not served",
+      I.t("Grok analyze click") === "Grok analyze click" && I.JA_DRAFT["Grok analyze click"] !== undefined);
     check("i18n: placeholders fill in both languages, literally",
       I.t("Raw: {x}", { x: "$&{y}$1" }) === "Raw: $&{y}$1");
     check("i18n: unknown placeholder is left visible", I.t("Raw: {x}") === "Raw: {x}");

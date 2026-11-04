@@ -234,10 +234,9 @@ var BANGERMETER_I18N = (function () {
     "{n} days": "{n}日",
     "Your imported report ({period}, {posts} posts). These are X's OWN labels on your account — not estimates.": "読み込んだレポート（{period}、{posts} 件の投稿）。これはあなたのアカウントにXが実際に付けたラベルで、推定ではありません。",
     "Your imported report ({period}). These are X's OWN labels on your account — not estimates.": "読み込んだレポート（{period}）。これはあなたのアカウントにXが実際に付けたラベルで、推定ではありません。",
-    "That file does not look like an Under the Hood report (expected the JSON downloaded from {path}). Nothing was imported.": "このファイルはUnder the Hoodのレポートではないようです（{path} からダウンロードしたJSONが必要です）。何も読み込みませんでした。"
-  };
+    "That file does not look like an Under the Hood report (expected the JSON downloaded from {path}). Nothing was imported.": "このファイルはUnder the Hoodのレポートではないようです（{path} からダウンロードしたJSONが必要です）。何も読み込みませんでした。",
 
-  var JA_DRAFT = {
+    // Reviewed by sysCat, Nov 4, 2026; these were JA_DRAFT in 0.11.0.
     // Panel — new or reworded since sysCat's fork.
     // The length rule counts a CJK character as 2 (weights.js textWeighting), so
     // the Japanese label states the mark a Japanese writer meets.
@@ -245,7 +244,6 @@ var BANGERMETER_I18N = (function () {
     "Has video — opening it pays {videoOpen}; a full watch earns nothing extra (vqv is 0)": "動画あり — 開かれると{videoOpen}加点。最後まで見られても追加の加点はない（vqv は 0）",
     "Has video — opening it pays {videoOpen}; a watch over {seconds} seconds pays {vqv}": "動画あり — 開かれると{videoOpen}加点。{seconds}秒を超えて見られると{vqv}加点",
     "Post video": "動画の投稿",
-    "Grok analyze click": "Grokで分析のクリック",
     // 表示制限中 is X's own Japanese for the notice (key b3296688, scoring.js).
     "Visibility limited by X — X's published code usually removes it from For You for everyone but the author": "Xによる表示制限中 — Xが公開したコードでは、投稿者以外の全員の「おすすめ」から通常除外されます",
     "One exception: a post labeled FOSNR_ABUSE_INSULTS is removed only out-of-network, so the author's followers can still get it. Where the post still appears, as here, X shows this notice. That rendering is not in X's published code.": "例外が1つあります。FOSNR_ABUSE_INSULTS のラベルが付いた投稿はフォロー外でだけ除外されるため、投稿者のフォロワーには届くことがあります。ここのように投稿が表示されている場合、Xはこの通知を出します。その表示の仕組みは、Xが公開したコードには含まれていません。",
@@ -267,6 +265,11 @@ var BANGERMETER_I18N = (function () {
     "Every value below is transcribed from {snapshot}. Replies rise to {mutual} on an original post from a mutual follow.": "以下の値はすべて {snapshot} から書き写したものです。相互フォローの相手の元の投稿へのリプライは {mutual} になります。",
     "Score = Σ(weight × P(action)) per xai-value-model/scoring.rs.": "スコア = Σ(重み × P(行動))。xai-value-model/scoring.rs に基づきます。",
     "Bangermeter estimates the probabilities; only likes, replies and reposts come from real counts. Relative score, not predicted reach.": "確率はBangermeterの推定で、実際の件数から取るのはいいね・リプライ・リポストだけです。相対的なスコアであり、届く範囲の予測ではありません。"
+  };
+
+  var JA_DRAFT = {
+    // Added after sysCat's Nov 4, 2026 review; awaiting review.
+    "Grok analyze click": "Grokで分析のクリック"
   };
 
   // Text shown as written in every language. Mostly the long prose that stays
