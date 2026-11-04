@@ -195,7 +195,7 @@ var BANGERMETER_I18N = (function () {
     "No visibility-impacting labels in this report period. Clean month.": "このレポート期間に、可視性に影響するラベルはありません。問題のない月でした。",
     "Off by default. When on, the score is logged each time you open a breakdown panel, so you can compare formats over time. Stored only in this browser (chrome.storage.local, capped at 200 entries) — never synced, never sent anywhere.": "初期設定ではオフです。オンにすると、内訳パネルを開くたびにスコアを記録し、投稿の型ごとの違いを時間をかけて比べられます。このブラウザ内（chrome.storage.local、最大200件）だけに保存され、同期も外部送信もされません。",
     "One thing worth knowing": "知っておきたいこと",
-    "Only likes, replies and reposts come from real counts — the rest is inferred from the post. The popup labels all 29 ranking heads as": "実際の件数に基づくのは、いいね・リプライ・リポストだけです。残りは投稿から推測しています。ポップアップでは、29のランキング項目それぞれに「",
+    "Only likes, replies and reposts come from real counts — the rest is inferred from the post. The popup labels all 30 ranking heads as": "実際の件数に基づくのは、いいね・リプライ・リポストだけです。残りは投稿から推測しています。ポップアップでは、30のランキング項目それぞれに「",
     "Open x.com →": "x.comを開く →",
     "Panel and draft-meter theme. Auto follows X's own theme (default / dim / lights out).": "パネルと下書きメーターのテーマです。「自動」はXのテーマ（ライト／ダークブルー／ブラック）に合わせます。",
     "Panel theme": "パネルのテーマ",
@@ -245,6 +245,7 @@ var BANGERMETER_I18N = (function () {
     "Has video — opening it pays {videoOpen}; a full watch earns nothing extra (vqv is 0)": "動画あり — 開かれると{videoOpen}加点。最後まで見られても追加の加点はない（vqv は 0）",
     "Has video — opening it pays {videoOpen}; a watch over {seconds} seconds pays {vqv}": "動画あり — 開かれると{videoOpen}加点。{seconds}秒を超えて見られると{vqv}加点",
     "Post video": "動画の投稿",
+    "Grok analyze click": "Grokで分析のクリック",
     // 表示制限中 is X's own Japanese for the notice (key b3296688, scoring.js).
     "Visibility limited by X — X's published code usually removes it from For You for everyone but the author": "Xによる表示制限中 — Xが公開したコードでは、投稿者以外の全員の「おすすめ」から通常除外されます",
     "One exception: a post labeled FOSNR_ABUSE_INSULTS is removed only out-of-network, so the author's followers can still get it. Where the post still appears, as here, X shows this notice. That rendering is not in X's published code.": "例外が1つあります。FOSNR_ABUSE_INSULTS のラベルが付いた投稿はフォロー外でだけ除外されるため、投稿者のフォロワーには届くことがあります。ここのように投稿が表示されている場合、Xはこの通知を出します。その表示の仕組みは、Xが公開したコードには含まれていません。",

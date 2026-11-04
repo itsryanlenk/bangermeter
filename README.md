@@ -256,7 +256,8 @@ happened when those numbers were hardcoded.
   param.rs moved five heads between the Oct 6 and Oct 13, 2026 syncs (published
   Oct 7–14), and vm-ranker/params.rs did not, so the two upstream files disagree on
   those five at the 2026-10-16T16:00:32Z sync; `weights.js` follows param.rs. Four heads were added
-  (29 in the roster), plus two video-carousel weights that are not heads. X deleted a 26th head,
+  in October and a fifth, grok_analyze, in the Nov 3 sync (published Nov 4), all at 0
+  (30 in the roster), plus four video-carousel weights that are not heads. X deleted a 26th head,
   `cont_active_secs_5m_residual_norm` (weighted 0.0), in its Sept 23 sync, published
   Sept 24.
   `packages/bangermeter-rank` runs `sync` daily in CI to catch the next change.

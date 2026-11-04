@@ -35,11 +35,11 @@ var BANGERMETER_CONFIG = {
   //
   // That is a materially stronger claim than the 2023 release made — these are
   // asserted to BE the production values, not merely plausible defaults.
-  weightsSnapshot: "November 2, 2026 — xai-org/x-algorithm home-mixer/params/param.rs (upstream last-sync stamp 2026-11-02T16:00:39Z). param.rs and vm-ranker/params.rs no longer agree. This table follows param.rs, the cron snapshot of production defaults. vm-ranker/params.rs, the served scorer's compiled defaults, still has the September 29 numbers for five heads (favorite 0.5, video_open 0.07, post_unexplored 0.02, cont_dwell_time 0.004, not_interested −47.52). param.rs moved post_unexplored 0.02→0.015 in the Oct 6 sync (published Oct 7); video_open 0.07→0.02, cont_dwell_time 0.004→0.006 and favorite 0.5→0.6 in the Oct 12 sync (published Oct 13); favorite 0.6→0.66 and not_interested −47.52→−52.272 in the Oct 13 sync (published Oct 14). Four heads were added, all at 0: video_continuation, user_video_continuation and profile_visit_secs in vm-ranker only (published Oct 6), and react_with_video in both files (Oct 12 sync, published Oct 13), renamed post_video on Oct 30 (7fef3ba) with its 0.0 and its scoring slot unchanged. Two video-carousel weights also appeared in param.rs (Oct 14 sync, published Oct 15); they are not ranking heads and the carousel is off by default. Why param.rs: vm-ranker's config_sync.rs polls the same live rust_home_mixer.yml that param.rs mirrors, and both use the same rust_home_mixer_* keys. How the scorer resolves a key missing from that config is in a feature-switch library X has not published. The ranking values were last changed in the Oct 13, 2026 sync (published Oct 14). Later pushes only added video-carousel weights, a third in the Oct 28 sync (published Oct 29, 606b254) and a fourth on Oct 30 (7fef3ba), both at 0, and renamed react_with_video; every value is unchanged through the Nov 2 sync, published Nov 3 (b220448). Earlier, the September 29, 2026 sync (stamp 2026-09-29T17:02:52Z) changed click 0.4→0.3, cont_click_dwell_time 0.0→0.4, not_interested −43.2→−47.52, with both files agreeing on all 25. X deleted a 26th head, cont_active_secs_5m_residual_norm, weighted 0.0, in the Sept 23 sync, and three changed on Aug 25 — vqv 0.05→0.0, binary dwell 0.0→0.05, video_open 0.05→0.07",
+  weightsSnapshot: "November 3, 2026 — xai-org/x-algorithm home-mixer/params/param.rs (upstream last-sync stamp 2026-11-03T16:00:34Z). param.rs and vm-ranker/params.rs no longer agree. This table follows param.rs, the cron snapshot of production defaults. vm-ranker/params.rs, the served scorer's compiled defaults, still has the September 29 numbers for five heads (favorite 0.5, video_open 0.07, post_unexplored 0.02, cont_dwell_time 0.004, not_interested −47.52). param.rs moved post_unexplored 0.02→0.015 in the Oct 6 sync (published Oct 7); video_open 0.07→0.02, cont_dwell_time 0.004→0.006 and favorite 0.5→0.6 in the Oct 12 sync (published Oct 13); favorite 0.6→0.66 and not_interested −47.52→−52.272 in the Oct 13 sync (published Oct 14). Four heads were added, all at 0: video_continuation, user_video_continuation and profile_visit_secs in vm-ranker only (published Oct 6), and react_with_video in both files (Oct 12 sync, published Oct 13), renamed post_video on Oct 30 (7fef3ba) with its 0.0 and its scoring slot unchanged. Two video-carousel weights also appeared in param.rs (Oct 14 sync, published Oct 15); they are not ranking heads and the carousel is off by default. Why param.rs: vm-ranker's config_sync.rs polls the same live rust_home_mixer.yml that param.rs mirrors, and both use the same rust_home_mixer_* keys. How the scorer resolves a key missing from that config is in a feature-switch library X has not published. The ranking values were last changed in the Oct 13, 2026 sync (published Oct 14). Later pushes only added video-carousel weights, a third in the Oct 28 sync (published Oct 29, 606b254) and a fourth on Oct 30 (7fef3ba), both at 0, and renamed react_with_video; every value is unchanged through the Nov 3 sync, published Nov 4 (b508926), which added a 30th head, grok_analyze, at 0 in both files. Earlier, the September 29, 2026 sync (stamp 2026-09-29T17:02:52Z) changed click 0.4→0.3, cont_click_dwell_time 0.0→0.4, not_interested −43.2→−47.52, with both files agreeing on all 25. X deleted a 26th head, cont_active_secs_5m_residual_norm, weighted 0.0, in the Sept 23 sync, and three changed on Aug 25 — vqv 0.05→0.0, binary dwell 0.0→0.05, video_open 0.05→0.07",
   // Machine-readable copy of the stamp above. Every score card pins this, and
   // packages/bangermeter-rank's sync job fails when live param.rs drifts from it.
   // Only param.rs carries a stamp; vm-ranker/params.rs has none.
-  paramRsLastSync: "2026-11-02T16:00:39Z",
+  paramRsLastSync: "2026-11-03T16:00:34Z",
   // WHERE THE SCORE IS COMPUTED (moved Sept 24, 2026 — 44d37eb). home-mixer's
   // RankingScorer (ranking_scorer.rs) was deleted. home-mixer now sends each
   // slate to a separate vm-ranker service, which computes the final score with
@@ -116,6 +116,9 @@ var BANGERMETER_CONFIG = {
     post_video: { weight: 0.0, param: "rust_home_mixer_post_video_weight",
       provenance: "2026-published", label: "Post video",
       note: "ZEROED. Renamed from react_with_video on Oct 30, 2026 (7fef3ba), keeping the same Phoenix action slot (44 in recsys.proto), the same scoring term and 0.0 in both param.rs and vm-ranker/params.rs. It first appeared, as react_with_video, in the Oct 12, 2026 sync, published Oct 13. It is in positive_sum (xai-value-model/weights.rs), so turning it on would move the negative-offset scale. Which action the new name counts is not in the published code, and Bangermeter cannot see it either way." },
+    grok_analyze: { weight: 0.0, param: "rust_home_mixer_grok_analyze_weight",
+      provenance: "2026-published", label: "Grok analyze click",
+      note: "AT 0. Added in the Nov 3, 2026 sync (published Nov 4, b508926) as the value model's 30th term, at 0.0 in both param.rs and vm-ranker/params.rs. It weights Phoenix's predicted chance of CLIENT_TWEET_CLICK_GROK_ANALYZE, action 46 in recsys.proto, which has been in the published code since Aug 13. It is summed into positive_sum (xai-value-model/weights.rs), so at 0 it changes no score." },
     cont_dwell_time: { weight: 0.006, param: "rust_home_mixer_cont_dwell_time_weight",
       provenance: "2026-published", label: "Dwell time",
       continuous: true,
@@ -174,9 +177,9 @@ var BANGERMETER_CONFIG = {
   // NOT ranking heads. X publishes these in param.rs only (the first two from
   // the Oct 14, 2026 sync, published Oct 15; the third from the Oct 28 sync,
   // published Oct 29; the fourth on Oct 30, 7fef3ba). xai-value-model's
-  // weights_mut() lists 29 heads and none of these is one: home-mixer's
+  // weights_mut() lists 30 heads and none of these is one: home-mixer's
   // video-carousel code reads them only when EnableVideoCarousel is on, and it
-  // defaults to false in param.rs (still false at the Nov 2, 2026 sync).
+  // defaults to false in param.rs (still false at the Nov 3, 2026 sync).
   // Kept here so the weight sync checks them; nothing scores them.
   carouselWeights: {
     video_carousel_video_open: { weight: 1.0, param: "rust_home_mixer_video_carousel_video_open_weight",
@@ -212,14 +215,15 @@ var BANGERMETER_CONFIG = {
   // video_continuation, user_video_continuation, profile_visit_secs, the four
   // carousel weights (not in the value model at all), and the bidirectional
   // boost are excluded from positive_sum. post_video (react_with_video until
-  // Oct 30, 2026) is included, at 0.0.
+  // Oct 30, 2026) is included, at 0.0, and so is grok_analyze (Nov 3 sync,
+  // published Nov 4, b508926), also at 0.0.
   // These sums only matter on the negative branch of offset_score, where they
   // rescale any net-negative post into (0, offset) — below every positive post.
   weightSumMembers: {
     positive: ["favorite", "reply", "retweet", "photo_expand", "video_open", "click",
       "open_link", "profile_click", "vqv", "share", "share_via_dm", "share_via_copy_link",
       "dwell", "quote", "quoted_click", "quoted_vqv", "follow_author", "post_unexplored",
-      "post_video"],
+      "post_video", "grok_analyze"],
     negative: ["not_interested", "block_author", "mute_author", "report", "not_dwelled"]
   },
 
