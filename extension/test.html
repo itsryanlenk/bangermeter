@@ -706,6 +706,10 @@
     check("plain tweet content ~50", plain.score >= 45 && plain.score <= 60, plain.score);
     var question = E.contentScore({ text: "What single habit most improved your life this year?", hasVideo: false, hasImage: false, hasExternalLink: false, hashtagCount: 0, isReply: false }, {});
     check("question > plain", question.score > plain.score, question.score + " vs " + plain.score);
+    // Full-width ？ (U+FF1F) counts as a question; only the final mark differs.
+    var jaQuestion = E.contentScore({ text: "フォロワーを増やして、どうするの？", hasVideo: false, hasImage: false, hasExternalLink: false, hashtagCount: 0, isReply: false }, {});
+    var jaStatement = E.contentScore({ text: "フォロワーを増やして、どうするの。", hasVideo: false, hasImage: false, hasExternalLink: false, hashtagCount: 0, isReply: false }, {});
+    check("full-width ？ question > same post ending in 。", jaQuestion.score > jaStatement.score, jaQuestion.score + " vs " + jaStatement.score);
     var bareLink = E.contentScore({ text: "example.com/post", hasVideo: false, hasImage: false, hasExternalLink: true, hashtagCount: 0, isReply: false }, {});
     check("bare link < plain", bareLink.score < plain.score, bareLink.score + " vs " + plain.score);
     var bait = E.contentScore({ text: "Like if you agree! Follow me for more!", hasVideo: false, hasImage: false, hasExternalLink: false, hashtagCount: 0, isReply: false }, {});

@@ -881,7 +881,9 @@ var BangermeterEngine = (function () {
       length: t.length,
       // Before normalizeForMatch: it strips the ZWJ that makes 👨‍👩‍👧 one emoji.
       weightedLength: weightedLength(typed.normalize ? typed.normalize("NFC") : typed),
-      hasQuestion: /\?/.test(t),
+      // The full-width ？ (U+FF1F) is the standard question mark in Japanese and
+      // Chinese; matching only ASCII "?" scored most CJK questions as statements.
+      hasQuestion: /[?？]/.test(t),
       isBait: BAIT_RE.test(t),
       mostlyCaps: letters.length >= 12 && caps.length / letters.length > 0.7
     };
