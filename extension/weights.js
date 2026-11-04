@@ -362,7 +362,7 @@ var BANGERMETER_CONFIG = {
       source: "home-mixer/filters/oon_retweet_reply_filter.rs",
       note: "OONRetweetReplyFilter removes replies (and reposts) from unfollowed accounts from For You candidates entirely — an out-of-network reply is not down-weighted, it is gone. Replies with a missing parent are dropped too. Since the Oct 2, 2026 sync (published Oct 3, b412112) a switch, enable_phoenix_oon_replies, can let out-of-network replies that Phoenix retrieval found through, optionally only those replying directly to the thread root. It defaults to false, so at published defaults the filter still removes them all." },
 
-    // ── The "Visibility limited" notice (first verified at 77d431a, 2026-09-30; re-verified at 862a123, 2026-10-17, at 6258a15, 2026-10-24, at 606b254, 2026-10-29, and at b220448, 2026-11-03) ──
+    // ── The "Visibility limited" notice (first verified at 77d431a, 2026-09-30; re-verified at 862a123, 2026-10-17, at 6258a15, 2026-10-24, at 606b254, 2026-10-29, at b220448, 2026-11-03, and at b508926, 2026-11-04) ──
     // Through v0.10.2 the panel said "reach suppressed (magnitude unpublished)"
     // and cited FreedomOfSpeechNotReach.scala. That file is the 2023 archive.
     // The 2026 code has no reach magnitude to withhold: For You drops these
@@ -371,7 +371,7 @@ var BANGERMETER_CONFIG = {
     // itself was first published Jan 20, at aaa167b.)
     visibilityLimited: {
       provenance: "2026-published",
-      verifiedAt: "b220448", verifiedAsOf: "2026-11-03",
+      verifiedAt: "b508926", verifiedAsOf: "2026-11-04",
       forYouLevels: ["TimelineHome", "TimelineHomeRecommendations"],
       droppedExceptAuthor: ["FOSNR_HATEFUL_CONDUCT", "FOSNR_VIOLENT_SPEECH",
         "FOSNR_ABUSE", "FOSNR_CIVIC_INTEGRITY"],
@@ -382,19 +382,19 @@ var BANGERMETER_CONFIG = {
       fosnrLimitedEngagementHydrationAuthorSince: "2026-10-08",
       noticeRenderingPublished: false,
       sources: [
-        "home-mixer/candidate_hydrators/vf_candidate_hydrator.rs@b220448 (lines 67-106: in-network posts and reposted originals at TimelineHome; out-of-network posts, ancestors and quoted posts at TimelineHomeRecommendations)",
-        "home-mixer/candidate_hydrators/vf_candidate_hydrator.rs@b220448 (lines 140-170: a post whose quoted post, reposted original or ancestor is dropped is flagged, and AncillaryVFFilter removes it)",
-        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs@b220448 (lines 478, 503-504: wired into For You)",
-        "home-mixer/filters/vf_filter.rs@b220448 (lines 14-27: Drop, Tombstone and NotEvaluated are removed; a post with no verdict is kept)",
-        "home-mixer/candidate_pipeline/for_you_candidate_pipeline.rs@b220448 (lines 228-237: PushToHomeSource posts get no VF filter)",
-        "home-mixer/sources/thunder_source.rs@b220448 (lines 89-95: an in-network reply's ancestors are its parent and thread root)",
-        "visibility-filtering/rules/tweet_rules.rs@b220448 (lines 141-167: four labels dropped except for the author; lines 169-174: FOSNR_ABUSE_INSULTS)",
-        "visibility-filtering/rules/levels.rs@b220448 (lines 102-107, grouped as FOSNR_DROPS and used at 306 and 338; line 355: the four drops run at both levels, FOSNR_ABUSE_INSULTS at the out-of-network level only; registry.rs was deleted in 862a123)",
-        "visibility-filtering/models/verdict.rs@b220448 (lines 209-223: the verdict model's LimitedEngagementReason has no FOSNR variant; lines 18-25: an author's FOSNR limits travel as a Notice::Appealable instead)",
-        "visibility-filtering-client/graphql_results.rs@b220448 (lines 186-203: decodes a FosnrReason in limited_engagements; since Oct 8, 2026 one published rule emits it, for the author only, at TimelineHomeHydration: tweet_rules.rs lines 201-206, levels.rs line 380, treatment.rs lines 66-81 and 280-294)",
-        "home-mixer/candidate_hydrators/vf_following_candidate_hydrator.rs@b220448 (line 63: the chronological Following feed checks every post at TimelineHome)",
-        "home-mixer/server.rs@b220448 (line 559: the ranked Following feed sets in_network_only and runs the For You pipeline)",
-        "under-the-hood/strato/lib/underTheHoodLabels.strato@b220448 (lines 75-104: X's own description of the notice)"
+        "home-mixer/candidate_hydrators/vf_candidate_hydrator.rs@b508926 (lines 67-106: in-network posts and reposted originals at TimelineHome; out-of-network posts, ancestors and quoted posts at TimelineHomeRecommendations)",
+        "home-mixer/candidate_hydrators/vf_candidate_hydrator.rs@b508926 (lines 140-170: a post whose quoted post, reposted original or ancestor is dropped is flagged, and AncillaryVFFilter removes it)",
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs@b508926 (lines 478, 503-504: wired into For You)",
+        "home-mixer/filters/vf_filter.rs@b508926 (lines 14-27: Drop, Tombstone and NotEvaluated are removed; a post with no verdict is kept)",
+        "home-mixer/candidate_pipeline/for_you_candidate_pipeline.rs@b508926 (lines 228-237: PushToHomeSource posts get no VF filter)",
+        "home-mixer/sources/thunder_source.rs@b508926 (lines 89-95: an in-network reply's ancestors are its parent and thread root)",
+        "visibility-filtering/rules/tweet_rules.rs@b508926 (lines 141-167: four labels dropped except for the author; lines 169-174: FOSNR_ABUSE_INSULTS)",
+        "visibility-filtering/rules/levels.rs@b508926 (lines 102-107, grouped as FOSNR_DROPS and used at 306 and 338; line 355: the four drops run at both levels, FOSNR_ABUSE_INSULTS at the out-of-network level only; registry.rs was deleted in 862a123)",
+        "visibility-filtering/models/verdict.rs@b508926 (lines 196-210: the verdict model's LimitedEngagementReason has no FOSNR variant; lines 19-25: an author's FOSNR limits travel as a Notice::Appealable instead, which since Nov 4, 2026 is carried by its own verdict, Verdict::Fosnr (line 10))",
+        "visibility-filtering-client/graphql_results.rs@b508926 (lines 186-203: decodes a FosnrReason in limited_engagements; since Oct 8, 2026 one published rule emits it, for the author only, at TimelineHomeHydration: tweet_rules.rs lines 201-206, levels.rs line 380, treatment.rs lines 62-74 and 268-282)",
+        "home-mixer/candidate_hydrators/vf_following_candidate_hydrator.rs@b508926 (line 63: the chronological Following feed checks every post at TimelineHome)",
+        "home-mixer/server.rs@b508926 (line 559: the ranked Following feed sets in_network_only and runs the For You pipeline)",
+        "under-the-hood/strato/lib/underTheHoodLabels.strato@b508926 (lines 75-104: X's own description of the notice)"
       ],
       panel: "Visibility limited by X — X's published code usually removes it from For You for everyone but the author",
       panelDetail: "One exception: a post labeled FOSNR_ABUSE_INSULTS is removed only out-of-network, so the author's followers can still get it. Where the post still appears, as here, X shows this notice. That rendering is not in X's published code.",
@@ -476,29 +476,29 @@ var BANGERMETER_CONFIG = {
         "AbusiveHighRecall", "DoNotAmplify"]
     },
 
-    // ── A post that quotes a "Visibility limited" post (verified 2026-09-30; re-verified at 862a123, 2026-10-17, at 6258a15, 2026-10-24, at 606b254, 2026-10-29, and at b220448, 2026-11-03) ──
+    // ── A post that quotes a "Visibility limited" post (verified 2026-09-30; re-verified at 862a123, 2026-10-17, at 6258a15, 2026-10-24, at 606b254, 2026-10-29, at b220448, 2026-11-03, and at b508926, 2026-11-04) ──
     // X's client draws the quoted post's notice inside the quote card (its
     // soft-intervention component takes an inQuoteTweet prop). The label is
     // the quoted post's, so the panel gives this case its own row.
     quotedVisibilityLimited: {
       provenance: "2026-published",
-      verifiedAt: "b220448", verifiedAsOf: "2026-11-03",
+      verifiedAt: "b508926", verifiedAsOf: "2026-11-04",
       sources: [
-        "home-mixer/candidate_hydrators/vf_candidate_hydrator.rs@b220448 (lines 79-80, 100-106: a candidate's quoted post is checked at TimelineHomeRecommendations; lines 109-110: a post that is also checked in-network keeps that verdict; lines 119-120: a post whose own check errors gets an error result; lines 140-170: should_drop_ancillary flags a post whose quoted post is dropped)",
-        "home-mixer/filters/ancillary_vf_filter.rs@b220448 (line 15: every flagged post is removed)",
-        "home-mixer/filters/vf_filter.rs@b220448 (lines 22-27: NotEvaluated counts as a drop)",
-        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs@b220448 (lines 478, 504: the check and the filter are in the Phoenix pipeline)",
-        "home-mixer/scored_posts_server.rs@b220448 (lines 60-61: ScoredPostsSource runs the Phoenix pipeline)",
-        "home-mixer/candidate_pipeline/for_you_candidate_pipeline.rs@b220448 (lines 219-221: For You takes its posts from ScoredPostsSource; lines 228-237, 262-263, 336-338: PushToHomeSource posts get no VF filter)",
-        "home-mixer/candidate_pipeline/ranked_following_candidate_pipeline.rs@b220448 (lines 142-145: so does the ranked Following feed)",
-        "home-mixer/candidate_hydrators/quote_hydrator.rs@b220448 (lines 224-239: a failed quote lookup leaves no quoted post, and is cached)",
-        "candidate-pipeline/hydrator.rs@b220448 (lines 63-68: an error result leaves the post as it was, unflagged)",
-        "visibility-filtering-client/vf_client.rs@b220448 (lines 552-560: a post missing from a response is NotEvaluated; lines 564-577: an RPC error gives no verdict)",
-        "visibility-filtering/rules/tweet_rules.rs@b220448 (lines 141-174: the five FOSNR drops, each for NonAuthors, which rules/rule_spec/rule.rs line 111 and rules/rule_spec/engine.rs line 75 define as every viewer but the author)",
-        "visibility-filtering/rules/levels.rs@b220448 (lines 102-107, 306: the four labels, grouped as FOSNR_DROPS, drop at TimelineHome; lines 338, 355: all five at TimelineHomeRecommendations)",
-        "home-mixer/candidate_hydrators/vf_following_candidate_hydrator.rs@b220448 (lines 49-50, 63: the chronological Following feed checks quoted posts at TimelineHome)",
-        "home-mixer/candidate_pipeline/reverse_chron_posts_pipeline.rs@b220448 (lines 163, 177: and removes flagged posts)",
-        "under-the-hood/strato/lib/underTheHoodLabels.strato@b220448 (lines 75-104: the five FOSNR labels come with a label all users can see)"
+        "home-mixer/candidate_hydrators/vf_candidate_hydrator.rs@b508926 (lines 79-80, 100-106: a candidate's quoted post is checked at TimelineHomeRecommendations; lines 109-110: a post that is also checked in-network keeps that verdict; lines 119-120: a post whose own check errors gets an error result; lines 140-170: should_drop_ancillary flags a post whose quoted post is dropped)",
+        "home-mixer/filters/ancillary_vf_filter.rs@b508926 (line 15: every flagged post is removed)",
+        "home-mixer/filters/vf_filter.rs@b508926 (lines 22-27: NotEvaluated counts as a drop)",
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs@b508926 (lines 478, 504: the check and the filter are in the Phoenix pipeline)",
+        "home-mixer/scored_posts_server.rs@b508926 (lines 60-61: ScoredPostsSource runs the Phoenix pipeline)",
+        "home-mixer/candidate_pipeline/for_you_candidate_pipeline.rs@b508926 (lines 219-221: For You takes its posts from ScoredPostsSource; lines 228-237, 262-263, 336-338: PushToHomeSource posts get no VF filter)",
+        "home-mixer/candidate_pipeline/ranked_following_candidate_pipeline.rs@b508926 (lines 142-145: so does the ranked Following feed)",
+        "home-mixer/candidate_hydrators/quote_hydrator.rs@b508926 (lines 224-239: a failed quote lookup leaves no quoted post, and is cached)",
+        "candidate-pipeline/hydrator.rs@b508926 (lines 63-68: an error result leaves the post as it was, unflagged)",
+        "visibility-filtering-client/vf_client.rs@b508926 (lines 552-560: a post missing from a response is NotEvaluated; lines 564-577: an RPC error gives no verdict)",
+        "visibility-filtering/rules/tweet_rules.rs@b508926 (lines 141-174: the five FOSNR drops, each for NonAuthors, which rules/rule_spec/rule.rs line 111 and rules/rule_spec/engine.rs line 75 define as every viewer but the author)",
+        "visibility-filtering/rules/levels.rs@b508926 (lines 102-107, 306: the four labels, grouped as FOSNR_DROPS, drop at TimelineHome; lines 338, 355: all five at TimelineHomeRecommendations)",
+        "home-mixer/candidate_hydrators/vf_following_candidate_hydrator.rs@b508926 (lines 49-50, 63: the chronological Following feed checks quoted posts at TimelineHome)",
+        "home-mixer/candidate_pipeline/reverse_chron_posts_pipeline.rs@b508926 (lines 163, 177: and removes flagged posts)",
+        "under-the-hood/strato/lib/underTheHoodLabels.strato@b508926 (lines 75-104: the five FOSNR labels come with a label all users can see)"
       ],
       panel: "Quotes a post X limited — X's published code usually removes posts like this from For You",
       note: "X's own descriptions say five FOSNR labels come with a notice that the post has limited visibility (underTheHoodLabels.strato). That the notice shown here is one of them is an inference: where and how X renders it is not in the published code. For You checks each candidate's quoted post at the TimelineHomeRecommendations safety level, where all five are dropped. When the quoted post is dropped, should_drop_ancillary flags the quoting post and AncillaryVFFilter removes it, whether or not it has a label of its own. That can happen while the quoted post would be shown on its own: a FOSNR_ABUSE_INSULTS post from an account the viewer follows, unless that post is also a candidate in the same request. The drops exempt the quoted post's author, who can still be shown the quoting post. At least five paths skip the removal: the quote lookup fails, so there is no quoted post to check; the quoted post's check fails with an RPC error (a post missing from a successful response counts as dropped); the quoting post's own check errors, so it is never flagged; the quoted post is also checked in-network in the same request and keeps that verdict, where FOSNR_ABUSE_INSULTS is not dropped; or the post arrives from PushToHomeSource, which passes through no VF filter. The ranked Following feed takes its posts from the same Phoenix pipeline as For You, so it removes them too. The chronological Following feed checks quoted posts at TimelineHome, so it removes a post quoting one with any of the four labels other than FOSNR_ABUSE_INSULTS." }
