@@ -71,7 +71,7 @@ PRIVACY
 • No data collection. None.
 • No network requests. The extension never phones home, because there is no home.
 • No account, no sign-in, no analytics, no tracking.
-• The only permission is storage: your settings sync with your Chrome profile, and the optional score history and imported Under the Hood report stay in this browser's local storage, along with one note of whether X is set to Japanese, so the popup and welcome page can match it. Nothing is transmitted anywhere, and the history and the report are each one click to delete.
+• It asks for one permission, storage, and the only sites it touches are x.com and twitter.com, which is the site access Chrome lists when you install it. There it reads posts and your drafts to score them, and adds its badges, panel and meter. Your drafts are never saved. Your settings sync with your Chrome profile through Chrome's own sync, if you have it on. The optional score history (scores, post links and short text snippets) and the imported Under the Hood report stay in this browser's local storage, along with one note of whether X is set to Japanese, so the popup and welcome page can match it. The extension itself sends nothing anywhere, and the history and the report are each one click to delete.
 
 Everything runs locally in your browser. The source is public and reviewable.
 
