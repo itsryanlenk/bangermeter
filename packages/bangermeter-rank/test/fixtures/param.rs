@@ -1,4 +1,4 @@
-// mirrored from config feature-switch defaults; last sync 2026-11-02T16:00:39Z
+// mirrored from config feature-switch defaults; last sync 2026-11-03T16:00:34Z
 use xai_feature_switches::param;
 
 param!(FavoriteWeight, f64, "rust_home_mixer_favorite_weight", 0.66);
@@ -80,6 +80,12 @@ param!(
     PostVideoWeight,
     f64,
     "rust_home_mixer_post_video_weight",
+    0.0
+);
+param!(
+    GrokAnalyzeWeight,
+    f64,
+    "rust_home_mixer_grok_analyze_weight",
     0.0
 );
 param!(

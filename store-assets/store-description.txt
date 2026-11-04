@@ -27,7 +27,7 @@ WHAT YOU GET
 
 • A live meter in the compose box. Score your draft as you type, with hints as they trigger: asks a question, substantive text, bare link, hashtag pile, engagement bait.
 
-• A weight table in the popup. All 29 ranking heads, their published values, and which ones the extension can measure versus estimate.
+• A weight table in the popup. All 30 ranking heads, their published values, and which ones the extension can measure versus estimate.
 
 • Reply mode. Reply drafts are scored as replies (they take a ×0.75 factor in the published math), and the breakdown explains what X publishes about replies: out-of-network replies never reach For You at all, replies never get the mutual-follow boost, and replies to accounts over 250K followers (as of 3 November) are quality-scored by a Grok model whose rubric X withholds.
 
@@ -78,9 +78,18 @@ Everything runs locally in your browser. The source is public and reviewable.
 
 OPEN SOURCE
 
-MIT licensed, with the full research record and 429 automated tests that check every published weight against X's source individually.
+MIT licensed, with the full research record and 434 automated tests that check every published weight against X's source individually.
 
 github.com/itsryanlenk/bangermeter
+
+
+WHAT'S NEW IN 0.11.1
+
+• The rest of the Japanese is in. sysCat reviewed the 20 lines 0.11.0 still showed in English, among them the substantive-text and video lines, the "Visibility limited" notices, the "Show the math" fine print and the popup's language setting, and they now show in Japanese. One line added since, the label for X's new Grok analyze head, stays in English until it is reviewed.
+
+• X added a 30th ranking head in its 3 November sync (published 4 November): grok_analyze, named for what X's code calls a Grok analyze click. It is 0 in both of X's files, so no score moves, and the popup lists it as zeroed by X. Every other weight is unchanged through that sync.
+
+• The "Visibility limited" details are re-checked against X's 4 November code, where X restructured how it records these verdicts. The rules For You applies did not change: X's published code still usually removes these posts from For You for everyone but the author.
 
 
 WHAT'S NEW IN 0.11.0

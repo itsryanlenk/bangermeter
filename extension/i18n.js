@@ -195,7 +195,7 @@ var BANGERMETER_I18N = (function () {
     "No visibility-impacting labels in this report period. Clean month.": "このレポート期間に、可視性に影響するラベルはありません。問題のない月でした。",
     "Off by default. When on, the score is logged each time you open a breakdown panel, so you can compare formats over time. Stored only in this browser (chrome.storage.local, capped at 200 entries) — never synced, never sent anywhere.": "初期設定ではオフです。オンにすると、内訳パネルを開くたびにスコアを記録し、投稿の型ごとの違いを時間をかけて比べられます。このブラウザ内（chrome.storage.local、最大200件）だけに保存され、同期も外部送信もされません。",
     "One thing worth knowing": "知っておきたいこと",
-    "Only likes, replies and reposts come from real counts — the rest is inferred from the post. The popup labels all 29 ranking heads as": "実際の件数に基づくのは、いいね・リプライ・リポストだけです。残りは投稿から推測しています。ポップアップでは、29のランキング項目それぞれに「",
+    "Only likes, replies and reposts come from real counts — the rest is inferred from the post. The popup labels all 30 ranking heads as": "実際の件数に基づくのは、いいね・リプライ・リポストだけです。残りは投稿から推測しています。ポップアップでは、30のランキング項目それぞれに「",
     "Open x.com →": "x.comを開く →",
     "Panel and draft-meter theme. Auto follows X's own theme (default / dim / lights out).": "パネルと下書きメーターのテーマです。「自動」はXのテーマ（ライト／ダークブルー／ブラック）に合わせます。",
     "Panel theme": "パネルのテーマ",
@@ -234,10 +234,9 @@ var BANGERMETER_I18N = (function () {
     "{n} days": "{n}日",
     "Your imported report ({period}, {posts} posts). These are X's OWN labels on your account — not estimates.": "読み込んだレポート（{period}、{posts} 件の投稿）。これはあなたのアカウントにXが実際に付けたラベルで、推定ではありません。",
     "Your imported report ({period}). These are X's OWN labels on your account — not estimates.": "読み込んだレポート（{period}）。これはあなたのアカウントにXが実際に付けたラベルで、推定ではありません。",
-    "That file does not look like an Under the Hood report (expected the JSON downloaded from {path}). Nothing was imported.": "このファイルはUnder the Hoodのレポートではないようです（{path} からダウンロードしたJSONが必要です）。何も読み込みませんでした。"
-  };
+    "That file does not look like an Under the Hood report (expected the JSON downloaded from {path}). Nothing was imported.": "このファイルはUnder the Hoodのレポートではないようです（{path} からダウンロードしたJSONが必要です）。何も読み込みませんでした。",
 
-  var JA_DRAFT = {
+    // Reviewed by sysCat, Nov 4, 2026; these were JA_DRAFT in 0.11.0.
     // Panel — new or reworded since sysCat's fork.
     // The length rule counts a CJK character as 2 (weights.js textWeighting), so
     // the Japanese label states the mark a Japanese writer meets.
@@ -266,6 +265,11 @@ var BANGERMETER_I18N = (function () {
     "Every value below is transcribed from {snapshot}. Replies rise to {mutual} on an original post from a mutual follow.": "以下の値はすべて {snapshot} から書き写したものです。相互フォローの相手の元の投稿へのリプライは {mutual} になります。",
     "Score = Σ(weight × P(action)) per xai-value-model/scoring.rs.": "スコア = Σ(重み × P(行動))。xai-value-model/scoring.rs に基づきます。",
     "Bangermeter estimates the probabilities; only likes, replies and reposts come from real counts. Relative score, not predicted reach.": "確率はBangermeterの推定で、実際の件数から取るのはいいね・リプライ・リポストだけです。相対的なスコアであり、届く範囲の予測ではありません。"
+  };
+
+  var JA_DRAFT = {
+    // Added after sysCat's Nov 4, 2026 review; awaiting review.
+    "Grok analyze click": "Grokで分析のクリック"
   };
 
   // Text shown as written in every language. Mostly the long prose that stays

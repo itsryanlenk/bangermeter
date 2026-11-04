@@ -42,7 +42,7 @@
 
     // ================================================================
     // WEIGHT LAYER — verbatim against xai-org/x-algorithm
-    // home-mixer/params/param.rs (sync 2026-11-02T16:00:39Z)
+    // home-mixer/params/param.rs (sync 2026-11-03T16:00:34Z)
     // Every value below was transcribed from the published file. If any
     // of these fail, the tool is lying about X's algorithm.
     // ================================================================
@@ -54,7 +54,7 @@
       vqv: 0.0, share: 2.0,
       share_via_dm: 5.0, share_via_copy_link: 20.0, dwell: 0.05, quote: 5.0,
       quoted_click: 0.05, quoted_vqv: 0.0, follow_author: 4.0, post_unexplored: 0.015,
-      post_video: 0.0,
+      post_video: 0.0, grok_analyze: 0.0,
       cont_dwell_time: 0.006, cont_click_dwell_time: 0.4,
       video_continuation: 0.0, user_video_continuation: 0.0,
       not_interested: -52.272, block_author: -31.2, mute_author: -58.8,
@@ -75,9 +75,14 @@
     check("no bookmark head exists in the 2026 roster", H.bookmark === undefined);
     // X deleted this head (param + scorer term) in the 2026-09-23 sync. It was
     // 0.0, so no score moved, but carrying it made "26/26" a stale claim.
-    check("head roster is every published weight head (29, as xai-value-model's weights_mut lists)",
-      Object.keys(H).length === Object.keys(PARAM_RS).length && Object.keys(PARAM_RS).length === 29,
+    check("head roster is every published weight head (30, as xai-value-model's weights_mut lists)",
+      Object.keys(H).length === Object.keys(PARAM_RS).length && Object.keys(PARAM_RS).length === 30,
       Object.keys(H).length);
+    // Added in the Nov 3, 2026 sync (published Nov 4, b508926), at 0 in both
+    // files, and summed into positive_sum (xai-value-model/weights.rs).
+    check("grok_analyze is in positive_sum and in both upstream files",
+      C.weightSumMembers.positive.indexOf("grok_analyze") !== -1 &&
+      H.grok_analyze && H.grok_analyze.upstream === undefined);
     check("one-file heads name the upstream file that publishes them",
       C.carouselWeights.video_carousel_video_open.upstream === "paramRs" &&
       C.carouselWeights.video_carousel_immersive_vqv.upstream === "paramRs" &&
@@ -91,7 +96,7 @@
     check("retired head cont_active_secs_5m_residual_norm is gone",
       H.cont_active_secs_5m_residual_norm === undefined);
     check("param.rs last-sync stamp is pinned for score cards",
-      C.paramRsLastSync === "2026-11-02T16:00:39Z", C.paramRsLastSync);
+      C.paramRsLastSync === "2026-11-03T16:00:34Z", C.paramRsLastSync);
 
     // ── Facts X published on Aug 14 2026 ──────────────────────────────
     // The weights themselves did not move; these are the clarifications
@@ -191,16 +196,22 @@
     check("July 13 'mutuals' announcement mapped to the EXISTING boost, still 15.0",
       /July 13/.test(H.reply.note) && C.bidirectionalFollowReplyBoost === 15.0);
 
-    // ── The "Visibility limited" notice (first verified at 77d431a, 2026-09-30; re-verified at 862a123, 2026-10-17, at 6258a15, 2026-10-24, at 606b254, 2026-10-29, and at b220448, 2026-11-03) ──
+    // ── The "Visibility limited" notice (first verified at 77d431a, 2026-09-30; re-verified at 862a123, 2026-10-17, at 6258a15, 2026-10-24, at 606b254, 2026-10-29, at b220448, 2026-11-03, and at b508926, 2026-11-04) ──
     // Through 0.10.2 the panel called this "reach suppressed (magnitude
     // unpublished)", citing the 2023 archive. The 2026 code does not shrink
     // these posts in For You. It removes them.
     var VL = SF.visibilityLimited || {};
     var FOSNR_LEVEL_3 = ["FOSNR_HATEFUL_CONDUCT", "FOSNR_VIOLENT_SPEECH",
       "FOSNR_ABUSE", "FOSNR_CIVIC_INTEGRITY"];
-    check("visibility-limited fact recorded, verified at b220448 with a date",
-      VL.provenance === "2026-published" && VL.verifiedAt === "b220448" &&
-      VL.verifiedAsOf === "2026-11-03");
+    check("visibility-limited fact recorded, verified at b508926 with a date",
+      VL.provenance === "2026-published" && VL.verifiedAt === "b508926" &&
+      VL.verifiedAsOf === "2026-11-04");
+    // b508926 gave a FOSNR notice its own verdict, Verdict::Fosnr; the
+    // LimitedEngagementReason enum moved to lines 196-210.
+    check("verdict.rs is cited at b508926, with Verdict::Fosnr",
+      VL.sources.some(function (s) {
+        return /^visibility-filtering\/models\/verdict\.rs@b508926 \(lines 196-210/.test(s) && /Verdict::Fosnr \(line 10\)/.test(s);
+      }));
     check("For You calls exactly two VF safety levels",
       JSON.stringify(VL.forYouLevels) === '["TimelineHome","TimelineHomeRecommendations"]',
       JSON.stringify(VL.forYouLevels));
@@ -251,12 +262,12 @@
       /check fails/.test(VL.note || "") && /PushToHomeSource/.test(VL.note || ""));
     check("the removal of quoting posts and replies is cited where it happens",
       Array.isArray(VL.sources) && VL.sources.some(function (s) {
-        return /^home-mixer\/candidate_hydrators\/vf_candidate_hydrator\.rs@b220448 \(lines 140-170/.test(s);
+        return /^home-mixer\/candidate_hydrators\/vf_candidate_hydrator\.rs@b508926 \(lines 140-170/.test(s);
       }));
     check("both Following feeds are accounted for",
       /chronological Following/.test(VL.note || "") && /ranked Following/.test(VL.note || "") &&
       Array.isArray(VL.sources) && VL.sources.some(function (s) {
-        return /^home-mixer\/server\.rs@b220448/.test(s);
+        return /^home-mixer\/server\.rs@b508926/.test(s);
       }));
     check("47c1bcd is not called the first publication (that is aaa167b, Jan 20)",
       !/first publication/.test((VL.note || "") + (VL.panelDetail || "")));
@@ -1062,10 +1073,10 @@
     // For You removes a post whose quoted post is dropped. Sourced, so the
     // panel row for the quoted case can cite it.
     var QVL = C.sourcedFacts.quotedVisibilityLimited;
-    check("quoted-label removal is sourced at b220448",
-      !!QVL && QVL.verifiedAt === "b220448" &&
-      QVL.sources.some(function (s) { return /vf_candidate_hydrator\.rs@b220448.*should_drop_ancillary/.test(s); }) &&
-      QVL.sources.some(function (s) { return /ancillary_vf_filter\.rs@b220448/.test(s); }));
+    check("quoted-label removal is sourced at b508926",
+      !!QVL && QVL.verifiedAt === "b508926" &&
+      QVL.sources.some(function (s) { return /vf_candidate_hydrator\.rs@b508926.*should_drop_ancillary/.test(s); }) &&
+      QVL.sources.some(function (s) { return /ancillary_vf_filter\.rs@b508926/.test(s); }));
     check("quoted-label note names the author exemption and PushToHomeSource",
       !!QVL && /author/.test(QVL.note) && /PushToHomeSource/.test(QVL.note) && !!QVL.panel);
 
@@ -1418,6 +1429,16 @@
       delete I.JA_DRAFT["Draft only line"];
       return served === "Draft only line";
     })());
+    // sysCat reviewed the 0.11.0 drafts (Nov 4, 2026); they are served now.
+    // Anything added after that review stays a draft until it is reviewed.
+    check("i18n: the reviewed 0.11.0 lines are served",
+      I.t("Language") === "言語" &&
+      I.t("Substantive text (≥100 chars)") === "しっかりした文章量（全角50文字以上）" &&
+      I.t("Visibility limited by X — X's published code usually removes it from For You for everyone but the author")
+        === "Xによる表示制限中 — Xが公開したコードでは、投稿者以外の全員の「おすすめ」から通常除外されます" &&
+      I.t("{n}h", { n: 3 }) === "3時間");
+    check("i18n: the unreviewed grok_analyze label is not served",
+      I.t("Grok analyze click") === "Grok analyze click" && I.JA_DRAFT["Grok analyze click"] !== undefined);
     check("i18n: placeholders fill in both languages, literally",
       I.t("Raw: {x}", { x: "$&{y}$1" }) === "Raw: $&{y}$1");
     check("i18n: unknown placeholder is left visible", I.t("Raw: {x}") === "Raw: {x}");
@@ -1440,7 +1461,7 @@
     // wrap's whitespace. Beside Japanese that whitespace shows as stray spaces
     // (「 実測」, + 比較 を押すと); beside Latin text it is a real word gap.
     check("static translation drops wrap whitespace beside Japanese, keeps it beside Latin",
-      I.placeTranslation("\n      inferred from the post. The popup labels all 29 ranking heads as\n      ", "項目それぞれに「") === "項目それぞれに「" &&
+      I.placeTranslation("\n      inferred from the post. The popup labels all 30 ranking heads as\n      ", "項目それぞれに「") === "項目それぞれに「" &&
       I.placeTranslation(" …and more ", "…ほか") === " …ほか" &&
       I.placeTranslation(" to save up to three", "を押すと") === "を押すと" &&
       I.placeTranslation("\n  Settings\n", "設定") === "設定" &&
