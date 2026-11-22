@@ -16,7 +16,7 @@
   var lastXLanguage = null;
 
   // Auto follows X's own display language (<html lang>); the popup can pin
-  // English or Japanese. X's language is recorded for the popup and welcome
+  // a supported language. X's language is recorded for the popup and welcome
   // page, which are not on x.com and cannot read it themselves.
   function applyLanguage() {
     var htmlLang = document.documentElement.getAttribute("lang");
@@ -543,6 +543,14 @@
 
   // The verified rescorer's label carries its factor, so it has a template;
   // the others are fixed labels from weights.js.
+  function visibilityTooltip(fact) {
+    return tl(fact.note) + t(" (xai-org/x-algorithm at {commit}, {date}: {sources})", {
+      commit: fact.verifiedAt,
+      date: fact.verifiedAsOf,
+      sources: fact.sources.map(function (s) { return s.split(" (")[0]; }).join(", ")
+    });
+  }
+
   function rescorerLabel(r) {
     if (r.label.indexOf("Verified author ×") === 0) {
       return t("Verified author ×{factor} (2023 code, absent from the 2026 release)", { factor: r.factor });
@@ -693,7 +701,7 @@
         var mrow = el("div", "bangermeter-mod");
         mrow.appendChild(el("span", "bangermeter-mod-dir" + cls, dir));
         mrow.appendChild(el("span", "bangermeter-mod-label", plainSignal(m.id) || tl(m.label)));
-        mrow.title = m.why + (m.factor != null ? " (×" + m.factor + ", " + m.provenance + ")" : "");
+        mrow.title = tl(m.why) + (m.factor != null ? " (×" + m.factor + ", " + tl(m.provenance) + ")" : "");
         sec1.appendChild(mrow);
       });
     } else {
@@ -708,49 +716,41 @@
     if (result.features.visibilityLimited) {
       var VL = BANGERMETER_CONFIG.sourcedFacts.visibilityLimited;
       var vl = el("div", "bangermeter-rescorer", "▼ " + tl(VL.panel));
-      vl.title = VL.note + " (xai-org/x-algorithm at " + VL.verifiedAt + ", " +
-        VL.verifiedAsOf + ": " + VL.sources.map(function (s) {
-          return s.split(" (")[0];
-        }).join(", ") + ")";
+      vl.title = visibilityTooltip(VL);
       sec1.appendChild(vl);
       sec1.appendChild(el("div", "bangermeter-fineprint", tl(VL.panelDetail)));
     }
     if (result.features.quotedVisibilityLimited) {
       var QVL = BANGERMETER_CONFIG.sourcedFacts.quotedVisibilityLimited;
       var qvl = el("div", "bangermeter-rescorer", "▼ " + tl(QVL.panel));
-      qvl.title = QVL.note + " (xai-org/x-algorithm at " + QVL.verifiedAt + ", " +
-        QVL.verifiedAsOf + ": " + QVL.sources.map(function (s) {
-          return s.split(" (")[0];
-        }).join(", ") + ")";
+      qvl.title = visibilityTooltip(QVL);
       sec1.appendChild(qvl);
     }
     if (result.features.hasCommunityNote) {
       sec1.appendChild(el("div", "bangermeter-fineprint",
-        "Community Note effect sourced from: X's own A/B test (25–34% fewer like/repost decisions), " +
-        "Chuai et al. Nature Communications (−61% subsequent reposts), Slaughter et al. PNAS " +
-        "(−46% reposts / −44% likes post-attach)."));
+        t("Community Note effect sourced from: X's own A/B test (25–34% fewer like/repost decisions), Chuai et al. Nature Communications (−61% subsequent reposts), Slaughter et al. PNAS (−46% reposts / −44% likes post-attach).")));
     }
     if (result.features.isReply) {
       // Reply-specific scoring facts, all verified against the published repo.
       // The ×0.75 rescorer row above already covers the in-feed discount.
       var RQ = BANGERMETER_CONFIG.sourcedFacts.replyQualityGate;
       sec1.appendChild(el("div", "bangermeter-subhead", t("Reply scoring")));
-      // The tooltips are X's own notes and stay English; the row text is translated.
       [
         { mark: "·", text: t("Out-of-network, this reply never reaches For You at all — replies from unfollowed accounts are hard-filtered, not down-weighted."),
-          tip: BANGERMETER_CONFIG.sourcedFacts.oonReplyFilter.note + " (" +
+          tip: tl(BANGERMETER_CONFIG.sourcedFacts.oonReplyFilter.note) + " (" +
             BANGERMETER_CONFIG.sourcedFacts.oonReplyFilter.source + ")" },
         { mark: "·", text: t("No mutual-follow boost here: the +{boost} reply boost needs an ORIGINAL post — replies are ineligible.",
             { boost: BANGERMETER_CONFIG.bidirectionalFollowReplyBoost.toFixed(1) }),
-          tip: "bidirectional_boost_eligible requires in_reply_to_tweet_id to be none " +
-            "(bidirectional_boost_eligible, xai-value-model/inputs.rs). " + BANGERMETER_CONFIG.heads.reply.note },
+          tip: t("bidirectional_boost_eligible requires in_reply_to_tweet_id to be none (bidirectional_boost_eligible, xai-value-model/inputs.rs).") +
+            " " + tl(BANGERMETER_CONFIG.heads.reply.note) },
         { mark: "·", text: t("Replying to an account over {k}K followers? A Grok model scores the reply {min}–{max}; a {min} applies the {label} label (duration unpublished).",
             { k: RQ.followerThreshold / 1000, min: RQ.scoreMin, max: RQ.scoreMax, label: RQ.zeroScoreLabel }),
-          tip: RQ.note + " Signals it is shown: " + RQ.signals.join("; ") + ". (" + RQ.source + ")" },
+          tip: tl(RQ.note) + " " + t("Signals it is shown: {signals}. ({source})",
+            { signals: RQ.signals.map(function (signal) { return tl(signal); }).join("; "), source: RQ.source }) },
         { mark: "·", text: t("Where this reply SORTS inside the thread is not something anyone outside X can score — that ranker is not open-sourced."),
-          tip: BANGERMETER_CONFIG.sourcedFacts.conversationRanker.note },
+          tip: tl(BANGERMETER_CONFIG.sourcedFacts.conversationRanker.note) },
         { mark: "·", text: t("Replies are filtered out of X's Grok “banger” pipeline before it runs — it only ever evaluates original posts."),
-          tip: "grox/flows/upa/task_filter.py — TaskInitialBangerFilter rejects any post with ancestors." }
+          tip: t("grox/flows/upa/task_filter.py — TaskInitialBangerFilter rejects any post with ancestors.") }
       ].forEach(function (r) {
         var rrow = el("div", "bangermeter-mod");
         rrow.appendChild(el("span", "bangermeter-mod-dir", r.mark));
@@ -787,7 +787,7 @@
         { icon: "reply", n: counts.replies,
           count: function (n) { return n === 1 ? t("{n} reply", { n: n }) : t("{n} replies", { n: n.toLocaleString() }); },
           worth: replyWorthText(),
-          tip: BANGERMETER_CONFIG.heads.reply.note },
+          tip: tl(BANGERMETER_CONFIG.heads.reply.note) },
         { icon: "repost", n: counts.retweets,
           count: function (n) { return n === 1 ? t("{n} repost", { n: n }) : t("{n} reposts", { n: n.toLocaleString() }); },
           worth: t("each worth {likes} likes", { likes: likesEquiv(BANGERMETER_CONFIG.heads.retweet.weight) }),
@@ -800,7 +800,7 @@
         { icon: "bookmark", n: counts.bookmarks,
           count: function (n) { return n === 1 ? t("{n} bookmark", { n: n }) : t("{n} bookmarks", { n: n.toLocaleString() }); },
           worth: t("not a scored action — X publishes no bookmark weight"),
-          tip: BANGERMETER_CONFIG.unweightedSignals.bookmark.note }
+          tip: tl(BANGERMETER_CONFIG.unweightedSignals.bookmark.note) }
       ].forEach(function (r) {
         if (r.n == null) return;
         var row = el("div", "bangermeter-plainrow");
@@ -853,7 +853,7 @@
       fresh.appendChild(el("span", null,
         t("Freshness: ×{factor} at {age} old — posts fade over ~6 hours, never below ×0.60",
           { factor: result.ageDecay.factor.toFixed(2), age: ageText })));
-      fresh.title = "Earlybird age-decay sigmoid: base 0.6, halflife 360 min, slope 0.003";
+      fresh.title = t("Earlybird age-decay sigmoid: base 0.6, halflife 360 min, slope 0.003");
       sec3.appendChild(fresh);
     }
     // Author-diversity attenuation — the per-slate cadence cap the production
@@ -865,11 +865,8 @@
       var drow = el("div", "bangermeter-rescorer", "▼ " +
         t("Posting cadence: post #{n} from this author in the loaded stretch of feed — production attenuates it ×{mult} (author diversity)",
           { n: slateK + 1, mult: dmul.toFixed(2) }));
-      drow.title = "diversity_multiplier(k=" + slateK + ") = (1 − floor) × decay^k + floor, with " +
-        "decay 0.5 and floor 0.25 (xai-value-model/scoring.rs; flag-gated behind EnableAuthorDiversity, " +
-        "which ships true — when enabled it applies to every candidate). Only currently rendered " +
-        "posts are counted, so the true rank can be higher. Not applied to the score above — it " +
-        "is slate-relative and viewer-specific.";
+      drow.title = t("diversity_multiplier(k={rank}) = (1 − floor) × decay^k + floor, with decay 0.5 and floor 0.25 (xai-value-model/scoring.rs; flag-gated behind EnableAuthorDiversity, which ships true — when enabled it applies to every candidate). Only currently rendered posts are counted, so the true rank can be higher. Not applied to the score above — it is slate-relative and viewer-specific.",
+        { rank: slateK });
       sec3.appendChild(drow);
     }
     if (result.features.isVerified && !settings.applyVerifiedBoost2023) {
@@ -936,17 +933,12 @@
       t("These are values per event, not per post: a heavy weight on a rare action still moves fewer posts than a light weight on a common one. Only likes, replies and reposts above come from this post's real counts — the rest need Phoenix's own predictions, so they inform what you read here without entering the score above.")));
     sec3.appendChild(d4);
 
-    // The body stays English: it carries X's weekly changelog.
     var d3 = mathDetails(t("About these scores"));
     d3.appendChild(el("div", "bangermeter-fineprint",
-      "Weights: " + BANGERMETER_CONFIG.weightsSnapshot + ". X states these are kept in sync with " +
-      "the live production configuration by cron, which makes them the first ranking weights ever " +
-      "published as current rather than historical."));
+      t("Weights: {snapshot}. X states these are kept in sync with the live production configuration by cron, which makes them the first ranking weights ever published as current rather than historical.",
+        { snapshot: tl(BANGERMETER_CONFIG.weightsSnapshot) })));
     d3.appendChild(el("div", "bangermeter-fineprint",
-      "The weighted sum modeled here is now the only scoring mode X publishes. Two alternatives " +
-      "(dwell-regret, with far deeper negatives) existed in the same code until September 18, " +
-      "2026, when X deleted them along with the switch that chose between them. Relative score, " +
-      "not predicted reach."));
+      t("The weighted sum modeled here is now the only scoring mode X publishes. Two alternatives (dwell-regret, with far deeper negatives) existed in the same code until September 18, 2026, when X deleted them along with the switch that chose between them. Relative score, not predicted reach.")));
     sec3.appendChild(d3);
     panel.appendChild(sec3);
 

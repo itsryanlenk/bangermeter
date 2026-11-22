@@ -40,6 +40,8 @@ Installing opens a one-page quick start; the popup keeps a link back to it.
 > replaced the entire weight layer with the published set. Everything below describes the
 > new one.
 
+Choose **简体中文** in the popup's language setting. Auto also follows X's Simplified Chinese display language.
+
 ## What it looks like
 
 ![The breakdown panel open on a live post](store-assets/screenshot-1280x800.png)
@@ -232,7 +234,7 @@ what the published weights actually say.
 | `extension/content.js` | Badges, breakdown panel, compose meter |
 | `extension/background.js` | Service worker. One listener: open the quick start on first install, never on update |
 | `extension/welcome.html` | The quick start itself — self-contained, loads nothing over the network |
-| `extension/test.html` | Engine self-test — open in any browser (429 assertions) |
+| `extension/test.html` | Engine self-test — open in any browser (432 assertions) |
 | `extension/fixture.html` | X-DOM fixture harness for the content script |
 | `extension/fixture-thread.html` | Reply-detection harness — asserts the conversation, `with_replies` and home-timeline surfaces separately, because X marks a reply differently on each. Needs `serve-fixtures.js` (it reads `location.pathname`) |
 | `extension/serve-fixtures.js` | Tiny static server for the harnesses, including the x.com-shaped paths the reply-detection cases need |
@@ -250,7 +252,7 @@ happened when those numbers were hardcoded.
 
 ## Verification status
 
-- Engine math: **429/429 self-tests pass** (`test.html`). Every published
+- Engine math: **432/432 self-tests pass** (`test.html`). Every published
   weight and its feature-switch parameter name is asserted individually against
   `param.rs`, or `vm-ranker/params.rs` for the three heads only it publishes, so a silent transcription error fails the suite rather than shipping.
   param.rs moved five heads between the Oct 6 and Oct 13, 2026 syncs (published

@@ -28,7 +28,7 @@ BANGERMETER_I18N.resolvePageLanguage(function () {
       });
       // The popup was drawn in the old language; redraw it in the new one.
       var langSel = document.getElementById("uiLanguage");
-      langSel.value = stored.uiLanguage || "auto";
+      langSel.value = stored.uiLanguage || BANGERMETER_DEFAULT_SETTINGS.uiLanguage;
       langSel.addEventListener("change", function () {
         chrome.storage.sync.set({ uiLanguage: langSel.value }, function () { location.reload(); });
       });
@@ -303,7 +303,7 @@ BANGERMETER_I18N.resolvePageLanguage(function () {
     .forEach(function (name) {
       var h = heads[name];
       var tr = document.createElement("tr");
-      tr.title = (h.note ? h.note + "\n\n" : "") + h.param;
+      tr.title = (h.note ? tl(h.note) + "\n\n" : "") + h.param;
 
       var tdLabel = document.createElement("td");
       tdLabel.textContent = tl(h.label);
@@ -325,9 +325,8 @@ BANGERMETER_I18N.resolvePageLanguage(function () {
 
   var snap = document.getElementById("weightSnapshot");
   if (snap) {
-    // weightsSnapshot is X's changelog and stays English inside either language.
     snap.textContent = t("Every value below is transcribed from {snapshot}. Replies rise to {mutual} on an original post from a mutual follow.",
-      { snapshot: C.weightsSnapshot, mutual: heads.reply.weight + C.bidirectionalFollowReplyBoost });
+      { snapshot: tl(C.weightsSnapshot), mutual: heads.reply.weight + C.bidirectionalFollowReplyBoost });
   }
 
   var footer = document.getElementById("footerNote");

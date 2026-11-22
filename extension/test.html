@@ -1435,7 +1435,23 @@
       ["ja", "en", "en", "ja"]
     ].every(function (c) { return I.resolveLanguage(c[0], c[1], c[2]) === c[3]; }));
     I.setLanguage("en");
+    section("Simplified Chinese localization");
     check("settings default to the Auto language", BANGERMETER_DEFAULT_SETTINGS.uiLanguage === "auto");
+    check("auto recognizes Simplified Chinese and respects X's language", [
+      ["auto", "zh", "en", "zh-CN"], ["auto", "zh-Hans-CN", "en", "zh-CN"],
+      ["auto", "zh-CN", "en", "zh-CN"], ["auto", "", "zh-SG", "zh-CN"],
+      ["auto", "zh-Hant-TW", "zh-CN", "en"], ["zh-CN", "en-US", "ja", "zh-CN"],
+      ["en", "zh-CN", "zh-CN", "en"], ["ja", "zh-CN", "zh-CN", "ja"]
+    ].every(function (c) { return I.resolveLanguage(c[0], c[1], c[2]) === c[3]; }));
+    I.setLanguage("zh-CN");
+    check("Simplified Chinese translates labels and fills placeholders",
+      I.t("Show the math") === "查看计算过程" &&
+      I.t("{n} replies", { n: 12 }) === "12 条回复");
+    check("Simplified Chinese keeps every placeholder",
+      Object.keys(I.ZH_CN).every(function (k) {
+        return I.placeholdersOf(k).join() === I.placeholdersOf(I.ZH_CN[k]).join();
+      }));
+    I.setLanguage("en");
     // Static pages wrap lines inside sentences, so a text node carries the
     // wrap's whitespace. Beside Japanese that whitespace shows as stray spaces
     // (「 実測」, + 比較 を押すと); beside Latin text it is a real word gap.

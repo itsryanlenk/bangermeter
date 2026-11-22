@@ -268,7 +268,11 @@
       --ts-font-display: 'Archivo Black', 'Arial Black', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic UI', Meiryo, sans-serif;
       --ts-font-body: 'Space Grotesk', Arial, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', Meiryo, sans-serif;
     }
-    :root[lang="ja"] body { line-break: strict; }
+    :root[lang="zh-CN"] {
+      --ts-font-display: 'Archivo Black', 'Arial Black', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      --ts-font-body: 'Space Grotesk', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    }
+    :root:is([lang="ja"], [lang="zh-CN"]) body { line-break: strict; }
   </style>
 </head>
 <body>
@@ -324,6 +328,7 @@
       <label for="uiLanguage" title="Language for the badge, panel, draft meter and this popup. Auto follows X's own display language.">Language</label>
       <select id="uiLanguage">
         <option value="auto">Auto (match X)</option>
+        <option value="zh-CN">简体中文</option>
         <option value="en">English</option>
         <option value="ja">日本語</option>
       </select>
