@@ -1,11 +1,12 @@
-// Japanese coverage report — which UI strings have reviewed Japanese, which
+// Japanese and Simplified Chinese coverage report — which UI strings have reviewed Japanese, which
 // are drafts awaiting review, which are missing, and which Japanese entries
 // no longer match any English in the source.
 //
 //   node store-assets/i18n-coverage.js          summary line, then the lists
 //   node store-assets/i18n-coverage.js --json   the same data as JSON
+//   node store-assets/i18n-coverage.js --zh-CN  check all Simplified Chinese UI strings
 //
-// Informational by design: it exits 0 whenever it completes, so an X push
+// The Japanese report is informational, so an X push
 // that adds an English label never turns CI or the release gate red. A
 // missing line simply ships in English. It exits 2 only if it crashes.
 // Structural mistakes (a Japanese entry that drops a placeholder) are bugs
@@ -69,6 +70,7 @@ function pageStrings(file, found) {
 
 function main() {
   const { I, C } = loadTables();
+  const checkChinese = process.argv.includes("--zh-CN");
   const found = new Map();
   const unchecked = [];
   for (const f of ["content.js", "popup.js", "welcome.js"]) if (exists(f)) scriptStrings(f, found, unchecked);
@@ -82,6 +84,27 @@ function main() {
     SF.quotedVisibilityLimited.panel, C.weightsMeaningNote]) found.set(s, "weights.js panel text");
 
   const hasLetters = s => /\p{L}/u.test(s);
+  if (checkChinese) {
+    for (const h of Object.values(C.heads)) if (h.note) found.set(h.note, "weights.js head tooltip");
+    for (const m of C.contentModifiers) {
+      found.set(m.why, "weights.js modifier tooltip");
+      found.set(m.provenance, "weights.js modifier source");
+    }
+    for (const f of [SF.visibilityLimited, SF.quotedVisibilityLimited, SF.oonReplyFilter,
+      SF.replyQualityGate, SF.conversationRanker]) found.set(f.note, "weights.js tooltip");
+    for (const signal of SF.replyQualityGate.signals) found.set(signal, "weights.js reply signal");
+    found.set(C.unweightedSignals.bookmark.note, "weights.js bookmark tooltip");
+    found.set(C.weightsSnapshot, "weights.js source snapshot");
+    const unchanged = new Set(["Bangermeter", "简体中文", "C", "C71", "E", "E48"]);
+    const required = [...found.keys()].filter(s => hasLetters(s) && !unchanged.has(s));
+    const missing = required.filter(s => !Object.hasOwn(I.ZH_CN, s));
+    console.log(`zh-CN: ${required.length - missing.length}/${required.length} translated, ${unchecked.length} unchecked`);
+    for (const s of missing) console.error("MISSING: " + found.get(s) + ": " + s);
+    for (const s of unchecked) console.error("UNCHECKED: " + s);
+    if (missing.length || unchecked.length) process.exitCode = 1;
+    return;
+  }
+
   const keepEnglish = s => I.KEEP_ENGLISH.some(re => re.test(s));
   const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 

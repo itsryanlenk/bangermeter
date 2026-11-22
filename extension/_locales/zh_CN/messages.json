@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "Bangermeter — X 算法评分"
+  },
+  "extDescription": {
+    "message": "使用 X 公布的「为你推荐」权重和评分公式评估帖子。每项评分因素均标注来源。"
+  },
+  "actionTitle": {
+    "message": "Bangermeter — X 算法评分"
+  }
+}

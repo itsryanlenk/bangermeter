@@ -492,9 +492,14 @@
   overflow-wrap: anywhere;
   line-break: strict;
 }
-.bangermeter-panel[lang="ja"] .bangermeter-panel-scorelabel,
-.bangermeter-panel[lang="ja"] .bangermeter-subhead,
-.bangermeter-panel[lang="ja"] .bangermeter-math summary,
-.bangermeter-meter[lang="ja"] .bangermeter-meter-save {
+:is(.bangermeter-badge, .bangermeter-panel, .bangermeter-meter)[lang="zh-CN"] {
+  --ts-font-display: 'Archivo Black', 'Arial Black', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --ts-font-body: 'Space Grotesk', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  line-break: strict;
+}
+.bangermeter-panel:is([lang="ja"], [lang="zh-CN"]) :is(.bangermeter-panel-scorelabel, .bangermeter-subhead, .bangermeter-math summary),
+.bangermeter-meter:is([lang="ja"], [lang="zh-CN"]) .bangermeter-meter-save {
   letter-spacing: normal;
 }
