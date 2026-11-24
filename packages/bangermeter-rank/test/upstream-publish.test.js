@@ -80,3 +80,27 @@ test("PR creation refused by the repo setting still publishes the issue, then fa
   const refused = h.calls.findIndex(c => c.startsWith("gh pr create"));
   assert.ok(h.calls.findIndex((c, i) => i > refused && c.startsWith("gh issue create")) > refused, "the issue is still published");
 });
+
+test("changedFiles reads real git output: the first path keeps its first letter", () => {
+  // The fakes above hand back " M path" untouched; the real runner must too.
+  // Before the fix it trimmed stdout, so the first line lost its leading space
+  // and slice(3) cut "extension/..." to "xtension/...", which then failed the
+  // write allowlist on every scheduled run that changed files.
+  const fs = require("fs");
+  const os = require("os");
+  const { execFileSync } = require("child_process");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "bmr-status-"));
+  try {
+    const git = (...args) => execFileSync("git", ["-C", dir, ...args], { stdio: ["ignore", "pipe", "pipe"] });
+    git("init", "-q");
+    for (const [k, v] of [["user.email", "test@example.com"], ["user.name", "test"], ["commit.gpgsign", "false"], ["core.autocrlf", "false"]]) git("config", k, v);
+    const files = ["extension/bangermeter.user.js", "extension/weights.js"];
+    fs.mkdirSync(path.join(dir, "extension"));
+    for (const f of files) fs.writeFileSync(path.join(dir, f), "a\n");
+    git("add", "-A");
+    git("commit", "-q", "-m", "init");
+    for (const f of files) fs.writeFileSync(path.join(dir, f), "b\n");
+    const run = (cmd, args, opts) => pub.realRun(cmd, ["-C", dir].concat(args), opts);
+    assert.deepEqual(pub.changedFiles(run), files);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
