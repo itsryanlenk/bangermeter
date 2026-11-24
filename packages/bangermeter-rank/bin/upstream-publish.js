@@ -21,7 +21,9 @@ const PR_SETTING_HINT = "Enable Settings → Actions → General → \"Allow Git
 
 function realRun(cmd, args, opts) {
   const r = spawnSync(cmd, args, { cwd: path.join(ROOT, (opts && opts.cwd) || ""), encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
-  return { code: r.status === null ? 1 : r.status, out: (r.stdout || "").trim(), err: (r.stderr || r.error && r.error.message || "").trim() };
+  // Trim only the end of stdout: `git status --porcelain` starts a line with a
+  // space (" M path"), and trimming the start ate the first path's first letter.
+  return { code: r.status === null ? 1 : r.status, out: (r.stdout || "").trimEnd(), err: (r.stderr || r.error && r.error.message || "").trim() };
 }
 
 class Broken extends Error {}
@@ -131,4 +133,4 @@ if (require.main === module) {
   }));
 }
 
-module.exports = { main, gather, execute, changedFiles, runGates };
+module.exports = { main, gather, execute, changedFiles, runGates, realRun };
